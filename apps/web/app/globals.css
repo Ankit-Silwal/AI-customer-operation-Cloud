@@ -1663,3 +1663,11 @@ dialog p {
     font-size: 26px;
   }
 }
+.mobile-signout {
+  display: none;
+}
+@media (max-width: 800px) {
+  .mobile-signout {
+    display: block;
+  }
+}

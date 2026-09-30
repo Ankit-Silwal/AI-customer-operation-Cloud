@@ -9,7 +9,8 @@ import { appOrigin } from '../src/auth.js';
 
 const server = createApiServer();
 await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
+const base =
+  process.env.TEST_BASE_URL || `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
 const emails: string[] = [],
   organizationIds: string[] = [];
 after(async () => {

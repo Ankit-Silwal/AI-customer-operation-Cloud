@@ -126,6 +126,12 @@ function Workspace({ userName }: { userName: string }) {
       setBusy(false);
     }
   }
+  function signOut() {
+    void run(async () => {
+      const result = await authClient.signOut();
+      if (result.error) throw new Error(result.error.message);
+    });
+  }
   function updateCount(field: 'conversationCount' | 'documentCount') {
     setOrganizations((items) =>
       items.map((o) => (o.id === organizationId ? { ...o, [field]: o[field] + 1 } : o)),
@@ -273,6 +279,9 @@ function Workspace({ userName }: { userName: string }) {
             <strong>{title}</strong>
           </span>
           <div className="topbar-right">
+            <button className="signout-button mobile-signout" onClick={signOut} disabled={busy}>
+              Sign out
+            </button>
             <span className="demo-pill">
               <span />
               Showcase mode

@@ -5,3 +5,4 @@ package-lock.json
 apps/api/src/generated
 apps/api/prisma/migrations
 *.tsbuildinfo
+next-env.d.ts

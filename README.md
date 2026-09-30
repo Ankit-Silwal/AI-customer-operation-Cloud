@@ -35,17 +35,17 @@ For deployment use your HTTPS frontend origin instead. The Google button is disa
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Run both apps with reload |
-| `npm run build` | Build shared types, API, and frontend |
-| `npm start` | Run both production builds |
-| `npm run typecheck` | Strict TypeScript checks in every workspace |
-| `npm test` | Database-backed API and authentication tests |
-| `npm run format` | Format source files |
-| `npm run db:generate` | Generate Prisma Client |
-| `npm run db:migrate` | Apply committed migrations |
-| `npm run db:migrate:dev -w @relay/api -- --name example` | Create a development migration |
+| Command                                                  | Purpose                                      |
+| -------------------------------------------------------- | -------------------------------------------- |
+| `npm run dev`                                            | Run both apps with reload                    |
+| `npm run build`                                          | Build shared types, API, and frontend        |
+| `npm start`                                              | Run both production builds                   |
+| `npm run typecheck`                                      | Strict TypeScript checks in every workspace  |
+| `npm test`                                               | Database-backed API and authentication tests |
+| `npm run format`                                         | Format source files                          |
+| `npm run db:generate`                                    | Generate Prisma Client                       |
+| `npm run db:migrate`                                     | Apply committed migrations                   |
+| `npm run db:migrate:dev -w @relay/api -- --name example` | Create a development migration               |
 
 Tests use the configured database, create uniquely named test accounts and organizations, and clean up their own records. Use a dedicated test database when working with real customer data.
 
@@ -53,14 +53,14 @@ Tests use the configured database, create uniquely named test accounts and organ
 
 All organization routes require a valid session cookie. POST requests also require an Origin matching `BETTER_AUTH_URL`. Documents are stored as bytes in PostgreSQL without processing; list responses contain metadata only. Uploads accept PDF, TXT, MD, DOCX up to 5 MB.
 
-| Method | Path | Body |
-| --- | --- | --- |
-| GET / POST | `/api/organizations` | `{ name, description? }` |
-| GET | `/api/organizations/:orgId` | — |
-| GET / POST | `/api/organizations/:orgId/conversations` | `{ title? }` |
-| GET | `/api/organizations/:orgId/conversations/:id` | — |
-| GET / POST | `/api/organizations/:orgId/conversations/:id/messages` | `{ text }` |
-| GET / POST | `/api/organizations/:orgId/documents` | multipart `file` |
+| Method     | Path                                                   | Body                     |
+| ---------- | ------------------------------------------------------ | ------------------------ |
+| GET / POST | `/api/organizations`                                   | `{ name, description? }` |
+| GET        | `/api/organizations/:orgId`                            | —                        |
+| GET / POST | `/api/organizations/:orgId/conversations`              | `{ title? }`             |
+| GET        | `/api/organizations/:orgId/conversations/:id`          | —                        |
+| GET / POST | `/api/organizations/:orgId/conversations/:id/messages` | `{ text }`               |
+| GET / POST | `/api/organizations/:orgId/documents`                  | multipart `file`         |
 
 Better Auth serves signup, login, session, logout, and Google OAuth at `/api/auth/*`. Password hashes and sessions are stored through Prisma. Creating an organization adds the creator as a member. Team invitation and role management are intentionally outside this starter.
 
@@ -69,5 +69,7 @@ Better Auth serves signup, login, session, logout, and Google OAuth at `/api/aut
 Run the two Node apps on your own infrastructure with PostgreSQL. Configure `API_URL` before building the frontend, set secrets and database connection in the API environment, run migrations, build, and start. Docker Compose provides a persistent local database volume; its credentials are for local development only.
 
 This is a starter, not a completed production system. Email verification, password-reset email delivery, team invitations, production monitoring, and AI processing are not included. Google OAuth has been wired up but needs your credentials for a live end-to-end check.
+
+The current dependency audit reports four high-severity findings in the Prisma dependency chain (`deepmerge-ts` and `mysql2`, including parent-package reports). This app uses PostgreSQL, not MySQL. Resolve or reassess these upstream dependency findings before production deployment.
 
 Implementation references: [Next.js rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites), [Better Auth](https://better-auth.com/docs/installation), [Google OAuth configuration](https://better-auth.com/docs/authentication/google), and [Prisma PostgreSQL](https://www.prisma.io/docs/orm/v7/core-concepts/supported-databases/postgresql).
