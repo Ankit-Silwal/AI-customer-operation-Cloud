@@ -1,0 +1,7 @@
+node_modules
+.next
+dist
+package-lock.json
+apps/api/src/generated
+apps/api/prisma/migrations
+*.tsbuildinfo

@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id String @id
+  name String
+  email String @unique
+  emailVerified Boolean @default(false)
+  image String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions Session[]
+  accounts Account[]
+  memberships Membership[]
+  @@map("user")
+}
+
+model Session {
+  id String @id
+  expiresAt DateTime
+  token String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id String @id
+  accountId String
+  providerId String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id String @id
+  identifier String
+  value String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Organization {
+  id String @id @default(uuid())
+  name String
+  description String @default("")
+  createdAt DateTime @default(now())
+  memberships Membership[]
+  conversations Conversation[]
+  documents Document[]
+}
+
+model Membership {
+  id String @id @default(uuid())
+  userId String
+  organizationId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+model Conversation {
+  id String @id @default(uuid())
+  title String @default("New conversation")
+  updatedAt DateTime @default(now()) @updatedAt
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  messages Message[]
+  @@index([organizationId, updatedAt])
+}
+
+model Message {
+  id String @id @default(uuid())
+  sequence Int
+  role MessageRole
+  text String
+  createdAt DateTime @default(now())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  @@unique([conversationId, sequence])
+}
+
+enum MessageRole {
+  user
+  assistant
+}
+
+model Document {
+  id String @id @default(uuid())
+  name String
+  size Int
+  type String
+  content Bytes
+  createdAt DateTime @default(now())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@index([organizationId, createdAt])
+}
