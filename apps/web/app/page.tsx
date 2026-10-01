@@ -28,8 +28,14 @@ const date = (value: number) =>
 
 export default function Home() {
   const { data: session, isPending, error } = authClient.useSession();
-  if (isPending) return <div className="loading-state">Loading your workspace…</div>;
+  const [sessionReady, setSessionReady] = useState(false);
+  useEffect(() => {
+    if (!isPending) setSessionReady(true);
+  }, [isPending]);
+  if (!sessionReady && isPending)
+    return <div className="loading-state">Loading your workspace…</div>;
   if (!session) return <AuthScreen initialError={error?.message} />;
+  if (!session.user.emailVerified) return <AuthScreen verificationEmail={session.user.email} />;
   return <Workspace key={session.user.id} userName={session.user.name} />;
 }
 
