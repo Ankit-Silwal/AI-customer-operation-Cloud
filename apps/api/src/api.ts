@@ -90,6 +90,8 @@ export async function handle(request: Request, segments: string[]): Promise<Resp
       );
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) fail('Sign in to continue.', 401);
+    if (!session.user.emailVerified)
+      fail('Verify your email before accessing your workspace.', 403);
     if (method === 'POST' && request.headers.get('origin') !== appOrigin)
       fail('Invalid request origin.', 403);
     if (segments[0] !== 'organizations') fail('Not found.', 404);

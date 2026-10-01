@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
 import { handle } from './api.js';
-import { auth, googleEnabled } from './auth.js';
+import { auth } from './auth.js';
 import { toNodeHandler } from 'better-auth/node';
 
 export function createApiServer() {
@@ -10,14 +10,6 @@ export function createApiServer() {
       const url = new URL(incoming.url || '/', 'http://localhost');
       if (url.pathname.startsWith('/api/auth/')) {
         await toNodeHandler(auth)(incoming, outgoing);
-        return;
-      }
-      if (url.pathname === '/api/config' && incoming.method === 'GET') {
-        outgoing.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store',
-        });
-        outgoing.end(JSON.stringify({ googleEnabled }));
         return;
       }
       if (!url.pathname.startsWith('/api/')) {

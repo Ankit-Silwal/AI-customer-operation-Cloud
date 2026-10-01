@@ -3,9 +3,36 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import type { Organization, Conversation, DocumentMetadata } from '@relay/shared';
-import { createApiServer } from '../src/http.js';
-import { prisma } from '../src/db.js';
-import { appOrigin } from '../src/auth.js';
+import { SMTPServer } from 'smtp-server';
+
+const messages: { to: string; text: string }[] = [];
+let rejectMail = false;
+const smtp = new SMTPServer({
+  disabledCommands: ['AUTH', 'STARTTLS'],
+  onData(stream, session, callback) {
+    let text = '';
+    stream.on('data', (chunk: Buffer) => (text += chunk.toString()));
+    stream.on('end', () => {
+      if (rejectMail) return callback(new Error('Test delivery failure'));
+      messages.push({ to: session.envelope.rcptTo[0].address, text });
+      callback();
+    });
+    stream.on('error', callback);
+  },
+});
+await new Promise<void>((resolve) => smtp.listen(0, '127.0.0.1', resolve));
+process.env.SMTP_HOST = '127.0.0.1';
+process.env.SMTP_PORT = String((smtp.server.address() as AddressInfo).port);
+process.env.SMTP_SECURE = 'false';
+process.env.SMTP_USER = '';
+process.env.SMTP_PASSWORD = '';
+process.env.EMAIL_FROM = 'Relay <verification@example.com>';
+const { createApiServer } = await import('../src/http.js');
+const { prisma } = await import('../src/db.js');
+const { appOrigin, auth } = await import('../src/auth.js');
+// Test auth behavior independently of per-IP request limits.
+const authContext = await auth.$context;
+authContext.rateLimit.enabled = false;
 
 const server = createApiServer();
 await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -20,6 +47,7 @@ after(async () => {
   await prisma.organization.deleteMany({ where: { id: { in: organizationIds } } });
   await prisma.user.deleteMany({ where: { email: { in: emails } } });
   await prisma.$disconnect();
+  await new Promise<void>((resolve) => smtp.close(resolve));
 });
 
 async function request(
@@ -38,16 +66,43 @@ async function request(
     body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
   });
 }
-async function signup() {
+function verificationURL(email: string) {
+  const message = [...messages].reverse().find((message) => message.to === email);
+  assert.ok(message, 'A verification email must be delivered through SMTP');
+  assert.match(message.text, /Subject: Verify your Relay email address/);
+  // Undo MIME quoted-printable line wrapping before extracting the link.
+  const decoded = message.text
+    .replace(/=\r\n/g, '')
+    .replace(/=([\da-f]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  const url = decoded.match(/https?:\/\/[^\s]+\/api\/auth\/verify-email\?[^\s]+/)?.[0];
+  assert.ok(url, 'The delivered email must contain a verification link');
+  return new URL(url);
+}
+async function signup(verify = true) {
   const email = `relay-test-${randomUUID()}@example.com`;
   emails.push(email);
   const response = await request('auth/sign-up/email', '', {
     email,
     password: 'Test-password-123!',
     name: 'Test member',
+    callbackURL: '/?verified=1',
   });
   assert.equal(response.status, 200, await response.clone().text());
-  const cookie = response.headers
+  assert.equal((await response.json()).token, null);
+  assert.equal(await prisma.session.count({ where: { user: { email } } }), 0);
+  const url = verificationURL(email);
+  assert.equal(url.origin, appOrigin);
+  assert.equal(url.searchParams.get('callbackURL'), '/?verified=1');
+  if (!verify) return { cookie: '', email };
+  const verified = await fetch(`${base}/auth/verify-email${url.search}`, { redirect: 'manual' });
+  assert.equal(verified.status, 302);
+  assert.equal(verified.headers.get('location'), '/?verified=1');
+  const login = await request('auth/sign-in/email', '', {
+    email,
+    password: 'Test-password-123!',
+  });
+  assert.equal(login.status, 200, await login.clone().text());
+  const cookie = login.headers
     .getSetCookie()
     .map((value) => value.split(';')[0])
     .join('; ');
@@ -149,4 +204,110 @@ test('email auth, sessions, protected organizations, conversations and uploads',
   }
   assert.equal((await request('auth/sign-out', owner.cookie, {})).status, 200);
   assert.equal((await request('organizations', owner.cookie)).status, 401);
+});
+
+test('verification blocks sign-in, supports resend, rejects invalid and expired links, and guards old sessions', async () => {
+  const member = await signup(false);
+  const login = await request('auth/sign-in/email', '', {
+    email: member.email,
+    password: 'Test-password-123!',
+  });
+  assert.equal(login.status, 403);
+  assert.equal((await login.json()).code, 'EMAIL_NOT_VERIFIED');
+  const before = messages.length;
+  const resend = await request('auth/send-verification-email', '', {
+    email: member.email,
+    callbackURL: '/?verified=1',
+  });
+  assert.equal(resend.status, 200);
+  assert.equal(messages.length, before + 1);
+  const url = verificationURL(member.email);
+  const invalid = await request('auth/verify-email?token=invalid');
+  assert.equal(invalid.status, 401);
+  const { createEmailVerificationToken } = await import('better-auth/api');
+  const expired = await createEmailVerificationToken(
+    process.env.BETTER_AUTH_SECRET!,
+    member.email,
+    undefined,
+    -1,
+  );
+  assert.equal((await request(`auth/verify-email?token=${expired}`)).status, 401);
+  assert.equal(
+    (await prisma.user.findUniqueOrThrow({ where: { email: member.email } })).emailVerified,
+    false,
+  );
+  // Simulate a session issued before email verification became mandatory.
+  const context = await auth.$context;
+  const user = await prisma.user.findUniqueOrThrow({ where: { email: member.email } });
+  const oldSession = await context.internalAdapter.createSession(user.id);
+  assert.ok(oldSession);
+  const { makeSignature } = await import('better-auth/crypto');
+  const signature = await makeSignature(oldSession.token, process.env.BETTER_AUTH_SECRET!);
+  const oldCookie = `${context.authCookies.sessionToken.name}=${encodeURIComponent(`${oldSession.token}.${signature}`)}`;
+  assert.equal((await request('organizations', oldCookie)).status, 403);
+  const verified = await fetch(`${base}/auth/verify-email${url.search}`, { redirect: 'manual' });
+  assert.equal(verified.status, 302);
+  assert.equal((await request('organizations', oldCookie)).status, 200);
+  assert.equal(
+    (await request('auth/sign-in/social', '', { provider: 'google', callbackURL: '/' })).status,
+    404,
+  );
+});
+
+test('SMTP failures are reported and a verification email can be retried', async () => {
+  const email = `relay-test-${randomUUID()}@example.com`;
+  emails.push(email);
+  rejectMail = true;
+  try {
+    const response = await request('auth/sign-up/email', '', {
+      email,
+      password: 'Test-password-123!',
+      name: 'Test member',
+    });
+    assert.equal(response.status, 200);
+    assert.equal(
+      messages.some((message) => message.to === email),
+      false,
+    );
+    assert.equal(await prisma.session.count({ where: { user: { email } } }), 0);
+    const resend = await request('auth/send-verification-email', '', { email, callbackURL: '/' });
+    assert.equal(resend.status, 500);
+  } finally {
+    rejectMail = false;
+  }
+  // A failed delivery may leave an unverified account; resend recovers it.
+  const response = await request('auth/send-verification-email', '', {
+    email,
+    callbackURL: '/?verified=1',
+  });
+  assert.equal(response.status, 200);
+  verificationURL(email);
+});
+
+test('verification resend requests are rate limited', async () => {
+  authContext.rateLimit.enabled = true;
+  try {
+    for (let i = 0; i < 3; i++) {
+      assert.equal(
+        (
+          await request('auth/send-verification-email', '', {
+            email: 'unknown@example.com',
+            callbackURL: '/',
+          })
+        ).status,
+        200,
+      );
+    }
+    assert.equal(
+      (
+        await request('auth/send-verification-email', '', {
+          email: 'unknown@example.com',
+          callbackURL: '/',
+        })
+      ).status,
+      429,
+    );
+  } finally {
+    authContext.rateLimit.enabled = false;
+  }
 });

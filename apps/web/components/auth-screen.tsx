@@ -6,24 +6,21 @@ export function AuthScreen({ initialError }: { initialError?: string }) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError || '');
-  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [notice, setNotice] = useState('');
   useEffect(() => {
-    fetch('/api/config')
-      .then((r) => {
-        if (!r.ok) throw new Error('Unable to reach the API.');
-        return r.json();
-      })
-      .then((config) => setGoogleEnabled(config.googleEnabled))
-      .catch(() =>
-        setError('Unable to reach the API. Check that the API and database are running.'),
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('error'))
+      setError(
+        'This verification link is invalid or has expired. Sign in to request another email.',
       );
-    if (new URLSearchParams(window.location.search).has('error'))
-      setError('Google sign-in could not be completed. Please try again.');
+    else if (params.get('verified') === '1')
+      setNotice('Your email is verified. Sign in to open your workspace.');
   }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError('');
+    setNotice('');
     const data = new FormData(event.currentTarget);
     const credentials = {
       email: String(data.get('email')),
@@ -32,27 +29,26 @@ export function AuthScreen({ initialError }: { initialError?: string }) {
     try {
       const result =
         mode === 'signup'
-          ? await authClient.signUp.email({ ...credentials, name: String(data.get('name')) })
-          : await authClient.signIn.email(credentials);
-      if (result.error) setError(result.error.message || 'Unable to sign in.');
+          ? await authClient.signUp.email({
+              ...credentials,
+              name: String(data.get('name')),
+              callbackURL: '/?verified=1',
+            })
+          : await authClient.signIn.email({ ...credentials, callbackURL: '/?verified=1' });
+      if (result.error) {
+        setError(
+          result.error.code === 'EMAIL_NOT_VERIFIED'
+            ? 'Verify your email before signing in. Check your inbox for a verification link.'
+            : result.error.message || 'Unable to sign in.',
+        );
+      } else if (mode === 'signup') {
+        setMode('signin');
+        setNotice(
+          'Check your inbox for a verification link, then sign in. The link expires in 1 hour.',
+        );
+      }
     } catch {
       setError('Unable to reach the server. Please try again.');
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function google() {
-    setBusy(true);
-    setError('');
-    try {
-      const result = await authClient.signIn.social({
-        provider: 'google',
-        callbackURL: '/',
-        errorCallbackURL: '/?error=oauth',
-      });
-      if (result.error) setError(result.error.message || 'Google sign-in failed.');
-    } catch {
-      setError('Unable to start Google sign-in.');
     } finally {
       setBusy(false);
     }
@@ -99,19 +95,7 @@ export function AuthScreen({ initialError }: { initialError?: string }) {
               ? 'Sign in to your Relay workspace.'
               : 'Create an account to start your first workspace.'}
           </p>
-          <button className="google-button" disabled={busy || !googleEnabled} onClick={google}>
-            <b>G</b>Continue with Google
-          </button>
-          {!googleEnabled && (
-            <small className="google-note">
-              Google sign-in needs your OAuth credentials configured.
-            </small>
-          )}
-          <div className="auth-divider">
-            <span />
-            or continue with email
-            <span />
-          </div>
+          {notice && <p role="status">{notice}</p>}
           <form onSubmit={submit}>
             {mode === 'signup' && (
               <>
@@ -162,6 +146,7 @@ export function AuthScreen({ initialError }: { initialError?: string }) {
               onClick={() => {
                 setMode(mode === 'signin' ? 'signup' : 'signin');
                 setError('');
+                setNotice('');
               }}
             >
               {mode === 'signin' ? 'Create an account' : 'Sign in'}
