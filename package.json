@@ -7,7 +7,8 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "test:postgres": "node apps/api/scripts/test-postgres.ts"
   },
   "devDependencies": {
     "prettier": "3.9.6",
@@ -20,7 +21,7 @@
   "devEngines": {
     "packageManager": {
       "name": "npm",
-      "version": "11.6.1"
+      "version": "^11.6.1"
     }
   },
   "workspaces": [

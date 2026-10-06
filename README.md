@@ -34,7 +34,7 @@ The API uses strict TypeScript, unknown request bodies, typed database results, 
 
 ## Local development
 
-Requires Node.js 24+, npm 11+, and PostgreSQL 17.
+Requires Node.js 24+, npm 11.6.1 or later within npm 11, and PostgreSQL 17.
 
 ```powershell
 Copy-Item .env.example .env
@@ -76,6 +76,8 @@ npm test
 npm run build
 ```
 
+To run against a disposable PostgreSQL 17 container, use `npm run test:postgres`. This starts a test database on port 5433 and removes the container when the suite finishes.
+
 The API tests exercise all seven routes through the actual controllers, services, and SQL repositories. Without `TEST_DATABASE_URL`, tests use an isolated PostgreSQL emulator. Set `TEST_DATABASE_URL` to run the same suite against PostgreSQL; each test creates and drops its own random schema. The database role must be allowed to create schemas.
 
 Tests cover password hashing, registration/login, JWT rejection, duplicate emails, input validation, malformed/oversized JSON, persistence, camelCase responses, missing resources, and ownership isolation.
@@ -94,7 +96,7 @@ All request bodies use `Content-Type: application/json`. Register and login retu
 | GET    | `/conversation/:id`  | None                                                                                                                                                                      |
 | POST   | `/documents`         | `{ "organizationId": "<UUID>", "title": "Refund policy", "content": "Refunds are available within 30 days." }`                                                            |
 
-Create routes return `201` and the saved object, including its `id`. GET routes return the saved object. Response fields use camelCase. `messages` is optional and defaults to `[]`; supported roles are `user` and `assistant`. Tokens expire after seven days. Passwords must have 8–128 characters and are hashed with scrypt.
+Create routes return `201` and the saved object, including its `id`. GET routes return the saved object. Response fields use camelCase. `messages` is optional and defaults to `[]`; supported roles are `user` and `assistant`. Tokens expire after seven days. Passwords must have 8-128 characters and are hashed with scrypt.
 
 Errors return `{ "error": "..." }`: `400` for invalid input, `401` for authentication failures, `404` for missing/inaccessible resources, `409` for an already registered email, and `413` for oversized request bodies.
 
