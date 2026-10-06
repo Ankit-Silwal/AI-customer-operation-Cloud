@@ -8,5 +8,5 @@
     "noUnusedParameters": true,
     "exactOptionalPropertyTypes": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts"]
+  "include": ["src/**/*.ts", "scripts/tests/**/*.ts", "scripts/**/*.ts"]
 }
