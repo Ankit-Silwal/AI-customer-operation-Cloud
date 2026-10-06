@@ -1,0 +1,19 @@
+import type { HttpHandler } from "../common/http.js";
+import type { TokenService } from "../modules/auth/token.service.js";
+
+export function authenticate(tokens: TokenService): HttpHandler {
+  return (req, res, next) => {
+    const authorization = req.get("authorization");
+    if (!authorization?.startsWith("Bearer ")) {
+      res.status(401).json({ error: "A Bearer token is required" });
+      return;
+    }
+    try {
+      res.locals.userId = tokens.verify(authorization.slice(7));
+    } catch {
+      res.status(401).json({ error: "Invalid or expired token" });
+      return;
+    }
+    next();
+  };
+}

@@ -1,24 +1,35 @@
-name: relay-cloud
 services:
-  mailpit:
-    image: axllent/mailpit:v1.31.2
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
     ports:
-      - '127.0.0.1:1025:1025'
-      - '127.0.0.1:8025:8025'
+      - "${PORT:-3001}:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-customer_ops}:${POSTGRES_PASSWORD:-customer_ops_local}@postgres:5432/${POSTGRES_DB:-customer_ops}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env file}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: relay
-      POSTGRES_PASSWORD: relay_local
-      POSTGRES_DB: relay
+      POSTGRES_USER: ${POSTGRES_USER:-customer_ops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-customer_ops_local}
+      POSTGRES_DB: ${POSTGRES_DB:-customer_ops}
     ports:
-      - '127.0.0.1:5434:5432'
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U relay -d relay']
-      interval: 3s
-      timeout: 3s
-      retries: 15
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
 volumes:
   postgres_data:

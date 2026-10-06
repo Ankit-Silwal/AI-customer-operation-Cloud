@@ -1,86 +1,101 @@
-﻿# Relay customer operations cloud
+# AI Customer Operation Cloud
 
-A small TypeScript monorepo: Next.js frontend, Node.js API, shared types, PostgreSQL through Prisma, and Better Auth for email/password with required email verification. Organizations, documents, and conversations are protected by membership checks. Conversation replies are fixed demo text; there is no RAG or AI integration.
+TypeScript monorepo with an Express 5 API, PostgreSQL persistence, and a Next.js docs app. The API implements registration, login, organizations, conversations, and documents.
 
-## Workspaces
+## Structure
 
-- `apps/web`: Next.js App Router, React, TypeScript (`.tsx`).
-- `apps/api`: standalone Node.js HTTP API, TypeScript (`.ts`), Prisma, Better Auth.
-- `packages/shared`: shared TypeScript API contracts.
-
-npm workspaces manage the repository. No additional monorepo framework is required.
-
-## Local setup
-
-Requires Node.js 22.16+ and Docker (or your own PostgreSQL server).
-
-1. Run `npm ci`.
-2. Copy `apps/api/.env.example` to `apps/api/.env`.
-3. Set `BETTER_AUTH_SECRET` to a random secret of at least 32 characters. Generate one with `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`.
-4. Run `npm run db:up` to start local PostgreSQL on port 5434 and the Mailpit test inbox on port 8025.
-5. Run `npm run db:generate` and `npm run db:migrate`.
-6. Run `npm run dev` and open http://localhost:3000.
-
-Create an email/password account, open http://localhost:8025 and follow the verification link, then sign in and create an organization. No seed account or default password is included. Mailpit captures development emails locally; it does not send them to real inboxes.
-
-The frontend proxies `/api/*` to the Node API on port 4000. To change this, copy `apps/web/.env.example` to `.env.local` in that directory and change `API_URL`. The API uses `API_PORT`, `API_HOST`, and `DATABASE_URL` from its own `.env`. Set `BETTER_AUTH_URL` to the public frontend origin.
-
-## Email verification and SMTP
-
-Accounts use the built-in email/password flow. Signup sends a verification link that expires after one hour. Users must verify their email before signing in or accessing workspace routes, including sessions created before verification was required. The login screen supports resending a verification email without a password; resend requests are rate limited. A failed initial delivery leaves the account unverified and can be retried through resend.
-
-For real inbox delivery, configure these values in `apps/api/.env` and restart the API:
-
-```dotenv
-SMTP_HOST=smtp.your-provider.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your-smtp-username
-SMTP_PASSWORD=your-smtp-password
-EMAIL_FROM=Relay <verification@your-domain.com>
+```text
+apps/
+  api/
+    src/
+      app.ts                   # Application composition and module wiring
+      server.ts                # Startup and graceful shutdown
+      config/                  # Validated environment configuration
+      database/                # Connection pool and SQL schema
+      common/                  # HTTP types, errors, and input validation
+      middleware/              # Authentication and error handling
+      modules/
+        auth/
+        organizations/
+        conversations/
+        documents/
+    tests/                     # HTTP, persistence, ownership, and security tests
+    scripts/                   # Build asset copying
+  docs/                        # Next.js app using TypeScript
+packages/
+  ui/                          # Shared React components
+  typescript-config/           # Shared strict compiler settings
+  eslint-config/               # Shared frontend lint configuration
 ```
 
-Use a sender address approved by your provider. Port 587 uses STARTTLS; port 465 uses `SMTP_SECURE=true`. Production requires `SMTP_HOST` and `EMAIL_FROM` and enforces TLS. Set `BETTER_AUTH_URL` to your public HTTPS frontend origin so verification links reach the correct site. Keep `.env` and SMTP credentials out of Git. Existing Google credentials can be removed from your local environment; social sign-in is disabled.
+Each API module contains its own `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, and `*.types.ts`. Routes select handlers; controllers validate HTTP input; services apply application rules; repositories execute parameterized SQL. Dependencies are passed through constructors and composed in `app.ts`.
 
-## Commands
+The API uses strict TypeScript, unknown request bodies, typed database results, checked array access, and checked optional properties. Compiled ESM and the SQL schema are emitted into `apps/api/dist`; production runs the compiled JavaScript.
 
-| Command                                                  | Purpose                                      |
-| -------------------------------------------------------- | -------------------------------------------- |
-| `npm run dev`                                            | Run both apps with reload                    |
-| `npm run build`                                          | Build shared types, API, and frontend        |
-| `npm start`                                              | Run both production builds                   |
-| `npm run typecheck`                                      | Strict TypeScript checks in every workspace  |
-| `npm test`                                               | Database-backed API and authentication tests |
-| `npm run format`                                         | Format source files                          |
-| `npm run db:generate`                                    | Generate Prisma Client                       |
-| `npm run db:migrate`                                     | Apply committed migrations                   |
-| `npm run db:migrate:dev -w @relay/api -- --name example` | Create a development migration               |
+## Local development
 
-Tests use the configured database, create uniquely named test accounts and organizations, and clean up their own records. Use a dedicated test database when working with real customer data.
+Requires Node.js 24+, npm 11+, and PostgreSQL 17.
 
-Browser authentication checks use the local Mailpit inbox. Run `npm run db:up`, `npm run db:generate`, `npm run db:migrate`, and `npm run build`, then `npx playwright install chromium` and `npm run test:e2e`. To use an installed Chrome, set `PLAYWRIGHT_CHANNEL=chrome` instead of downloading Chromium. Stop other app instances on ports 3000 and 4000 before running these tests. The browser checks override SMTP settings to use Mailpit and never send to real inboxes; they cover signup, blocked unverified sign-in, resend, verification, login/logout, and desktop/mobile error screens. Test accounts and their emails are deleted afterward.
+```powershell
+Copy-Item .env.example .env
+npm install
+```
 
-## Basic API
+Set `JWT_SECRET` in the root `.env` to a random secret of at least 32 characters, then start PostgreSQL and the apps:
 
-All organization routes require a valid session cookie. POST requests also require an Origin matching `BETTER_AUTH_URL`. Documents are stored as bytes in PostgreSQL without processing; list responses contain metadata only. Uploads accept PDF, TXT, MD, DOCX up to 5 MB.
+```sh
+docker compose up postgres -d
+npm run dev
+```
 
-| Method     | Path                                                   | Body                     |
-| ---------- | ------------------------------------------------------ | ------------------------ |
-| GET / POST | `/api/organizations`                                   | `{ name, description? }` |
-| GET        | `/api/organizations/:orgId`                            | —                        |
-| GET / POST | `/api/organizations/:orgId/conversations`              | `{ title? }`             |
-| GET        | `/api/organizations/:orgId/conversations/:id`          | —                        |
-| GET / POST | `/api/organizations/:orgId/conversations/:id/messages` | `{ text }`               |
-| GET / POST | `/api/organizations/:orgId/documents`                  | multipart `file`         |
+API: `http://localhost:3001`. Docs: `http://localhost:3000`.
 
-Better Auth serves signup, email verification, resend, login, session, and logout at `/api/auth/*`. Password hashes and sessions are stored through Prisma. Creating an organization adds the creator as a member. Team invitation and role management are intentionally outside this starter.
+To run only the API, use `npm run dev --workspace @repo/api`. If you change PostgreSQL credentials in `.env`, update `DATABASE_URL` for local development too. Environment configuration is checked on startup. The schema is initialized automatically and existing tables/data are preserved.
 
-## Self-hosting and scope
+## Production
 
-Run the two Node apps on your own infrastructure with PostgreSQL. Configure `API_URL` before building the frontend, set secrets and database connection in the API environment, run migrations, build, and start. Docker Compose provides a persistent local database volume; its credentials are for local development only.
+```sh
+docker compose up --build -d
+```
 
-This is a starter, not a completed production system. Password-reset email delivery, team invitations, production monitoring, and AI processing are not included. Verification emails require working SMTP settings for real inbox delivery.
+The Docker build compiles TypeScript in a build stage. The runtime stage contains production dependencies and compiled API files, runs as the `node` user, and serves port 3001. PostgreSQL data is stored in the `postgres_data` Docker volume.
 
-The current dependency audit reports four high-severity findings in the Prisma dependency chain (`deepmerge-ts` and `mysql2`, including parent-package reports). This app uses PostgreSQL, not MySQL. Resolve or reassess these upstream dependency findings before production deployment.
+For a local compiled run:
 
-Implementation references: [Next.js rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites), [Better Auth email verification](https://better-auth.com/docs/concepts/email), [Nodemailer SMTP](https://nodemailer.com/smtp), [Mailpit Docker setup](https://mailpit.axllent.org/docs/install/docker/), and [Prisma PostgreSQL](https://www.prisma.io/docs/orm/v7/core-concepts/supported-databases/postgresql).
+```sh
+npm run build --workspace @repo/api
+npm run start --workspace @repo/api
+```
+
+## Checks
+
+```sh
+npm run check-types
+npm run lint
+npm test
+npm run build
+```
+
+The API tests exercise all seven routes through the actual controllers, services, and SQL repositories. Without `TEST_DATABASE_URL`, tests use an isolated PostgreSQL emulator. Set `TEST_DATABASE_URL` to run the same suite against PostgreSQL; each test creates and drops its own random schema. The database role must be allowed to create schemas.
+
+Tests cover password hashing, registration/login, JWT rejection, duplicate emails, input validation, malformed/oversized JSON, persistence, camelCase responses, missing resources, and ownership isolation.
+
+## Endpoints
+
+All request bodies use `Content-Type: application/json`. Register and login return `{ user, token }`. Use `Authorization: Bearer <token>` for the other endpoints. Users can only access organizations they own and their conversations/documents.
+
+| Method | Path                 | JSON body                                                                                                                                                                 |
+| ------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/register`          | `{ "name": "Ankit", "email": "ankit@example.com", "password": "password123" }`                                                                                            |
+| POST   | `/login`             | `{ "email": "ankit@example.com", "password": "password123" }`                                                                                                             |
+| POST   | `/organizations`     | `{ "name": "Acme Support" }`                                                                                                                                              |
+| GET    | `/organizations/:id` | None                                                                                                                                                                      |
+| POST   | `/conversation`      | `{ "organizationId": "<UUID>", "customerEmail": "customer@example.com", "subject": "Order question", "messages": [{ "role": "user", "content": "Where is my order?" }] }` |
+| GET    | `/conversation/:id`  | None                                                                                                                                                                      |
+| POST   | `/documents`         | `{ "organizationId": "<UUID>", "title": "Refund policy", "content": "Refunds are available within 30 days." }`                                                            |
+
+Create routes return `201` and the saved object, including its `id`. GET routes return the saved object. Response fields use camelCase. `messages` is optional and defaults to `[]`; supported roles are `user` and `assistant`. Tokens expire after seven days. Passwords must have 8–128 characters and are hashed with scrypt.
+
+Errors return `{ "error": "..." }`: `400` for invalid input, `401` for authentication failures, `404` for missing/inaccessible resources, `409` for an already registered email, and `413` for oversized request bodies.
+
+Conversations and documents are stored as submitted JSON/text; AI replies and document parsing are outside this MVP.
