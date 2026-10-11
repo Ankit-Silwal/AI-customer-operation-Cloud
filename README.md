@@ -82,6 +82,39 @@ The API tests exercise all seven routes through the actual controllers, services
 
 Tests cover password hashing, registration/login, JWT rejection, duplicate emails, input validation, malformed/oversized JSON, persistence, camelCase responses, missing resources, and ownership isolation.
 
+## k6 load testing
+
+Install [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) and make sure `k6 version` works in your terminal. k6 is a separate executable, not an npm dependency. Start PostgreSQL and the API using the local development commands above, then run this from the repository root:
+
+```sh
+npm run test:load -- --vus 50 --duration 1m
+```
+
+Change `50` to the number of concurrent virtual users you want to simulate, and `1m` to the run length (`30s`, `5m`, etc.). Each user repeatedly performs one authenticated `GET /organizations/:id`, then waits one second. Virtual users are concurrent users, not a fixed requests-per-second target; achieved throughput depends on response time. Without CLI flags, the defaults are 10 users for 30 seconds. k6 prints request rate, latency, failed requests, and check results at the end. See the [k6 CLI examples](https://grafana.com/docs/k6/latest/get-started/running-k6/) for the underlying flags.
+
+The default API URL is `http://localhost:3001`. To use another test environment:
+
+```sh
+npm run test:load -- --vus 100 --duration 2m -e BASE_URL=http://localhost:3001
+```
+
+Before generating traffic, the test registers one unique account and creates one organization. These records remain in the database because the API has no delete endpoints. To reuse an existing organization without creating data, supply its owner's JWT and its ID. In PowerShell, environment variables avoid putting the token in the command itself:
+
+```powershell
+$env:TOKEN = "<owner-jwt>"
+$env:ORGANIZATION_ID = "<organization-uuid>"
+npm run test:load -- --vus 50 --duration 1m
+Remove-Item Env:TOKEN, Env:ORGANIZATION_ID
+```
+
+Supply both `TOKEN` and `ORGANIZATION_ID`, or neither. Setup verifies access before the load starts. The test exits with a failure if organization reads have a failure rate of 1% or more, a 95th percentile latency of 500 ms or more, or a check pass rate of 99% or less. Setup requests are excluded from those thresholds.
+
+If you prefer Docker instead of installing k6, run this PowerShell command from the repository root with the API already running on the host:
+
+```powershell
+Get-Content apps/api/tests/k6/organization-read.k6.js | docker run --rm -i grafana/k6 run --vus 50 --duration 1m -e BASE_URL=http://host.docker.internal:3001 -
+```
+
 ## Endpoints
 
 All request bodies use `Content-Type: application/json`. Register and login return `{ user, token }`. Use `Authorization: Bearer <token>` for the other endpoints. Users can only access organizations they own and their conversations/documents.

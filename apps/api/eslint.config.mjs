@@ -5,6 +5,11 @@ import globals from "globals";
 export default [
   { ignores: ["dist/**", "node_modules/**"] },
   {
+    ...js.configs.recommended,
+    files: ["tests/k6/**/*.js"],
+    languageOptions: { globals: { __ENV: "readonly" } },
+  },
+  {
     files: ["**/*.ts"],
     ...js.configs.recommended,
     languageOptions: {

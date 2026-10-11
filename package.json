@@ -8,7 +8,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "test": "turbo run test",
-    "test:postgres": "node apps/api/scripts/test-postgres.ts"
+    "test:postgres": "node apps/api/scripts/test-postgres.ts",
+    "test:load": "k6 run apps/api/tests/k6/organization-read.k6.js"
   },
   "devDependencies": {
     "prettier": "3.9.6",
