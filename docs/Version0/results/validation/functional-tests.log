@@ -1,0 +1,21 @@
+
+> @repo/api@0.1.0 test
+> node --import tsx --test tests/*.test.ts
+
+✔ register and login persist a hashed password and never expose it (287.0723ms)
+✔ duplicate registration returns 409 (166.8631ms)
+✔ all resource routes enforce authentication (96.2909ms)
+✔ organization, conversation and document routes preserve data and camelCase fields (137.4773ms)
+✔ conversation messages default to an empty array (134.7313ms)
+✔ another user cannot read or create resources in an owned organization (158.4657ms)
+✔ missing resources return 404 and invalid UUIDs return 400 (114.9234ms)
+✔ invalid inputs and malformed or oversized JSON return controlled errors (152.0797ms)
+✔ tests\security.test.ts (267.2905ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2149.5434

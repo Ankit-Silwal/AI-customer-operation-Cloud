@@ -1,0 +1,105 @@
+{
+  "startedAt": "2026-10-11T15:32:34.448Z",
+  "sourceCommit": "f360afedbce8ee8cc8f4d2d89536ae7066da60e3",
+  "sourceChanges": "M apps/api/tests/k6/organization-read.k6.js\n M compose.yaml\n M package.json\n?? apps/api/scripts/run-k6-matrix.ts",
+  "host": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "logicalCpus": 12,
+    "cpu": "AMD Ryzen 7 7445HS w/ Radeon 740M Graphics     ",
+    "memoryBytes": 16396075008
+  },
+  "docker": {
+    "serverVersion": "29.0.1",
+    "operatingSystem": "Docker Desktop",
+    "kernelVersion": "6.6.87.2-microsoft-standard-WSL2",
+    "logicalCpus": 12,
+    "memoryBytes": 7938981888
+  },
+  "k6Version": "k6.exe v2.3.0 (commit/e088784614, go1.26.8, windows/amd64)",
+  "nodeVersion": "v24.21.0",
+  "postgresVersion": "postgres (PostgreSQL) 17.11",
+  "baseUrl": "http://localhost:3001",
+  "initialContainers": [
+    {
+      "id": "2309b365b2ccc22cb240dc3407a90250f9fa2b604bcd517f38f31c7b51761511",
+      "name": "/ai-customer-operation-cloud-api-1",
+      "imageId": "sha256:eb707549fea345fd2c9156561b0faf7ba7873001eb45e1313f2e6cf9bccd9f64",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 18910,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-10-11T15:32:23.623597386Z",
+        "Status": "running"
+      },
+      "restartCount": 0,
+      "memoryBytes": 1073741824,
+      "nanoCpus": 1000000000
+    },
+    {
+      "id": "27725c7e313e05fbbea82810751723c1eb87e2b61ab23ff8942e0930b77dca43",
+      "name": "/ai-customer-operation-cloud-postgres-1",
+      "imageId": "sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "Health": {
+          "FailingStreak": 0,
+          "Log": [
+            {
+              "End": "2026-10-11T15:32:13.34853568Z",
+              "ExitCode": 0,
+              "Output": "/var/run/postgresql:5432 - accepting connections\n",
+              "Start": "2026-10-11T15:32:13.258644552Z"
+            },
+            {
+              "End": "2026-10-11T15:32:18.435953183Z",
+              "ExitCode": 0,
+              "Output": "/var/run/postgresql:5432 - accepting connections\n",
+              "Start": "2026-10-11T15:32:18.350104499Z"
+            },
+            {
+              "End": "2026-10-11T15:32:23.511378663Z",
+              "ExitCode": 0,
+              "Output": "/var/run/postgresql:5432 - accepting connections\n",
+              "Start": "2026-10-11T15:32:23.437677742Z"
+            },
+            {
+              "End": "2026-10-11T15:32:28.591481405Z",
+              "ExitCode": 0,
+              "Output": "/var/run/postgresql:5432 - accepting connections\n",
+              "Start": "2026-10-11T15:32:28.512140716Z"
+            },
+            {
+              "End": "2026-10-11T15:32:33.672549271Z",
+              "ExitCode": 0,
+              "Output": "/var/run/postgresql:5432 - accepting connections\n",
+              "Start": "2026-10-11T15:32:33.592870996Z"
+            }
+          ],
+          "Status": "healthy"
+        },
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 17787,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-10-11T15:30:07.000665115Z",
+        "Status": "running"
+      },
+      "restartCount": 0,
+      "memoryBytes": 1073741824,
+      "nanoCpus": 1000000000
+    }
+  ],
+  "sampleIntervalMs": 2000,
+  "note": "Native host k6 against Docker API/PostgreSQL. Limits are maxima. Closed model; one GET then sleep(1). Each run creates a user and organization; no deletion API exists."
+}

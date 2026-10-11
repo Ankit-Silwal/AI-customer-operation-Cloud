@@ -1,0 +1,47 @@
+
+
+  █ THRESHOLDS 
+
+    checks{operation:organization_read}
+    ✓ 'rate>0.99' rate=100.00%
+
+    http_req_duration{operation:organization_read}
+    ✓ 'p(95)<500' p(95)=109.59ms
+
+    http_req_failed{operation:organization_read}
+    ✓ 'rate<0.01' rate=0.00%
+
+    http_reqs{operation:organization_read}
+    ✓ 'count>0' count=116623
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 233246  3837.889251/s
+    checks_succeeded...: 100.00% 233246 out of 233246
+    checks_failed......: 0.00%   0 out of 233246
+
+    ✓ organization read returns HTTP 200
+    ✓ organization read returns the expected ID
+
+    HTTP
+    http_req_duration...................: avg=29.29ms min=22.59µs med=4.16ms max=1.14s p(90)=45.48ms p(95)=109.59ms p(99)=695.02ms
+      { expected_response:true }........: avg=29.29ms min=22.59µs med=4.16ms max=1.14s p(90)=45.48ms p(95)=109.59ms p(99)=695.02ms
+      { operation:organization_read }...: avg=29.29ms min=22.59µs med=4.16ms max=1.14s p(90)=45.48ms p(95)=109.59ms p(99)=695.03ms
+    http_req_failed.....................: 0.00%  0 out of 116626
+      { operation:organization_read }...: 0.00%  0 out of 116623
+    http_reqs...........................: 116626 1918.993988/s
+      { operation:organization_read }...: 116623 1918.944625/s
+
+    EXECUTION
+    iteration_duration..................: avg=1.03s   min=1s      med=1s     max=2.37s p(90)=1.04s   p(95)=1.12s    p(99)=1.84s   
+    iterations..........................: 116623 1918.944625/s
+    vus.................................: 533    min=533         max=2000
+    vus_max.............................: 2000   min=2000        max=2000
+
+    NETWORK
+    data_received.......................: 46 MB  762 kB/s
+    data_sent...........................: 43 MB  704 kB/s
+
+
+

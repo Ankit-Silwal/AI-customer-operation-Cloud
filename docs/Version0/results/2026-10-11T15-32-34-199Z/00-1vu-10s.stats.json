@@ -1,0 +1,74 @@
+[
+  {
+    "sampledAt": "2026-10-11T15:32:35.840Z",
+    "BlockIO": "0B / 0B",
+    "CPUPerc": "0.22%",
+    "Container": "2309b365b2ccc22cb240dc3407a90250f9fa2b604bcd517f38f31c7b51761511",
+    "ID": "2309b365b2cc",
+    "MemPerc": "2.60%",
+    "MemUsage": "26.59MiB / 1GiB",
+    "Name": "ai-customer-operation-cloud-api-1",
+    "NetIO": "8.94kB / 8.03kB",
+    "PIDs": "11"
+  },
+  {
+    "sampledAt": "2026-10-11T15:32:35.840Z",
+    "BlockIO": "0B / 618kB",
+    "CPUPerc": "0.06%",
+    "Container": "27725c7e313e05fbbea82810751723c1eb87e2b61ab23ff8942e0930b77dca43",
+    "ID": "27725c7e313e",
+    "MemPerc": "2.17%",
+    "MemUsage": "22.2MiB / 1GiB",
+    "Name": "ai-customer-operation-cloud-postgres-1",
+    "NetIO": "8.84kB / 7.96kB",
+    "PIDs": "7"
+  },
+  {
+    "sampledAt": "2026-10-11T15:32:39.486Z",
+    "BlockIO": "0B / 0B",
+    "CPUPerc": "0.38%",
+    "Container": "2309b365b2ccc22cb240dc3407a90250f9fa2b604bcd517f38f31c7b51761511",
+    "ID": "2309b365b2cc",
+    "MemPerc": "2.54%",
+    "MemUsage": "26.05MiB / 1GiB",
+    "Name": "ai-customer-operation-cloud-api-1",
+    "NetIO": "12.4kB / 11.4kB",
+    "PIDs": "11"
+  },
+  {
+    "sampledAt": "2026-10-11T15:32:39.486Z",
+    "BlockIO": "0B / 618kB",
+    "CPUPerc": "0.06%",
+    "Container": "27725c7e313e05fbbea82810751723c1eb87e2b61ab23ff8942e0930b77dca43",
+    "ID": "27725c7e313e",
+    "MemPerc": "2.17%",
+    "MemUsage": "22.2MiB / 1GiB",
+    "Name": "ai-customer-operation-cloud-postgres-1",
+    "NetIO": "10.4kB / 9.42kB",
+    "PIDs": "7"
+  },
+  {
+    "sampledAt": "2026-10-11T15:32:43.464Z",
+    "BlockIO": "0B / 0B",
+    "CPUPerc": "0.33%",
+    "Container": "2309b365b2ccc22cb240dc3407a90250f9fa2b604bcd517f38f31c7b51761511",
+    "ID": "2309b365b2cc",
+    "MemPerc": "2.56%",
+    "MemUsage": "26.19MiB / 1GiB",
+    "Name": "ai-customer-operation-cloud-api-1",
+    "NetIO": "16kB / 14.9kB",
+    "PIDs": "11"
+  },
+  {
+    "sampledAt": "2026-10-11T15:32:43.464Z",
+    "BlockIO": "0B / 618kB",
+    "CPUPerc": "0.06%",
+    "Container": "27725c7e313e05fbbea82810751723c1eb87e2b61ab23ff8942e0930b77dca43",
+    "ID": "27725c7e313e",
+    "MemPerc": "2.19%",
+    "MemUsage": "22.4MiB / 1GiB",
+    "Name": "ai-customer-operation-cloud-postgres-1",
+    "NetIO": "11.9kB / 10.9kB",
+    "PIDs": "7"
+  }
+]

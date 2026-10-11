@@ -1,6 +1,6 @@
 # AI Customer Operation Cloud
 
-TypeScript monorepo with an Express 5 API, PostgreSQL persistence, and a Next.js docs app. The API implements registration, login, organizations, conversations, and documents.
+TypeScript monorepo with an Express 5 API, PostgreSQL persistence, and project documentation. The API implements registration, login, organizations, conversations, and documents.
 
 ## Structure
 
@@ -21,7 +21,7 @@ apps/
         documents/
     tests/                     # HTTP, persistence, ownership, and security tests
     scripts/                   # Build asset copying
-  docs/                        # Next.js app using TypeScript
+  docs/                        # Existing endpoint notes
 packages/
   ui/                          # Shared React components
   typescript-config/           # Shared strict compiler settings
@@ -48,7 +48,7 @@ docker compose up postgres -d
 npm run dev
 ```
 
-API: `http://localhost:3001`. Docs: `http://localhost:3000`.
+API: `http://localhost:3001`. Architecture and performance notes: [docs/Version0](docs/Version0/README.md).
 
 To run only the API, use `npm run dev --workspace @repo/api`. If you change PostgreSQL credentials in `.env`, update `DATABASE_URL` for local development too. Environment configuration is checked on startup. The schema is initialized automatically and existing tables/data are preserved.
 
@@ -107,7 +107,9 @@ npm run test:load -- --vus 50 --duration 1m
 Remove-Item Env:TOKEN, Env:ORGANIZATION_ID
 ```
 
-Supply both `TOKEN` and `ORGANIZATION_ID`, or neither. Setup verifies access before the load starts. The test exits with a failure if organization reads have a failure rate of 1% or more, a 95th percentile latency of 500 ms or more, or a check pass rate of 99% or less. Setup requests are excluded from those thresholds.
+Supply both `TOKEN` and `ORGANIZATION_ID`, or neither. Setup verifies access before the load starts. The test requires at least one organization read and exits with a failure if organization reads have a failure rate of 1% or more, a 95th percentile latency of 500 ms or more, or a check pass rate of 99% or less. Setup requests are excluded from those thresholds.
+
+For the recorded Docker experiment with 1 CPU and 1 GiB per container, including a reusable multi-user matrix runner, see [Version 0 architecture and test notes](docs/Version0/README.md).
 
 If you prefer Docker instead of installing k6, run this PowerShell command from the repository root with the API already running on the host:
 

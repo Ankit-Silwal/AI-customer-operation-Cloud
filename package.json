@@ -9,7 +9,8 @@
     "check-types": "turbo run check-types",
     "test": "turbo run test",
     "test:postgres": "node apps/api/scripts/test-postgres.ts",
-    "test:load": "k6 run apps/api/tests/k6/organization-read.k6.js"
+    "test:load": "k6 run apps/api/tests/k6/organization-read.k6.js",
+    "test:load:matrix": "node apps/api/scripts/run-k6-matrix.ts"
   },
   "devDependencies": {
     "prettier": "3.9.6",

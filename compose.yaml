@@ -1,5 +1,7 @@
 services:
   api:
+    cpus: "1.0"
+    mem_limit: 1g
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -15,6 +17,8 @@ services:
     restart: unless-stopped
 
   postgres:
+    cpus: "1.0"
+    mem_limit: 1g
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-customer_ops}
