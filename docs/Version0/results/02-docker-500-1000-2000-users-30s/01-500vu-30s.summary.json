@@ -153,30 +153,26 @@
             "count": 15003
         }
     },
-    "setup_data": {
-        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTE3MzMxNDEsImV4cCI6MTc5MjMzNzk0MSwiaXNzIjoiY3VzdG9tZXItb3BlcmF0aW9uLWFwaSIsInN1YiI6IjI4MTExNGRkLTI1OWUtNDRmNi1iZjhjLWM0OTRhYzBmODg3YyJ9.DGsb4D-AFueSSwc-aW4UcUkt4aehb5q1xO70QjtZM30",
-        "organizationId": "27d86ff0-0359-41a3-9de1-179596da8ad9"
-    },
     "root_group": {
         "name": "",
         "path": "",
         "id": "d41d8cd98f00b204e9800998ecf8427e",
         "groups": {},
         "checks": {
-                "organization read returns HTTP 200": {
-                    "passes": 15000,
-                    "fails": 0,
-                    "name": "organization read returns HTTP 200",
-                    "path": "::organization read returns HTTP 200",
-                    "id": "3e46c2d9b38d682866d199a17c53cfe6"
-                },
-                "organization read returns the expected ID": {
-                    "name": "organization read returns the expected ID",
-                    "path": "::organization read returns the expected ID",
-                    "id": "197084fc4848afb53a9847d79b416f62",
-                    "passes": 15000,
-                    "fails": 0
-                }
+            "organization read returns HTTP 200": {
+                "passes": 15000,
+                "fails": 0,
+                "name": "organization read returns HTTP 200",
+                "path": "::organization read returns HTTP 200",
+                "id": "3e46c2d9b38d682866d199a17c53cfe6"
+            },
+            "organization read returns the expected ID": {
+                "name": "organization read returns the expected ID",
+                "path": "::organization read returns the expected ID",
+                "id": "197084fc4848afb53a9847d79b416f62",
+                "passes": 15000,
+                "fails": 0
             }
+        }
     }
 }

@@ -1,5 +1,10 @@
 import http from "k6/http";
 import { check, fail, sleep } from "k6";
+import { summaryOutputs } from "./safe-summary.js";
+
+export function handleSummary(data) {
+  return summaryOutputs(data, __ENV.SUMMARY_PATH);
+}
 
 const baseUrl = (__ENV.BASE_URL || "http://localhost:3001").replace(/\/+$/, "");
 const token = __ENV.TOKEN;

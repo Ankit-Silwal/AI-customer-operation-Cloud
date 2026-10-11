@@ -174,9 +174,5 @@
             "p(90)": 0.005925,
             "p(95)": 0.009574899999999997
         }
-    },
-    "setup_data": {
-        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTE3MzMxNzgsImV4cCI6MTc5MjMzNzk3OCwiaXNzIjoiY3VzdG9tZXItb3BlcmF0aW9uLWFwaSIsInN1YiI6ImYxMzgyYzBiLTE2YmEtNGJmZS1iMGE3LWZhMTA1NmQ3YWRkNiJ9.jJG9ysooRc6k8BaZ_n9RGzVoiNLmylqd3Xg4ymgobg8",
-        "organizationId": "f6289608-9586-4899-b78f-f083200c596e"
     }
 }

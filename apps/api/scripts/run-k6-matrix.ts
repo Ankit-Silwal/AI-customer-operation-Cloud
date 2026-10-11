@@ -9,15 +9,16 @@ import { promisify } from "node:util";
 const execute = promisify(execFile);
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-const output = resolve(
-  root,
-  process.env.RESULTS_DIR ?? `docs/Version0/results/${timestamp}`,
-);
 const users = (process.env.LOAD_USERS ?? "10,50,100,250,500,1000,2000")
   .split(",")
   .map(Number);
 const duration = process.env.LOAD_DURATION ?? "30s";
 const execution = process.env.K6_EXECUTION ?? "native";
+const output = resolve(
+  root,
+  process.env.RESULTS_DIR ??
+    `docs/Version0/results/${execution}-${users.join("-")}-users-${duration}-${timestamp}`,
+);
 const baseUrl =
   process.env.BASE_URL ??
   (execution === "docker" ? "http://api:3001" : "http://localhost:3001");
@@ -207,8 +208,8 @@ async function run() {
       testCase.duration,
       "--summary-trend-stats",
       "avg,min,med,max,p(90),p(95),p(99)",
-      "--summary-export",
-      execution === "docker" ? `/results/${name}.summary.json` : summaryPath,
+      "-e",
+      `SUMMARY_PATH=${execution === "docker" ? `/results/${name}.summary.json` : summaryPath}`,
       "-e",
       `BASE_URL=${baseUrl}`,
       execution === "docker"
