@@ -14,6 +14,7 @@ export const options = {
   vus: 10,
   duration: "30s",
   thresholds: {
+    "http_reqs{operation:organization_read}": ["count>0"],
     "http_req_failed{operation:organization_read}": ["rate<0.01"],
     "http_req_duration{operation:organization_read}": ["p(95)<500"],
     "checks{operation:organization_read}": ["rate>0.99"],
