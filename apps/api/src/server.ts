@@ -1,34 +1,50 @@
 import { createApp } from "./app.js";
 import { readEnvironment } from "./config/env.js";
 import { createDatabase, initializeDatabase } from "./database/database.js";
+import { errorCode, jsonLogger } from "./common/logger.js";
 
 const env = readEnvironment();
-const db = createDatabase(env.databaseUrl);
+const db = createDatabase(env.databaseUrl, env);
+let shuttingDown = false;
 
 try {
   await initializeDatabase(db);
 } catch (error) {
   await db.end();
-  throw error;
+  jsonLogger({ level: "error", event: "database_startup_failed", code: errorCode(error) });
+  process.exit(1);
 }
 
-const server = createApp(db, env.jwtSecret).listen(env.port, "0.0.0.0", () => {
-  console.log(`Customer operation API listening on port ${env.port}`);
+const server = createApp(db, env.jwtSecret, { isDraining: () => shuttingDown }).listen(env.port, "0.0.0.0", () => {
+  jsonLogger({ level: "info", event: "server_started" });
 });
+server.headersTimeout = 10000;
+server.requestTimeout = 30000;
+server.keepAliveTimeout = 5000;
+
+const metricsTimer = setInterval(() => {
+  jsonLogger({
+    level: "info", event: "database_pool",
+    poolTotal: db.totalCount, poolIdle: db.idleCount, poolWaiting: db.waitingCount,
+  });
+}, 10000);
+metricsTimer.unref();
 
 server.on("error", (error: Error) => {
-  console.error("API server failed", error);
+  jsonLogger({ level: "error", event: "server_error", code: errorCode(error) });
+  clearInterval(metricsTimer);
   void db.end().finally(() => {
     process.exitCode = 1;
   });
 });
 
-let shuttingDown = false;
 function shutdown(): void {
   if (shuttingDown) return;
   shuttingDown = true;
+  clearInterval(metricsTimer);
+  jsonLogger({ level: "info", event: "server_draining" });
   const timeout = setTimeout(() => {
-    console.error("Graceful shutdown timed out");
+    jsonLogger({ level: "error", event: "shutdown_timeout" });
     process.exit(1);
   }, 10000);
   timeout.unref();
@@ -40,7 +56,7 @@ function shutdown(): void {
         process.exitCode = error ? 1 : 0;
       })
       .catch((dbError: unknown) => {
-        console.error("Database shutdown failed", dbError);
+        jsonLogger({ level: "error", event: "database_shutdown_error", code: errorCode(dbError) });
         clearTimeout(timeout);
         process.exitCode = 1;
       });

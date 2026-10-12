@@ -6,7 +6,7 @@ export type HttpHandler = RequestHandler<
   unknown,
   unknown,
   ParsedQs,
-  { userId?: string }
+  { userId?: string; requestId?: string }
 >;
 
 export class HttpError extends Error {
