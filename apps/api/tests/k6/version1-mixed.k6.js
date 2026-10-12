@@ -28,6 +28,9 @@ export const options = {
   systemTags: ["status", "method", "name", "group", "check", "error_code", "scenario", "expected_response"],
   thresholds: {
     "http_reqs{phase:load}": ["count>0"],
+    "http_reqs{phase:load,kind:read}": ["count>0"],
+    "http_reqs{phase:load,kind:write}": ["count>0"],
+    "http_reqs{phase:load,kind:login}": ["count>0"],
     "http_req_failed{phase:load}": ["rate<0.01"],
     "checks{phase:load}": ["rate>0.99"],
     "http_req_duration{phase:load,kind:read}": ["p(95)<500"],
