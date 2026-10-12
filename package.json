@@ -10,7 +10,8 @@
     "test": "turbo run test",
     "test:postgres": "node apps/api/scripts/test-postgres.ts",
     "test:load": "k6 run apps/api/tests/k6/organization-read.k6.js",
-    "test:load:matrix": "node apps/api/scripts/run-k6-matrix.ts"
+    "test:load:matrix": "node apps/api/scripts/run-k6-matrix.ts",
+    "test:load:v1": "k6 run apps/api/tests/k6/version1-mixed.k6.js"
   },
   "devDependencies": {
     "prettier": "3.9.6",

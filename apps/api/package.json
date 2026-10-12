@@ -10,7 +10,8 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "test": "node --import tsx --test tests/*.test.ts",
-    "test:load": "k6 run tests/k6/organization-read.k6.js"
+    "test:load": "k6 run tests/k6/organization-read.k6.js",
+    "test:load:v1": "k6 run tests/k6/version1-mixed.k6.js"
   },
   "engines": {
     "node": ">=24"
