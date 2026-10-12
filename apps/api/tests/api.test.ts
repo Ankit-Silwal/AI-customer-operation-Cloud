@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { test, type TestContext } from "node:test";
+import { test } from "node:test";
 import jwt from "jsonwebtoken";
 import { DataType, newDb } from "pg-mem";
 import { Pool } from "pg";
@@ -14,88 +14,7 @@ import type { Organization } from "../src/modules/organizations/organization.typ
 import type { Conversation } from "../src/modules/conversations/conversation.types.js";
 import type { Document } from "../src/modules/documents/document.types.js";
 
-// Used only by the app created for these tests.
-const secret = "integration-test-secret-at-least-32-characters";
-
-// Prepare a fresh database and Express app for each test.
-async function fixture(t: TestContext) {
-  let db: Pool;
-  const databaseUrl = process.env.TEST_DATABASE_URL;
-
-  if (databaseUrl) {
-    // Real PostgreSQL: give this test its own temporary schema.
-    const schema = `test_${randomUUID().replaceAll("-", "")}`;
-    const admin = new Pool({ connectionString: databaseUrl });
-
-    await admin.query(`CREATE SCHEMA "${schema}"`);
-
-    db = new Pool({
-      connectionString: databaseUrl,
-      options: `-c search_path=${schema}`,
-    });
-
-    // Remove this test's schema and close connections afterward.
-    t.after(async () => {
-      await db.end();
-
-      try {
-        await admin.query(`DROP SCHEMA "${schema}" CASCADE`);
-      } finally {
-        await admin.end();
-      }
-    });
-  } else {
-    // Default: create a fresh in-memory PostgreSQL emulator.
-    const memory = newDb();
-
-    // Your SQL schema uses gen_random_uuid().
-    memory.public.registerFunction({
-      name: "gen_random_uuid",
-      returns: DataType.uuid,
-      impure: true,
-      implementation: randomUUID,
-    });
-
-    const adapter = memory.adapters.createPg();
-    db = new adapter.Pool();
-
-    t.after(() => db.end());
-  }
-
-  await initializeDatabase(db);
-  const app = createApp(db, secret);
-
-  // Helper: register a user and return { user, token }.
-  async function register(
-    email = "owner@example.com",
-  ): Promise<AuthResponse> {
-    const response = await request(app)
-      .post("/register")
-      .send({
-        name: "Owner",
-        email,
-        password: "password123",
-      })
-      .expect(201);
-
-    return response.body as AuthResponse;
-  }
-
-  // Helper: create an organization owned by this token's user.
-  async function organization(
-    token: string,
-  ): Promise<Organization> {
-    const response = await request(app)
-      .post("/organizations")
-      .auth(token, { type: "bearer" })
-      .send({ name: "Support" })
-      .expect(201);
-
-    return response.body as Organization;
-  }
-
-  return { app, db, register, organization };
-}
+import { fixture, secret } from "./fixture.js";
 
 // 1. Registration, password storage, and login.
 test(
