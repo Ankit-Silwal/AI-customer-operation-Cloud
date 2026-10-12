@@ -2,6 +2,8 @@
 
 Start with the [Windows overview](01-windows-10-50-100-250-500-1000-2000-users-30s/summary.md). It links to a readable report for every user count. The original JSON and logs remain the evidence behind the reports.
 
+For Docker, read the combined [campaign 02 summary](02-docker-500-1000-2000-users-30s/summary.md) and [campaign 03 summary](03-docker-2000-5000-users-1m/summary.md). Each file collects all its stages, thresholds, CPU/RAM observations, and conclusions in one place.
+
 ## What happens in a test
 
 Before the load starts, k6 registers one test account, creates an organization, and checks access. Then each virtual user repeats this activity:
@@ -26,7 +28,7 @@ Repeating is normal activity, even when the previous request succeeded. This scr
 | `.summary.md` | The same stage's results presented as readable Markdown. |
 | `.stats.json` | Occasional Docker resource measurements during the stage. |
 | `.log` | Console output, warnings, and errors. |
-| `summary.md` | Overview of all Windows stages, with links to each stage report. |
+| `summary.md` | Combined overview of a campaign's stages. Windows also links to individual Markdown stage reports; each Docker overview presents its campaign in one file. |
 | `runs.json` | Stage order, execution times, commands, exit codes, and container states. |
 | `environment.json` | Machine/runtime details, resource limits, and test placement. |
 | `metrics.json` | Combined numerical results from all three historical campaigns. |
