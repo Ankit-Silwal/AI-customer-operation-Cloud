@@ -2,6 +2,8 @@
 
 TypeScript monorepo with an Express 5 API, PostgreSQL persistence, and project documentation. The API implements registration, login, organizations, conversations, and documents.
 
+**Current version: 1.0.0.** See [Version 1](docs/Version1/README.md) for health/readiness, security headers, validation, request IDs, structured logs, database constraints/pooling, Text/Markdown/PDF uploads, and k6 traffic with one distinct account per VU. Start with the [study guide](docs/Version1/study-guide.md). Version 1 load campaigns/results are deferred; recorded Version 0 performance numbers describe the older read-only workload.
+
 ## Structure
 
 ```text
@@ -78,11 +80,13 @@ npm run build
 
 To run against a disposable PostgreSQL 17 container, use `npm run test:postgres`. This starts a test database on port 5433 and removes the container when the suite finishes.
 
-The API tests exercise all seven routes through the actual controllers, services, and SQL repositories. Without `TEST_DATABASE_URL`, tests use an isolated PostgreSQL emulator. Set `TEST_DATABASE_URL` to run the same suite against PostgreSQL; each test creates and drops its own random schema. The database role must be allowed to create schemas.
+The API tests exercise routes through the actual controllers, services, and SQL repositories. Without `TEST_DATABASE_URL`, tests use an isolated PostgreSQL emulator. Set `TEST_DATABASE_URL` to run database tests against PostgreSQL; each test creates and drops its own random schema. The database role must be allowed to create schemas. Real PostgreSQL additionally verifies migration and transaction rollback behavior.
 
 Tests cover password hashing, registration/login, JWT rejection, duplicate emails, input validation, malformed/oversized JSON, persistence, camelCase responses, missing resources, and ownership isolation.
 
 ## k6 load testing
+
+The commands below describe the original **Version 0 shared-account organization-read test**. For Version 1 mixed traffic and distinct accounts, use `npm run test:load:v1 -- -e USERS=100 -e DURATION=30s`; see [Version 1 instructions](docs/Version1/README.md).
 
 Install [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) and make sure `k6 version` works in your terminal. k6 is a separate executable, not an npm dependency. Start PostgreSQL and the API using the local development commands above, then run this from the repository root:
 
@@ -121,7 +125,7 @@ docker run --rm --mount "type=bind,source=${PWD}/apps/api/tests/k6,target=/scrip
 
 ## Endpoints
 
-All request bodies use `Content-Type: application/json`. Register and login return `{ user, token }`. Use `Authorization: Bearer <token>` for the other endpoints. Users can only access organizations they own and their conversations/documents.
+JSON request bodies use `Content-Type: application/json`; `POST /documents/upload` uses multipart fields `organizationId`, `title`, and `file`. Register and login return `{ user, token }`. Use `Authorization: Bearer <token>` for resource endpoints. Users can only access organizations they own and their conversations/documents. Public health endpoints and the complete Version 1 route list are documented in [the architecture](docs/Version1/architecture.md).
 
 | Method | Path                 | JSON body                                                                                                                                                                 |
 | ------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
