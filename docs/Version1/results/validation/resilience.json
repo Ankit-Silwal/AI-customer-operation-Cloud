@@ -1,0 +1,69 @@
+{
+  "startedAt": "2026-10-13T13:31:58.334Z",
+  "endedAt": "2026-10-13T13:32:03.934Z",
+  "baseUrl": "http://localhost:3002",
+  "checks": [
+    {
+      "name": "liveness",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "readiness",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "register owner",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "create owned organization",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "create persistent JSON document",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "liveness while database is stopped",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "readiness rejects stopped database",
+      "status": 503,
+      "passed": true
+    },
+    {
+      "name": "readiness after database recovery",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "existing session and document after database recovery",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "readiness after API restart",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "session and document survive API restart",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "migration remains applied exactly once",
+      "status": 0,
+      "passed": true
+    }
+  ],
+  "failed": 0,
+  "note": "Compiled Docker API, real PostgreSQL, each capped at 1 CPU / 1 GiB. Request IDs/security headers checked on every HTTP response. Credentials kept in memory only."
+}

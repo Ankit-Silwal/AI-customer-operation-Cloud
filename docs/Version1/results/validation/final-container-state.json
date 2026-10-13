@@ -1,0 +1,60 @@
+[
+    {
+        "Command":  "\"docker-entrypoint.s…\"",
+        "CreatedAt":  "2026-10-13 18:23:36 +0530 IST",
+        "ExitCode":  0,
+        "Health":  "healthy",
+        "ID":  "3c2f9c4b7aa2",
+        "Image":  "customer-operation-cloud-v1-benchmark-api",
+        "Labels":  "com.docker.compose.depends_on=postgres:service_healthy:false,com.docker.compose.oneoff=False,com.docker.compose.project=customer-operation-cloud-v1-benchmark,com.docker.compose.version=2.40.3,com.docker.compose.config-hash=8e1c516377222754ecb5c25d844ab6d878a0cbb9a30d53e9fb1e4dba679e9327,com.docker.compose.image=sha256:140725dfc7ff23d5e5f326408672efc4d1dbe2442c47ba2f9c9b0f57d3efeaf3,com.docker.compose.project.config_files=C:\\Studies\\Web Development\\AI-customer-operation-Cloud\\compose.benchmark.yaml,com.docker.compose.project.working_dir=C:\\Studies\\Web Development\\AI-customer-operation-Cloud,com.docker.compose.service=api,desktop.docker.io/ports.scheme=v2,desktop.docker.io/ports/3001/tcp=127.0.0.1:3002,com.docker.compose.container-number=1",
+        "LocalVolumes":  "0",
+        "Mounts":  "",
+        "Name":  "customer-operation-cloud-v1-benchmark-api-1",
+        "Names":  "customer-operation-cloud-v1-benchmark-api-1",
+        "Networks":  "customer-operation-cloud-v1-benchmark_default",
+        "Ports":  "127.0.0.1:3002-\u003e3001/tcp",
+        "Project":  "customer-operation-cloud-v1-benchmark",
+        "Publishers":  [
+                           {
+                               "URL":  "127.0.0.1",
+                               "TargetPort":  3001,
+                               "PublishedPort":  3002,
+                               "Protocol":  "tcp"
+                           }
+                       ],
+        "RunningFor":  "40 minutes ago",
+        "Service":  "api",
+        "Size":  "0B",
+        "State":  "running",
+        "Status":  "Up 2 minutes (healthy)"
+    },
+    {
+        "Command":  "\"docker-entrypoint.s…\"",
+        "CreatedAt":  "2026-10-13 18:23:36 +0530 IST",
+        "ExitCode":  0,
+        "Health":  "healthy",
+        "ID":  "35a67e388922",
+        "Image":  "postgres:17-alpine",
+        "Labels":  "com.docker.compose.image=sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=C:\\Studies\\Web Development\\AI-customer-operation-Cloud\\compose.benchmark.yaml,com.docker.compose.project.working_dir=C:\\Studies\\Web Development\\AI-customer-operation-Cloud,com.docker.compose.service=postgres,com.docker.compose.version=2.40.3,com.docker.compose.container-number=1,com.docker.compose.project=customer-operation-cloud-v1-benchmark,desktop.docker.io/ports.scheme=v2,desktop.docker.io/ports/5432/tcp=127.0.0.1:5434,com.docker.compose.config-hash=5db9f7c8983bc61dcda93ea4e2c4b92dc5f258fd05c62adf3e6d09fbb6bc8fde,com.docker.compose.depends_on=",
+        "LocalVolumes":  "1",
+        "Mounts":  "customer-opera…",
+        "Name":  "customer-operation-cloud-v1-benchmark-postgres-1",
+        "Names":  "customer-operation-cloud-v1-benchmark-postgres-1",
+        "Networks":  "customer-operation-cloud-v1-benchmark_default",
+        "Ports":  "127.0.0.1:5434-\u003e5432/tcp",
+        "Project":  "customer-operation-cloud-v1-benchmark",
+        "Publishers":  [
+                           {
+                               "URL":  "127.0.0.1",
+                               "TargetPort":  5432,
+                               "PublishedPort":  5434,
+                               "Protocol":  "tcp"
+                           }
+                       ],
+        "RunningFor":  "40 minutes ago",
+        "Service":  "postgres",
+        "Size":  "0B",
+        "State":  "running",
+        "Status":  "Up 2 minutes (healthy)"
+    }
+]

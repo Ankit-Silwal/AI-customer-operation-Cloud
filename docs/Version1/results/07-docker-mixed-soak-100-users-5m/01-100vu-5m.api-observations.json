@@ -1,0 +1,206 @@
+{
+  "since": "2026-10-13T13:26:47.390Z",
+  "until": "2026-10-13T13:31:33.735Z",
+  "parsedLines": 30189,
+  "unparsedLines": 0,
+  "events": {
+    "http_request": 30158,
+    "database_pool": 31
+  },
+  "statuses": {
+    "200": 22340,
+    "201": 7815,
+    "400": 1,
+    "401": 1,
+    "404": 1
+  },
+  "pool": [
+    {
+      "timestamp": "2026-10-13T13:26:50.786Z",
+      "poolTotal": 5,
+      "poolIdle": 5,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:27:00.786Z",
+      "poolTotal": 8,
+      "poolIdle": 8,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:27:10.786Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:27:18.470Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:27:28.470Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:27:38.472Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:27:46.191Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:27:56.192Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:28:06.192Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:28:13.981Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:28:23.982Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:28:34.032Z",
+      "poolTotal": 10,
+      "poolIdle": 6,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:28:41.723Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:28:51.724Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:29:01.723Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:29:09.456Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:29:19.456Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:29:29.463Z",
+      "poolTotal": 10,
+      "poolIdle": 1,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:29:37.119Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:29:47.120Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:29:57.121Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:30:04.835Z",
+      "poolTotal": 10,
+      "poolIdle": 8,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:30:14.836Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:30:24.836Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:30:32.544Z",
+      "poolTotal": 10,
+      "poolIdle": 8,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:30:42.544Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:30:52.545Z",
+      "poolTotal": 9,
+      "poolIdle": 9,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:31:00.310Z",
+      "poolTotal": 8,
+      "poolIdle": 8,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:31:10.310Z",
+      "poolTotal": 8,
+      "poolIdle": 8,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:31:20.310Z",
+      "poolTotal": 8,
+      "poolIdle": 8,
+      "poolWaiting": 0
+    },
+    {
+      "timestamp": "2026-10-13T13:31:28.018Z",
+      "poolTotal": 10,
+      "poolIdle": 10,
+      "poolWaiting": 0
+    }
+  ],
+  "note": "Aggregated Docker API logs. Includes setup and Docker health probes; these counts are not load-tagged k6 counters. Raw request logs are not copied."
+}

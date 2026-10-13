@@ -1,6 +1,6 @@
 # Version 1 Docker and k6 test results
 
-**29 Docker-backed load runs were conducted: 19 passed and 10 failed their thresholds.** The Version 0 read workload was repeated in 15 runs covering 348,655 organization reads. Version 1 mixed traffic was exercised in 14 runs covering 60,608 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
+**30 Docker-backed load runs were conducted: 20 passed and 10 failed their thresholds.** The Version 0 read workload was repeated in 15 runs covering 348,655 organization reads. Version 1 mixed traffic was exercised in 15 runs covering 90,367 load requests. Every planned campaign is retained below.
 
 The highest passing read stage was **250 VUs / 30s through Windows** and **1000 VUs / 30s inside Docker**. These are passing tested stages, not exact capacity boundaries. The highest passing Docker mixed stage was **250 distinct-account VUs / 30s**, with read/write/login p95 of 458.01 / 471.00 / 780.58 ms.
 
@@ -153,13 +153,18 @@ Evidence directory: [Campaign F](results/06-docker-mixed-spike-250-1000-users-30
 
 ## Campaign G: Version 1 five-minute steady repeat
 
-Evidence directory: [Campaign G](results/07-docker-mixed-soak-100-users-5m/summary.md), with [environment](results/07-docker-mixed-soak-100-users-5m/environment.json) and [run manifest](results/07-docker-mixed-soak-100-users-5m/runs.json). This campaign is still in progress.
+Evidence directory: [Campaign G](results/07-docker-mixed-soak-100-users-5m/summary.md), with [environment](results/07-docker-mixed-soak-100-users-5m/environment.json) and [run manifest](results/07-docker-mixed-soak-100-users-5m/runs.json). All planned stages completed.
 
-| Run                                                                               | VUs | Time | Load requests | Load RPS | Reads | Writes | Logins | Read avg ms | Read p95 ms | Read p99 ms | Write p95 ms | Login p95 ms | Failed load (%) | Checks passed | Result   |
-| --------------------------------------------------------------------------------- | --- | ---- | ------------- | -------- | ----- | ------ | ------ | ----------- | ----------- | ----------- | ------------ | ------------ | --------------- | ------------- | -------- |
-| [G0](results/07-docker-mixed-soak-100-users-5m/00-1vu-30s.summary.json) (warm-up) | 1   | 30s  | 30            | 1.07     | 24    | 5      | 1      | 2.86        | 4.47        | 4.96        | 5.07         | 45.76        | 0 (0.000%)      | 100.000%      | PASS (0) |
+| Run                                                                               | VUs | Time | Load requests | Load RPS | Reads  | Writes | Logins | Read avg ms | Read p95 ms | Read p99 ms | Write p95 ms | Login p95 ms | Failed load (%) | Checks passed | Result   |
+| --------------------------------------------------------------------------------- | --- | ---- | ------------- | -------- | ------ | ------ | ------ | ----------- | ----------- | ----------- | ------------ | ------------ | --------------- | ------------- | -------- |
+| [G0](results/07-docker-mixed-soak-100-users-5m/00-1vu-30s.summary.json) (warm-up) | 1   | 30s  | 30            | 1.07     | 24     | 5      | 1      | 2.86        | 4.47        | 4.96        | 5.07         | 45.76        | 0 (0.000%)      | 100.000%      | PASS (0) |
+| [G1](results/07-docker-mixed-soak-100-users-5m/01-100vu-5m.summary.json)          | 100 | 5m   | 29,759        | 104.43   | 20,832 | 7,439  | 1,488  | 4.70        | 8.09        | 56.58       | 14.71        | 124.95       | 0 (0.000%)      | 100.000%      | PASS (0) |
+
+**PASS (0)** — 29,759 load requests, 104.43 requests/second, read p95 8.09 ms, 0 failed requests (0.000%). Every configured load threshold passed.
 
 ## What the measured limits show
+
+The **100-user five-minute mixed repeat passed**, recording **29,759 load requests**, **zero failed load requests**, **100.000% passed checks**, and read/write/login p95 of **8.09 / 14.71 / 124.95 ms**. API sampled memory ranged from 68.62 to 121.50 MiB, with a last sample of 120.20 MiB. This confirms the exercise's criteria for five minutes, not long-term leak freedom or a production guarantee.
 
 Windows request logs recorded connection refusals in A4, A5, A6, A7. Read p95 also failed at 2000 VUs. Moving k6 inside Docker eliminated refusal warnings in the comparison stages, while high-concurrency latency could still fail. This separates a published-port observation from an intrinsic application-capacity claim; it does not isolate one operating-system/proxy cause.
 
@@ -167,7 +172,7 @@ The 5,000-user read stress stage recorded **84,107 reads**, **1,436.77 reported 
 
 Mixed traffic produced different limits from the single shared organization read. Failed mixed stages were D5, E2, E3, F2; their exact failing read/write/login/error/check criteria remain in the stage reports. Setup provisioned distinct datasets before load and continued to accumulate writes, so these results must be compared by workload and generator placement. Mixed steady campaigns stopped at the explicitly tested 1,000-account stage; 2,000/5,000-account mixed traffic was not tested. The read-only 2,000/5,000-user campaigns above still ran as requested.
 
-Across these runs, the largest sampled API memory was **191.20 MiB**, and PostgreSQL's was **75.46 MiB**, against their separate 1,024 MiB limits. No recorded OOM kill, server stop or restart-count increase occurred during the load campaigns. Short sampled tests cannot establish indefinite memory stability.
+Across these runs, the largest sampled API memory was **191.20 MiB**, and PostgreSQL's was **77.14 MiB**, against their separate 1,024 MiB limits. No recorded OOM kill, server stop or restart-count increase occurred during the load campaigns. Short sampled tests cannot establish indefinite memory stability.
 
 ## Version 0 comparison for the repeated read workload
 
@@ -215,6 +220,7 @@ These numbers come from the retained Version 0 [metrics](../Version0/results/met
 | F1  | 100.63%     | 136.40      | 18.94%             | 73.00              | 10 / 10          | 223.10            |
 | F2  | 107.10%     | 160.70      | 22.53%             | 75.46              | 18 / 18          | 1,666.05          |
 | G0  | 33.60%      | 53.94       | 7.68%              | 55.20              | 6 / 6            | 12.07             |
+| G1  | 108.00%     | 121.50      | 11.90%             | 77.14              | 52 / 52          | 75.57             |
 
 These are the highest sampled Docker values, not continuous peaks. Memory is MiB (1 GiB = 1024 MiB). Sampling uses a two-second pause plus Docker stats queries; Docker-generator collection adds query time. Samples can include the distinct-account setup phase, so maxima cannot always be attributed to load alone. Detailed samples retain chronological values, network I/O and timestamps.
 
@@ -251,8 +257,21 @@ These are the highest sampled Docker values, not continuous peaks. Memory is MiB
 | F1  | 563               | 428               | 76.021%         | 83.827                   | 30                       |
 | F2  | 1033              | 1004              | 97.193%         | 212.530                  | 503                      |
 | G0  | 78                | 3                 | 3.846%          | 0.034                    | 0                        |
+| G1  | 2928              | 364               | 12.432%         | 37.045                   | 0                        |
 
 The runner resolved /proc/self/cgroup and collected that group's cpu.stat and cpu.max for every stage. These counters cover the complete run interval, including setup and graceful completion; their throttled time is not an individual request's waiting time. Pool observations come from the API's ten-second JSON logs.
+
+### Reported-rate timing caveat
+
+Several Docker exports imply a counter-rate denominator shorter than the configured load window. The denominator below is derived as tagged request count divided by its exported rate; it is not a separately measured duration.
+
+| Run | Configured load seconds | Implied k6 rate denominator seconds | Manifest execution seconds | Tagged count / configured seconds |
+| --- | ----------------------- | ----------------------------------- | -------------------------- | --------------------------------- |
+| B1  | 30                      | 29.09                               | 31.40                      | 496.37                            |
+| C1  | 60                      | 56.92                               | 60.28                      | 1,360.97                          |
+| G1  | 300                     | 284.96                              | 286.35                     | 99.20                             |
+
+The cause of this timing discrepancy was not established. RPS columns preserve k6's raw reported rates, as in Version 0, and should be treated as approximate when comparing capacity. Count/configured-seconds is an arithmetic reference, not an independently measured steady-window rate; setup and graceful completion complicate wall-clock comparisons. Request counts, failure/check rates, percentile thresholds and recorded exit codes remain as observed.
 
 ## How to read and reproduce the evidence
 
@@ -296,5 +315,9 @@ The measured stages bound observations. Untested user counts have no result; one
 - Tests cover registration/login, JWT/ownership rejection, request IDs, security headers, generic errors and private logging, migration preservation/rollback, database constraints and upload byte/metadata validation.
 - Custom summary regression checks cover credential exclusion. Mocked k6 lifecycle checks establish script/account assignment correctness; actual campaigns above establish the measured traffic results.
 - Compiled Docker HTTP smoke checks: **39 passed**, **0 failed**. [Evidence](results/validation/docker-smoke.json).
+- Compiled Docker readiness/restart checks: **12 passed**, **0 failed**. [Evidence](results/validation/resilience.json).
 - Database snapshot [dataset-before-mixed.json](results/validation/dataset-before-mixed.json): 17 users, 16 organizations, 1 conversations, 4 documents and 3 uploads; 8.16 MiB total database size.
+- Database snapshot [dataset-after-campaigns.json](results/validation/dataset-after-campaigns.json): 4,032 users, 4,031 organizations, 12,948 conversations, 17,461 documents and 12,970 uploads; 18.98 MiB total database size.
 - API production dependency audit: **0 vulnerabilities**. [Evidence](results/validation/runtime-audit.json). This is not a whole-monorepo audit.
+- Documentation formatting, relative links, JSON validity, credential exclusion and consistency of all 30 stage records were verified. [Verification record](results/validation/verification.json).
+- The benchmark API and PostgreSQL remained running and healthy after the recovery checks. [Final container state](results/validation/final-container-state.json).

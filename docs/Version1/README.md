@@ -9,7 +9,7 @@ The root package and `@repo/api` now use version **1.0.0**. Version 1 adds healt
 3. [Concepts](concepts.md): understand the reasoning behind each feature.
 4. [Validation record](testResult.md): see which checks actually ran.
 
-**Version 1 load testing is now underway.** The [test results](testResult.md) retain every completed campaign, with raw evidence and readable stage reports in [results/](results/helper.md). The tests repeat Version 0's three read campaigns and add distinct-account mixed traffic, spikes and a five-minute steady repeat. Version 0 results describe the older API and cannot establish Version 1 capacity.
+**Version 1 load testing is complete: 30 stages, 20 passed and 10 failed thresholds.** The [test results](testResult.md) retain every campaign, with raw evidence and readable stage reports in [results/](results/helper.md). The tests repeat Version 0's three read campaigns and add distinct-account mixed traffic, spikes and a five-minute steady repeat. The compiled API passed 39 HTTP smoke checks and 12 database-recovery/API-restart checks. Version 0 results describe the older API and cannot establish Version 1 capacity.
 
 ## Start and check the API
 

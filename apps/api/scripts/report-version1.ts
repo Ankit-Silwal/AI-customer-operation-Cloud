@@ -781,6 +781,9 @@ if (findings)
     `\n${findings}\n\n## Scope and environment`,
   );
 let interpretation = "\n## What the measured limits show\n\n";
+const soak = all.find((row) => row.id === "G1");
+if (soak)
+  interpretation += `The **100-user five-minute mixed repeat passed**, recording **${n(soak.requests, 0)} load requests**, **zero failed load requests**, **${pct(soak.checkPassRate)} passed checks**, and read/write/login p95 of **${n(soak.latency["p(95)"]!)} / ${n(soak.writeLatency["p(95)"]!)} / ${n(soak.loginLatency["p(95)"]!)} ms**. API sampled memory ranged from ${n(soak.resources.api.minMiB)} to ${n(soak.resources.api.maxMiB)} MiB, with a last sample of ${n(soak.resources.api.lastMiB)} MiB. This confirms the exercise's criteria for five minutes, not long-term leak freedom or a production guarantee.\n\n`;
 const windowsFailures = all.filter(
   (row) => row.campaign === "A" && row.role !== "warmup" && row.failures,
 );
@@ -844,6 +847,42 @@ report = report.replace(
   "\n## Resource observations for every run",
   `${interpretation}\n## Resource observations for every run`,
 );
+const seconds = (duration: string) =>
+  Number.parseFloat(duration) *
+  (duration.endsWith("m")
+    ? 60
+    : duration.endsWith("h")
+      ? 3600
+      : duration.endsWith("ms")
+        ? 0.001
+        : 1);
+const timingExamples = all.filter(
+  (row) =>
+    ["B1", "C1", "G1"].includes(row.id) &&
+    row.requests / row.requestRPS < seconds(row.duration),
+);
+if (timingExamples.length) {
+  const timingNote = `\n### Reported-rate timing caveat\n\nSeveral Docker exports imply a counter-rate denominator shorter than the configured load window. The denominator below is derived as tagged request count divided by its exported rate; it is not a separately measured duration.\n\n${table(
+    [
+      "Run",
+      "Configured load seconds",
+      "Implied k6 rate denominator seconds",
+      "Manifest execution seconds",
+      "Tagged count / configured seconds",
+    ],
+    timingExamples.map((row) => [
+      row.id,
+      seconds(row.duration),
+      n(row.requests / row.requestRPS),
+      n((Date.parse(row.raw.endedAt) - Date.parse(row.raw.startedAt)) / 1000),
+      n(row.requests / seconds(row.duration)),
+    ]),
+  )}\nThe cause of this timing discrepancy was not established. RPS columns preserve k6's raw reported rates, as in Version 0, and should be treated as approximate when comparing capacity. Count/configured-seconds is an arithmetic reference, not an independently measured steady-window rate; setup and graceful completion complicate wall-clock comparisons. Request counts, failure/check rates, percentile thresholds and recorded exit codes remain as observed.\n`;
+  report = report.replace(
+    "\n## How to read and reproduce the evidence",
+    `${timingNote}\n## How to read and reproduce the evidence`,
+  );
+}
 for (const filename of [
   "dataset-before-mixed.json",
   "dataset-after-campaigns.json",
@@ -870,6 +909,12 @@ report = report.replace(
   "**k6's counter-rate time denominator includes setup**.",
   "**k6's counter-rate time denominator includes setup**. The installed-version source computes counter rate from test-run duration and marks the run started before setup: [counter calculation](https://github.com/grafana/k6/blob/v2.3.0/metrics/sink.go), [execution lifecycle](https://github.com/grafana/k6/blob/v2.3.0/internal/execution/scheduler.go).",
 );
+if (await exists(join(results, "validation/verification.json")))
+  report +=
+    "- Documentation formatting, relative links, JSON validity, credential exclusion and consistency of all 30 stage records were verified. [Verification record](results/validation/verification.json).\n";
+if (await exists(join(results, "validation/final-container-state.json")))
+  report +=
+    "- The benchmark API and PostgreSQL remained running and healthy after the recovery checks. [Final container state](results/validation/final-container-state.json).\n";
 await writeFile(join(docs, "testResult.md"), report);
 await writeFile(
   join(results, "helper.md"),

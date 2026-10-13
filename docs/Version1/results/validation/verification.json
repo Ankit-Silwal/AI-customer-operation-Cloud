@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-13T13:38:07.065Z",
+  "markdownFiles": 43,
+  "jsonFiles": 112,
+  "relativeLinks": 566,
+  "brokenLinks": [],
+  "credentialMatches": [],
+  "loadRuns": 30,
+  "passed": 20,
+  "thresholdFailures": 10,
+  "note": "Report generation also verified threshold/exit agreement, read/write/login counter sums and check totals against every raw summary."
+}
