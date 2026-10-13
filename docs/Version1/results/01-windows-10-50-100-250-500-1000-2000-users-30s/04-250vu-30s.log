@@ -1,0 +1,47 @@
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+time="2026-10-13T18:28:43+05:30" level=warning msg="Request Failed" error="Get \"http://localhost:3002/organizations/7e0bc547-c44e-4b30-9552-2f9e10c77ea7\": dial tcp 127.0.0.1:3002: connectex: No connection could be made because the target machine actively refused it."
+
+k6 metrics (durations: ms; rate metrics: fractions; counter rates: /s)
+checks: passes=14960.000 fails=40.000 rate=0.997
+checks{operation:organization_read}: rate=0.997 passes=14960.000 fails=40.000
+  PASS: rate>0.99
+data_received: count=8321329.000 rate=270556.576
+data_sent: count=2791111.000 rate=90749.138
+http_req_blocked: p(99)=1.698 avg=0.049 min=0.000 med=0.000 max=11.281 p(90)=0.000 p(95)=0.000
+http_req_connecting: avg=0.043 min=0.000 med=0.000 max=4.307 p(90)=0.000 p(95)=0.000 p(99)=1.602
+http_req_duration: med=3.717 max=256.375 p(90)=22.131 p(95)=85.328 p(99)=188.621 avg=13.806 min=0.000
+http_req_duration{expected_response:true}: p(90)=22.145 p(95)=85.664 p(99)=188.671 avg=13.843 min=0.527 med=3.719 max=256.375
+http_req_duration{operation:organization_read}: p(90)=22.079 p(95)=85.352 p(99)=188.634 avg=13.803 min=0.000 med=3.717 max=256.375
+  PASS: p(95)<500
+http_req_failed: rate=0.003 passes=20.000 fails=7483.000
+http_req_failed{operation:organization_read}: rate=0.003 passes=20.000 fails=7480.000
+  PASS: rate<0.01
+http_req_receiving: p(90)=0.518 p(95)=0.534 p(99)=0.586 avg=0.066 min=0.000 med=0.000 max=1.524
+http_req_sending: max=2.568 p(90)=0.000 p(95)=0.000 p(99)=0.565 avg=0.015 min=0.000 med=0.000
+http_req_tls_handshaking: med=0.000 max=0.000 p(90)=0.000 p(95)=0.000 p(99)=0.000 avg=0.000 min=0.000
+http_req_waiting: avg=13.725 min=0.000 med=3.688 max=256.024 p(90)=21.977 p(95)=85.263 p(99)=188.115
+http_reqs: count=7503.000 rate=243.950
+http_reqs{operation:organization_read}: count=7500.000 rate=243.852
+  PASS: count>0
+iteration_duration: p(95)=1086.120 p(99)=1189.253 avg=1014.299 min=1000.648 med=1004.098 max=1258.586 p(90)=1022.515
+iterations: count=7500.000 rate=243.852
+vus: min=250.000 max=250.000 value=250.000
+vus_max: value=250.000 min=250.000 max=250.000

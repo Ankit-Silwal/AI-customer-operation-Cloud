@@ -1,0 +1,89 @@
+[
+  {
+    "sampledAt": "2026-10-13T12:56:32.582Z",
+    "BlockIO": "5.02MB / 0B",
+    "CPUPerc": "0.25%",
+    "Container": "3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+    "ID": "3c2f9c4b7aa2",
+    "MemPerc": "2.41%",
+    "MemUsage": "24.73MiB / 1GiB",
+    "Name": "customer-operation-cloud-v1-benchmark-api-1",
+    "NetIO": "9.17kB / 14.7kB",
+    "PIDs": "11"
+  },
+  {
+    "sampledAt": "2026-10-13T12:56:32.582Z",
+    "BlockIO": "14MB / 59.4MB",
+    "CPUPerc": "0.09%",
+    "Container": "35a67e3889229ecec5b80df2e0cf93da8762b0d7158bee5e345ffd08d78ff6c2",
+    "ID": "35a67e388922",
+    "MemPerc": "4.42%",
+    "MemUsage": "45.31MiB / 1GiB",
+    "Name": "customer-operation-cloud-v1-benchmark-postgres-1",
+    "NetIO": "138kB / 98.7kB",
+    "PIDs": "7"
+  },
+  {
+    "sampledAt": "2026-10-13T12:56:32.582Z",
+    "Name": "host",
+    "memoryFreeBytes": 3702775808
+  },
+  {
+    "sampledAt": "2026-10-13T12:56:36.377Z",
+    "BlockIO": "5.02MB / 0B",
+    "CPUPerc": "0.43%",
+    "Container": "3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+    "ID": "3c2f9c4b7aa2",
+    "MemPerc": "2.47%",
+    "MemUsage": "25.31MiB / 1GiB",
+    "Name": "customer-operation-cloud-v1-benchmark-api-1",
+    "NetIO": "12.7kB / 21kB",
+    "PIDs": "11"
+  },
+  {
+    "sampledAt": "2026-10-13T12:56:36.377Z",
+    "BlockIO": "14MB / 59.4MB",
+    "CPUPerc": "3.68%",
+    "Container": "35a67e3889229ecec5b80df2e0cf93da8762b0d7158bee5e345ffd08d78ff6c2",
+    "ID": "35a67e388922",
+    "MemPerc": "4.43%",
+    "MemUsage": "45.39MiB / 1GiB",
+    "Name": "customer-operation-cloud-v1-benchmark-postgres-1",
+    "NetIO": "140kB / 99.8kB",
+    "PIDs": "7"
+  },
+  {
+    "sampledAt": "2026-10-13T12:56:36.377Z",
+    "Name": "host",
+    "memoryFreeBytes": 3700719616
+  },
+  {
+    "sampledAt": "2026-10-13T12:56:40.387Z",
+    "BlockIO": "5.02MB / 0B",
+    "CPUPerc": "0.48%",
+    "Container": "3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+    "ID": "3c2f9c4b7aa2",
+    "MemPerc": "2.48%",
+    "MemUsage": "25.36MiB / 1GiB",
+    "Name": "customer-operation-cloud-v1-benchmark-api-1",
+    "NetIO": "15.5kB / 26kB",
+    "PIDs": "11"
+  },
+  {
+    "sampledAt": "2026-10-13T12:56:40.387Z",
+    "BlockIO": "14MB / 59.7MB",
+    "CPUPerc": "0.05%",
+    "Container": "35a67e3889229ecec5b80df2e0cf93da8762b0d7158bee5e345ffd08d78ff6c2",
+    "ID": "35a67e388922",
+    "MemPerc": "4.42%",
+    "MemUsage": "45.3MiB / 1GiB",
+    "Name": "customer-operation-cloud-v1-benchmark-postgres-1",
+    "NetIO": "142kB / 102kB",
+    "PIDs": "7"
+  },
+  {
+    "sampledAt": "2026-10-13T12:56:40.387Z",
+    "Name": "host",
+    "memoryFreeBytes": 3640877056
+  }
+]

@@ -9,7 +9,7 @@ The root package and `@repo/api` now use version **1.0.0**. Version 1 adds healt
 3. [Concepts](concepts.md): understand the reasoning behind each feature.
 4. [Validation record](testResult.md): see which checks actually ran.
 
-**Version 1 load campaigns have not run.** The k6 script is prepared and checked; the `results/` directory and performance measurements are deferred until requested. Version 0 results describe the older workload and cannot establish Version 1 capacity.
+**Version 1 load testing is now underway.** The [test results](testResult.md) retain every completed campaign, with raw evidence and readable stage reports in [results/](results/helper.md). The tests repeat Version 0's three read campaigns and add distinct-account mixed traffic, spikes and a five-minute steady repeat. Version 0 results describe the older API and cannot establish Version 1 capacity.
 
 ## Start and check the API
 
@@ -45,7 +45,7 @@ curl.exe -X POST http://localhost:3001/documents/upload -H "Authorization: Beare
 
 Use the returned document ID with `GET /documents/:id` for metadata/text or `GET /documents/:id/download` for the original bytes. Downloads use attachment headers. PDF uploads retain bytes and metadata; their `content` field is empty because PDF text extraction is not implemented. The existing JSON `POST /documents` still works; JSON-only documents have no downloadable file.
 
-## Prepared k6 commands
+## k6 commands
 
 These commands **generate traffic when you run them**. Start the Version 1 API and a disposable test database first. Check that `k6 version` works. From the repository root:
 

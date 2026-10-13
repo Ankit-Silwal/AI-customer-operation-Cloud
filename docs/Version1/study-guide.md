@@ -63,7 +63,7 @@ A one-second think time means 100 VUs do not guarantee exactly 100 requests/seco
 
 A test from another laptop separates generator and server resources. A same-network Docker test is useful for API/database behavior; a host or remote test additionally exercises the published-port/network path. Neither alone proves a cloud provider's capacity.
 
-Version 1 load runs and a results folder are intentionally deferred. Use [testResult.md](testResult.md) to distinguish completed functional checks from future performance experiments.
+Version 1 load tests now repeat the three Version 0 read campaigns and add mixed traffic, spike tests and a five-minute steady repeat. Use [testResult.md](testResult.md) and the [results helper](results/helper.md) to distinguish functional checks, actual load measurements and their limits.
 
 ## Official references
 
