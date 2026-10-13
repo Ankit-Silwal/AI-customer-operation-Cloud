@@ -1,6 +1,6 @@
 # Version 1 Docker and k6 test results
 
-**28 Docker-backed load runs were conducted: 18 passed and 10 failed their thresholds.** The Version 0 read workload was repeated in 15 runs covering 348,655 organization reads. Version 1 mixed traffic was exercised in 13 runs covering 60,578 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
+**29 Docker-backed load runs were conducted: 19 passed and 10 failed their thresholds.** The Version 0 read workload was repeated in 15 runs covering 348,655 organization reads. Version 1 mixed traffic was exercised in 14 runs covering 60,608 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
 
 The highest passing read stage was **250 VUs / 30s through Windows** and **1000 VUs / 30s inside Docker**. These are passing tested stages, not exact capacity boundaries. The highest passing Docker mixed stage was **250 distinct-account VUs / 30s**, with read/write/login p95 of 458.01 / 471.00 / 780.58 ms.
 
@@ -153,7 +153,11 @@ Evidence directory: [Campaign F](results/06-docker-mixed-spike-250-1000-users-30
 
 ## Campaign G: Version 1 five-minute steady repeat
 
-Not yet executed.
+Evidence directory: [Campaign G](results/07-docker-mixed-soak-100-users-5m/summary.md), with [environment](results/07-docker-mixed-soak-100-users-5m/environment.json) and [run manifest](results/07-docker-mixed-soak-100-users-5m/runs.json). This campaign is still in progress.
+
+| Run                                                                               | VUs | Time | Load requests | Load RPS | Reads | Writes | Logins | Read avg ms | Read p95 ms | Read p99 ms | Write p95 ms | Login p95 ms | Failed load (%) | Checks passed | Result   |
+| --------------------------------------------------------------------------------- | --- | ---- | ------------- | -------- | ----- | ------ | ------ | ----------- | ----------- | ----------- | ------------ | ------------ | --------------- | ------------- | -------- |
+| [G0](results/07-docker-mixed-soak-100-users-5m/00-1vu-30s.summary.json) (warm-up) | 1   | 30s  | 30            | 1.07     | 24    | 5      | 1      | 2.86        | 4.47        | 4.96        | 5.07         | 45.76        | 0 (0.000%)      | 100.000%      | PASS (0) |
 
 ## What the measured limits show
 
@@ -210,6 +214,7 @@ These numbers come from the retained Version 0 [metrics](../Version0/results/met
 | F0  | 25.03%      | 98.83       | 5.45%              | 52.30              | 6 / 6            | 11.86             |
 | F1  | 100.63%     | 136.40      | 18.94%             | 73.00              | 10 / 10          | 223.10            |
 | F2  | 107.10%     | 160.70      | 22.53%             | 75.46              | 18 / 18          | 1,666.05          |
+| G0  | 33.60%      | 53.94       | 7.68%              | 55.20              | 6 / 6            | 12.07             |
 
 These are the highest sampled Docker values, not continuous peaks. Memory is MiB (1 GiB = 1024 MiB). Sampling uses a two-second pause plus Docker stats queries; Docker-generator collection adds query time. Samples can include the distinct-account setup phase, so maxima cannot always be attributed to load alone. Detailed samples retain chronological values, network I/O and timestamps.
 
@@ -245,6 +250,7 @@ These are the highest sampled Docker values, not continuous peaks. Memory is MiB
 | F0  | 86                | 4                 | 4.651%          | 0.112                    | 0                        |
 | F1  | 563               | 428               | 76.021%         | 83.827                   | 30                       |
 | F2  | 1033              | 1004              | 97.193%         | 212.530                  | 503                      |
+| G0  | 78                | 3                 | 3.846%          | 0.034                    | 0                        |
 
 The runner resolved /proc/self/cgroup and collected that group's cpu.stat and cpu.max for every stage. These counters cover the complete run interval, including setup and graceful completion; their throttled time is not an individual request's waiting time. Pool observations come from the API's ten-second JSON logs.
 

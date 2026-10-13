@@ -509,7 +509,111 @@ for (const campaign of campaigns) {
         ["k6 exit", run.exitCode],
       ],
     )}\n${mixed ? "Each VU owns a separate seeded account, organization, conversation and uploaded file. One action per iteration follows a 20-action cycle: 14 reads, five writes, one login, then a one-second wait. Percentages apply to completed cycles." : "All VUs share one account and organization created for the stage. Each reads the organization, checks HTTP 200 and its ID, then waits one second."}\n\n## Traffic, correctness and latency\n\n${mixed ? trafficTable([row]) : baselineTable([row])}\nTotal HTTP requests including setup/validation: **${n(row.totalHTTP, 0)}**. Latency is HTTP request duration in milliseconds; connection/DNS and think time are excluded. Failed connections can have zero duration.\n\n## Threshold decisions\n\n${table(["Metric", "Criterion", "Decision"], thresholds)}\nAll criteria must pass. Threshold booleans in the JSON use false = did not fail, true = failed.\n\n## Sampled Docker resources\n\n${resourceTable([row])}\nSamples include setup, load and graceful completion. They are occasional maxima, not continuous peaks. Docker CPU near 100% represents one logical CPU's time; 1 GiB is 1024 MiB. Native generator memory was not measured.\n\n## Errors and container health\n\n${failureTable([row])}\nAPI log HTTP statuses (including setup and health probes): \`${JSON.stringify(observation.statuses)}\`. These are separate from load-tagged k6 failures.\n\n## CPU throttling evidence\n\n${cpuTable([row])}\nCounters resolve the API's actual cgroup from /proc/self/cgroup. Recorded CPU quota: \`${run.cpuAfter.cpuMax}\`. Pool waiters are ten-second observations, not continuous queue peaks.\n\n## What this stage tells us\n\n${takeaway(row)}\n\nThis is a local shared-machine observation for this workload and duration. It does not establish whole-product capacity, an exact capacity boundary, or a production SLA.\n\n## All exported metric values\n\nDuration fields use milliseconds, counters use count and per-second rate, rate metrics are fractions, and byte counters use bytes. Read-only tagged metrics exclude setup; mixed phase:load metrics exclude provisioning and deliberate rejection checks.\n\n${table(["Metric", "Fields"], metricRows)}`;
-    await writeFile(join(folder, `${run.name}.summary.md`), stageReport);
+    const statistics = ["min", "avg", "med", "max", "p(90)", "p(95)", "p(99)"];
+    const latencyDetails = mixed
+      ? table(
+          ["Request kind", ...statistics.map((name) => `${name} ms`)],
+          [
+            ["Read", ...statistics.map((name) => n(row.latency[name]!))],
+            ["Write", ...statistics.map((name) => n(row.writeLatency[name]!))],
+            ["Login", ...statistics.map((name) => n(row.loginLatency[name]!))],
+          ],
+        )
+      : table(
+          ["Statistic", "Milliseconds", "Meaning"],
+          statistics.map((name, index) => [
+            `\`${name}\``,
+            n(row.latency[name]!),
+            [
+              "Fastest",
+              "Average",
+              "Median / p50",
+              "Slowest",
+              "90th percentile",
+              "95th percentile",
+              "99th percentile",
+            ][index]!,
+          ]),
+        );
+    let readableStage = stageReport.replace(
+      "## Traffic, correctness and latency",
+      mixed ? "## Mixed workload results" : "## Read-only workload results",
+    );
+    const measurements = table(
+      ["Measurement", "Value", "Meaning"],
+      [
+        [
+          mixed ? "Load requests" : "Organization reads",
+          n(row.requests, 0),
+          "Tagged requests, excluding setup and deliberate rejection checks.",
+        ],
+        [
+          mixed ? "Load throughput" : "Read throughput",
+          `${n(row.requestRPS)}/s`,
+          "k6's tagged counter rate; failed attempts are included.",
+        ],
+        [
+          "Failed requests",
+          `${n(row.failures, 0)} (${pct(row.failedReadRate)})`,
+          "Requests classified as failed by k6.",
+        ],
+        [
+          "Successful requests by k6 classification",
+          n(row.requests - row.failures, 0),
+          "Body correctness is checked separately.",
+        ],
+        [
+          "Checks",
+          `${n(checks.passes ?? 0, 0)} passed, ${n(checks.fails ?? 0, 0)} failed (${pct(row.checkPassRate)} passed)`,
+          `${mixed ? 3 : 2} assertions per load request.`,
+        ],
+        [
+          "Total HTTP requests",
+          n(row.totalHTTP, 0),
+          "Includes setup and validation as well as load traffic.",
+        ],
+        [
+          "Completed loops",
+          n(metrics.iterations?.count ?? 0, 0),
+          "Completed iterations include the one-second sleep.",
+        ],
+      ],
+    );
+    readableStage = readableStage.replace(
+      "\nTotal HTTP requests including setup/validation:",
+      `\n${measurements}\nTotal HTTP requests including setup/validation:`,
+    );
+    readableStage = readableStage.replace(
+      "\n## Threshold decisions",
+      `\n## ${mixed ? "Read, write and login latency" : "Organization-read latency"}\n\n${latencyDetails}\nHTTP duration excludes initial connection/DNS work and the script sleep. Check errors alongside latency.\n\n## Threshold decisions`,
+    );
+    const decisions = Object.entries(metrics).flatMap(([name, values]) =>
+      Object.entries(values.thresholds ?? {}).map(([expression, failed]) => [
+        `\`${name}\``,
+        `\`${expression}\``,
+        expression.startsWith("p(95)")
+          ? `${n(values["p(95)"]!)} ms`
+          : expression.startsWith("count")
+            ? n(values.count!, 0)
+            : pct(values.rate ?? values.value ?? 0),
+        failed ? "FAIL" : "PASS",
+      ]),
+    );
+    readableStage = readableStage.replace(
+      table(["Metric", "Criterion", "Decision"], thresholds),
+      table(["Metric", "Criterion", "Observed", "Decision"], decisions),
+    );
+    const namedChecks = mixed
+      ? ["expected HTTP status", "request ID present", "correct owned response"]
+      : [
+          "organization read returns HTTP 200",
+          "organization read returns the expected ID",
+        ];
+    readableStage += `\n## Named response checks\n\n${table(
+      ["Check", "Scope"],
+      namedChecks.map((name) => [name, "Every load request"]),
+    )}\nThe metrics-only exporter retains combined totals: **${n(checks.passes ?? 0, 0)} passed and ${n(checks.fails ?? 0, 0)} failed**. Individual named-check totals were not exported and are not inferred.\n`;
+    await writeFile(join(folder, `${run.name}.summary.md`), readableStage);
   }
   const passed = rows.filter((row) => row.exitCode === 0).length;
   const mixed = env.workload === "mixed";
