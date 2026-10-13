@@ -1,6 +1,6 @@
 # Version 1 Docker and k6 test results
 
-**12 Docker-backed load runs were conducted: 8 passed and 4 failed their thresholds.** The Version 0 read workload was repeated in 12 runs covering 182,880 organization reads. Version 1 mixed traffic was exercised in 0 runs covering 0 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
+**15 Docker-backed load runs were conducted: 9 passed and 6 failed their thresholds.** The Version 0 read workload was repeated in 15 runs covering 348,655 organization reads. Version 1 mixed traffic was exercised in 0 runs covering 0 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
 
 ## Scope and environment
 
@@ -83,7 +83,17 @@ Evidence directory: [Campaign B](results/02-docker-500-1000-2000-users-30s/summa
 
 ## Campaign C: longer repeat and stress stage
 
-Not yet executed.
+Evidence directory: [Campaign C](results/03-docker-2000-5000-users-1m/summary.md), with [environment](results/03-docker-2000-5000-users-1m/environment.json) and [run manifest](results/03-docker-2000-5000-users-1m/runs.json). All planned stages completed.
+
+| Run                                                                          | VUs  | Time | Reads  | Read RPS | Avg ms   | p95 ms   | p99 ms   | Failed reads (%) | Checks passed | Result    |
+| ---------------------------------------------------------------------------- | ---- | ---- | ------ | -------- | -------- | -------- | -------- | ---------------- | ------------- | --------- |
+| [C0](results/03-docker-2000-5000-users-1m/00-1vu-10s.summary.json) (warm-up) | 1    | 10s  | 10     | 0.99     | 2.49     | 3.28     | 3.29     | 0 (0.000%)       | 100.000%      | PASS (0)  |
+| [C1](results/03-docker-2000-5000-users-1m/01-2000vu-1m.summary.json)         | 2000 | 1m   | 81,658 | 1,434.53 | 445.37   | 1,010.86 | 1,246.76 | 0 (0.000%)       | 100.000%      | FAIL (99) |
+| [C2](results/03-docker-2000-5000-users-1m/02-5000vu-1m.summary.json)         | 5000 | 1m   | 84,107 | 1,436.77 | 2,167.17 | 5,616.15 | 8,973.45 | 6,232 (7.410%)   | 92.590%       | FAIL (99) |
+
+**FAIL (99)** — 81,658 organization reads, 1,434.53 requests/second, read p95 1,010.86 ms, 0 failed requests (0.000%). Failed criteria: `http_req_duration{operation:organization_read}: p(95)<500`.
+
+**FAIL (99)** — 84,107 organization reads, 1,436.77 requests/second, read p95 5,616.15 ms, 6,232 failed requests (7.410%). Failed criteria: `http_req_failed{operation:organization_read}: rate<0.01`, `http_req_duration{operation:organization_read}: p(95)<500`, `checks{operation:organization_read}: rate>0.99`.
 
 ## Campaign D: Version 1 mixed traffic on Windows
 
@@ -117,6 +127,9 @@ Not yet executed.
 | B1  | 55.99%      | 77.06       | 18.68%             | 61.23              | 6 / 6            | 180.00            |
 | B2  | 67.90%      | 81.70       | 29.64%             | 61.16              | 6 / 6            | 348.10            |
 | B3  | 104.43%     | 112.40      | 46.61%             | 61.93              | 6 / 6            | 603.20            |
+| C0  | 7.08%       | 106.30      | 0.40%              | 45.54              | 2 / 2            | 11.11             |
+| C1  | 103.19%     | 116.90      | 47.83%             | 61.21              | 11 / 11          | 691.00            |
+| C2  | 104.35%     | 191.20      | 50.56%             | 61.66              | 11 / 11          | 1,528.83          |
 
 These are the highest sampled Docker values, not continuous peaks. Memory is MiB (1 GiB = 1024 MiB). Sampling uses a two-second pause plus Docker stats queries; Docker-generator collection adds query time. Samples can include the distinct-account setup phase, so maxima cannot always be attributed to load alone. Detailed samples retain chronological values, network I/O and timestamps.
 
@@ -136,6 +149,9 @@ These are the highest sampled Docker values, not continuous peaks. Memory is MiB
 | B1  | 308               | 25                | 8.117%          | 1.140                    | 0                        |
 | B2  | 308               | 14                | 4.545%          | 0.869                    | 0                        |
 | B3  | 317               | 90                | 28.391%         | 3.736                    | 603                      |
+| C0  | 33                | 0                 | 0.000%          | 0.000                    | 0                        |
+| C1  | 612               | 208               | 33.987%         | 8.444                    | 718                      |
+| C2  | 634               | 245               | 38.644%         | 14.721                   | 3490                     |
 
 The runner resolved /proc/self/cgroup and collected that group's cpu.stat and cpu.max for every stage. These counters cover the complete run interval, including setup and graceful completion; their throttled time is not an individual request's waiting time. Pool observations come from the API's ten-second JSON logs.
 
