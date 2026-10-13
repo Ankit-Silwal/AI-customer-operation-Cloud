@@ -1,0 +1,38 @@
+
+k6 metrics (durations: ms; rate metrics: fractions; counter rates: /s)
+checks: rate=1.000 passes=22743.000 fails=0.000
+checks{phase:load}: rate=1.000 passes=22743.000 fails=0.000
+  PASS: rate>0.99
+data_received: count=11164736.000 rate=197438.007
+data_sent: count=4731727.000 rate=83676.206
+http_req_blocked: p(99)=3.322 avg=0.152 min=0.001 med=0.006 max=30.795 p(90)=0.015 p(95)=0.174
+http_req_connecting: p(99)=2.645 avg=0.133 min=0.000 med=0.000 max=30.754 p(90)=0.000 p(95)=0.129
+http_req_duration: p(99)=4770.105 avg=764.413 min=0.053 med=733.575 max=6814.719 p(90)=1392.611 p(95)=1809.296
+http_req_duration{expected_response:true}: p(99)=4770.127 avg=764.651 min=0.053 med=733.725 max=6814.719 p(90)=1392.612 p(95)=1809.397
+http_req_duration{phase:load,kind:login}: p(90)=1890.415 p(95)=2295.316 p(99)=4605.389 avg=1241.976 min=0.073 med=1193.049 max=6734.758
+  FAIL: p(95)<1000
+http_req_duration{phase:load,kind:read}: max=6814.719 p(90)=1605.430 p(95)=2143.449 p(99)=4916.578 avg=954.149 min=0.053 med=882.065
+  FAIL: p(95)<500
+http_req_duration{phase:load,kind:write}: p(90)=1296.496 p(95)=1421.469 p(99)=4950.534 avg=891.198 min=0.066 med=880.580 max=6731.533
+  FAIL: p(95)<1000
+http_req_failed: passes=3.000 fails=9583.000 rate=0.000
+http_req_failed{phase:load}: passes=0.000 fails=7581.000 rate=0.000
+  PASS: rate<0.01
+http_req_receiving: avg=0.115 min=0.018 med=0.101 max=8.973 p(90)=0.175 p(95)=0.209 p(99)=0.360
+http_req_sending: p(95)=0.077 p(99)=0.291 avg=0.049 min=0.004 med=0.019 max=26.450 p(90)=0.059
+http_req_tls_handshaking: p(90)=0.000 p(95)=0.000 p(99)=0.000 avg=0.000 min=0.000 med=0.000 max=0.000
+http_req_waiting: min=0.000 med=733.328 max=6814.501 p(90)=1392.441 p(95)=1809.121 p(99)=4769.659 avg=764.249
+http_reqs: count=9586.000 rate=169.520
+http_reqs{phase:load,kind:login}: count=377.000 rate=6.667
+  PASS: count>0
+http_reqs{phase:load,kind:read}: count=5305.000 rate=93.814
+  PASS: count>0
+http_reqs{phase:load,kind:write}: count=1899.000 rate=33.582
+  PASS: count>0
+http_reqs{phase:load}: count=7581.000 rate=134.063
+  PASS: count>0
+iteration_duration: min=1001.773 med=1900.137 max=10073.767 p(90)=2584.395 p(95)=3059.253 p(99)=7617.507 avg=2021.829
+iterations: count=7581.000 rate=134.063
+vus: max=500.000 value=54.000 min=0.000
+vus_max: value=500.000 min=500.000 max=500.000
+time="2026-10-13T13:17:55Z" level=error msg="thresholds on metrics 'http_req_duration{phase:load,kind:login}, http_req_duration{phase:load,kind:read}, http_req_duration{phase:load,kind:write}' have been crossed"

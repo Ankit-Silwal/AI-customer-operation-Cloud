@@ -1,0 +1,13 @@
+
+> AI-customer-operation-Cloud@1.0.0 test:load:matrix
+> node apps/api/scripts/run-k6-matrix.ts
+
+Starting 00-1vu-30s; 2026-10-13T13:15:28.902Z
+Finished 00-1vu-30s: exit=0, read p95=3.556590949999999 ms
+Starting 01-250vu-30s; 2026-10-13T13:16:06.461Z
+Finished 01-250vu-30s: exit=0, read p95=458.0063515499974 ms
+Starting 02-500vu-30s; 2026-10-13T13:16:57.990Z
+Finished 02-500vu-30s: exit=99, read p95=2143.448803 ms
+Starting 03-1000vu-30s; 2026-10-13T13:18:03.013Z
+Finished 03-1000vu-30s: exit=99, read p95=8244.559544900001 ms
+Results saved in C:\Studies\Web Development\AI-customer-operation-Cloud\docs\Version1\results\05-docker-mixed-250-500-1000-users-30s

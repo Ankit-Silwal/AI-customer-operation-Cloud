@@ -759,6 +759,10 @@ if (await exists(join(results, "validation/runtime-audit.json"))) {
   );
   report += `- API production dependency audit: **${audit.metadata.vulnerabilities.total} vulnerabilities**. [Evidence](results/validation/runtime-audit.json). This is not a whole-monorepo audit.\n`;
 }
+report = report.replace(
+  "**k6's counter-rate time denominator includes setup**.",
+  "**k6's counter-rate time denominator includes setup**. The installed-version source computes counter rate from test-run duration and marks the run started before setup: [counter calculation](https://github.com/grafana/k6/blob/v2.3.0/metrics/sink.go), [execution lifecycle](https://github.com/grafana/k6/blob/v2.3.0/internal/execution/scheduler.go).",
+);
 await writeFile(join(docs, "testResult.md"), report);
 await writeFile(
   join(results, "helper.md"),

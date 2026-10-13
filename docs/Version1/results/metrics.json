@@ -4618,5 +4618,964 @@
       "503": 1
     },
     "metricCount": 26
+  },
+  {
+    "id": "E0",
+    "campaign": "E",
+    "group": "05-docker-mixed-250-500-1000-users-30s",
+    "run": "00-1vu-30s",
+    "role": "warmup",
+    "users": 1,
+    "duration": "30s",
+    "profile": "steady",
+    "workload": "mixed",
+    "reads": 24,
+    "readRPS": 0.85473122161483,
+    "requests": 30,
+    "requestRPS": 1.0684140270185374,
+    "totalHTTP": 38,
+    "failures": 0,
+    "failedReadRate": 0,
+    "checkPassRate": 1,
+    "exitCode": 0,
+    "latency": {
+      "p(90)": 3.1758181,
+      "p(95)": 3.556590949999999,
+      "p(99)": 4.334856479999999,
+      "avg": 2.5834783333333333,
+      "min": 1.735848,
+      "med": 2.3633065,
+      "max": 4.549636,
+      "thresholds": {
+        "p(95)<500": false
+      }
+    },
+    "writeLatency": {
+      "max": 26.530469,
+      "p(90)": 18.436357,
+      "p(95)": 22.483412999999995,
+      "p(99)": 25.7210578,
+      "avg": 9.9639664,
+      "min": 5.1214,
+      "med": 6.249402,
+      "thresholds": {
+        "p(95)<1000": false
+      }
+    },
+    "loginLatency": {
+      "p(90)": 49.43142,
+      "p(95)": 49.43142,
+      "p(99)": 49.43142,
+      "avg": 49.43142,
+      "min": 49.43142,
+      "med": 49.43142,
+      "max": 49.43142,
+      "thresholds": {
+        "p(95)<1000": false
+      }
+    },
+    "writes": 5,
+    "logins": 1,
+    "resources": {
+      "api": {
+        "maxCPU": 6.35,
+        "maxMiB": 91.55,
+        "minMiB": 50.64,
+        "lastMiB": 51.21,
+        "samples": 6
+      },
+      "postgres": {
+        "maxCPU": 7.39,
+        "maxMiB": 48.77,
+        "minMiB": 48.73,
+        "lastMiB": 48.74,
+        "samples": 6
+      },
+      "generator": {
+        "maxCPU": 1.26,
+        "maxMiB": 12.18,
+        "minMiB": 11.36,
+        "lastMiB": 12.18,
+        "samples": 5
+      }
+    },
+    "warnings": 0,
+    "refusals": 0,
+    "timeouts": 0,
+    "failedThresholds": [],
+    "cpuPeriods": 87,
+    "cpuThrottledPeriods": 3,
+    "cpuThrottledSeconds": 0.04426,
+    "poolWaitingMax": 0,
+    "containerStates": [
+      {
+        "id": "3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+        "name": "/customer-operation-cloud-v1-benchmark-api-1",
+        "imageId": "sha256:140725dfc7ff23d5e5f326408672efc4d1dbe2442c47ba2f9c9b0f57d3efeaf3",
+        "state": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "Health": {
+            "FailingStreak": 0,
+            "Log": [
+              {
+                "End": "2026-10-13T13:14:53.172728647Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:14:52.867677883Z"
+              },
+              {
+                "End": "2026-10-13T13:15:08.448535171Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:15:08.17767878Z"
+              },
+              {
+                "End": "2026-10-13T13:15:21.397253427Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:15:21.157692508Z"
+              },
+              {
+                "End": "2026-10-13T13:15:36.71282064Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:15:36.398074774Z"
+              },
+              {
+                "End": "2026-10-13T13:15:49.777841279Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:15:49.514083023Z"
+              }
+            ],
+            "Status": "healthy"
+          },
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 7929,
+          "Restarting": false,
+          "Running": true,
+          "StartedAt": "2026-10-13T12:53:41.793776212Z",
+          "Status": "running"
+        },
+        "restartCount": 0,
+        "memoryBytes": 1073741824,
+        "nanoCpus": 1000000000
+      },
+      {
+        "id": "35a67e3889229ecec5b80df2e0cf93da8762b0d7158bee5e345ffd08d78ff6c2",
+        "name": "/customer-operation-cloud-v1-benchmark-postgres-1",
+        "imageId": "sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24",
+        "state": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "Health": {
+            "FailingStreak": 0,
+            "Log": [
+              {
+                "End": "2026-10-13T13:15:49.931865866Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:15:49.86632353Z"
+              },
+              {
+                "End": "2026-10-13T13:15:52.031058813Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:15:51.932657198Z"
+              },
+              {
+                "End": "2026-10-13T13:15:54.104727382Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:15:54.033207442Z"
+              },
+              {
+                "End": "2026-10-13T13:15:56.176940795Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:15:56.106387105Z"
+              },
+              {
+                "End": "2026-10-13T13:15:58.337965596Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:15:58.178157997Z"
+              }
+            ],
+            "Status": "healthy"
+          },
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 7738,
+          "Restarting": false,
+          "Running": true,
+          "StartedAt": "2026-10-13T12:53:37.088788283Z",
+          "Status": "running"
+        },
+        "restartCount": 0,
+        "memoryBytes": 1073741824,
+        "nanoCpus": 1000000000
+      }
+    ],
+    "cpuBefore": {
+      "path": "/sys/fs/cgroup/docker/3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+      "cpuMax": "100000 100000",
+      "usage_usec": 417049628,
+      "user_usec": 290093636,
+      "system_usec": 126955991,
+      "nr_periods": 5990,
+      "nr_throttled": 1998,
+      "throttled_usec": 284816086,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "cpuAfter": {
+      "path": "/sys/fs/cgroup/docker/3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+      "cpuMax": "100000 100000",
+      "usage_usec": 417867888,
+      "user_usec": 290624191,
+      "system_usec": 127243696,
+      "nr_periods": 6077,
+      "nr_throttled": 2001,
+      "throttled_usec": 284860346,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "apiLogStatuses": {
+      "200": 29,
+      "201": 9,
+      "400": 1,
+      "401": 1
+    },
+    "metricCount": 26
+  },
+  {
+    "id": "E1",
+    "campaign": "E",
+    "group": "05-docker-mixed-250-500-1000-users-30s",
+    "run": "01-250vu-30s",
+    "role": "load",
+    "users": 250,
+    "duration": "30s",
+    "profile": "steady",
+    "workload": "mixed",
+    "reads": 4654,
+    "readRPS": 108.85403930100375,
+    "requests": 6626,
+    "requestRPS": 154.9778393658038,
+    "totalHTTP": 7631,
+    "failures": 0,
+    "failedReadRate": 0,
+    "checkPassRate": 1,
+    "exitCode": 0,
+    "latency": {
+      "p(90)": 374.65943629999987,
+      "p(95)": 458.0063515499974,
+      "p(99)": 726.8106065400013,
+      "avg": 131.53142602299107,
+      "min": 0.04692,
+      "med": 64.35574199999999,
+      "max": 1539.46864,
+      "thresholds": {
+        "p(95)<500": false
+      }
+    },
+    "writeLatency": {
+      "min": 0.0824,
+      "med": 85.3456565,
+      "max": 1337.719667,
+      "p(90)": 386.6590720000002,
+      "p(95)": 470.99909504999994,
+      "p(99)": 695.84710393,
+      "avg": 145.04865206463427,
+      "thresholds": {
+        "p(95)<1000": false
+      }
+    },
+    "loginLatency": {
+      "p(90)": 679.2879097,
+      "p(95)": 780.57754025,
+      "p(99)": 894.53113016,
+      "avg": 335.4255669186747,
+      "min": 0.109761,
+      "med": 290.022821,
+      "max": 1184.61445,
+      "thresholds": {
+        "p(95)<1000": false
+      }
+    },
+    "writes": 1640,
+    "logins": 332,
+    "resources": {
+      "api": {
+        "maxCPU": 101.65,
+        "maxMiB": 120.6,
+        "minMiB": 67.52,
+        "lastMiB": 86.66,
+        "samples": 8
+      },
+      "postgres": {
+        "maxCPU": 22.59,
+        "maxMiB": 69.25,
+        "minMiB": 56.84,
+        "lastMiB": 68.93,
+        "samples": 8
+      },
+      "generator": {
+        "maxCPU": 24.85,
+        "maxMiB": 198.8,
+        "minMiB": 57.52,
+        "lastMiB": 198.8,
+        "samples": 8
+      }
+    },
+    "warnings": 0,
+    "refusals": 0,
+    "timeouts": 0,
+    "failedThresholds": [],
+    "cpuPeriods": 467,
+    "cpuThrottledPeriods": 390,
+    "cpuThrottledSeconds": 76.093008,
+    "poolWaitingMax": 59,
+    "containerStates": [
+      {
+        "id": "3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+        "name": "/customer-operation-cloud-v1-benchmark-api-1",
+        "imageId": "sha256:140725dfc7ff23d5e5f326408672efc4d1dbe2442c47ba2f9c9b0f57d3efeaf3",
+        "state": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "Health": {
+            "FailingStreak": 0,
+            "Log": [
+              {
+                "End": "2026-10-13T13:15:49.777841279Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:15:49.514083023Z"
+              },
+              {
+                "End": "2026-10-13T13:16:05.117481703Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:16:04.783187502Z"
+              },
+              {
+                "End": "2026-10-13T13:16:18.980699516Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:16:17.891496352Z"
+              },
+              {
+                "End": "2026-10-13T13:16:33.724940712Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:16:33.981417741Z"
+              },
+              {
+                "End": "2026-10-13T13:16:49.052924981Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:16:48.72598596Z"
+              }
+            ],
+            "Status": "healthy"
+          },
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 7929,
+          "Restarting": false,
+          "Running": true,
+          "StartedAt": "2026-10-13T12:53:41.793776212Z",
+          "Status": "running"
+        },
+        "restartCount": 0,
+        "memoryBytes": 1073741824,
+        "nanoCpus": 1000000000
+      },
+      {
+        "id": "35a67e3889229ecec5b80df2e0cf93da8762b0d7158bee5e345ffd08d78ff6c2",
+        "name": "/customer-operation-cloud-v1-benchmark-postgres-1",
+        "imageId": "sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24",
+        "state": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "Health": {
+            "FailingStreak": 0,
+            "Log": [
+              {
+                "End": "2026-10-13T13:16:41.800164389Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:16:41.726819585Z"
+              },
+              {
+                "End": "2026-10-13T13:16:43.870336284Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:16:43.801627601Z"
+              },
+              {
+                "End": "2026-10-13T13:16:45.94169784Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:16:45.8709481Z"
+              },
+              {
+                "End": "2026-10-13T13:16:48.019164481Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:16:47.942348367Z"
+              },
+              {
+                "End": "2026-10-13T13:16:50.103673209Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:16:50.019883721Z"
+              }
+            ],
+            "Status": "healthy"
+          },
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 7738,
+          "Restarting": false,
+          "Running": true,
+          "StartedAt": "2026-10-13T12:53:37.088788283Z",
+          "Status": "running"
+        },
+        "restartCount": 0,
+        "memoryBytes": 1073741824,
+        "nanoCpus": 1000000000
+      }
+    ],
+    "cpuBefore": {
+      "path": "/sys/fs/cgroup/docker/3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+      "cpuMax": "100000 100000",
+      "usage_usec": 418231858,
+      "user_usec": 290833464,
+      "system_usec": 127398394,
+      "nr_periods": 6089,
+      "nr_throttled": 2003,
+      "throttled_usec": 284872255,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "cpuAfter": {
+      "path": "/sys/fs/cgroup/docker/3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+      "cpuMax": "100000 100000",
+      "usage_usec": 460510342,
+      "user_usec": 319805335,
+      "system_usec": 140705006,
+      "nr_periods": 6556,
+      "nr_throttled": 2393,
+      "throttled_usec": 360965263,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "apiLogStatuses": {
+      "200": 4991,
+      "201": 2640,
+      "400": 1,
+      "401": 1,
+      "404": 1
+    },
+    "metricCount": 26
+  },
+  {
+    "id": "E2",
+    "campaign": "E",
+    "group": "05-docker-mixed-250-500-1000-users-30s",
+    "run": "02-500vu-30s",
+    "role": "load",
+    "users": 500,
+    "duration": "30s",
+    "profile": "steady",
+    "workload": "mixed",
+    "reads": 5305,
+    "readRPS": 93.8140073375901,
+    "requests": 7581,
+    "requestRPS": 134.06295751673338,
+    "totalHTTP": 9586,
+    "failures": 0,
+    "failedReadRate": 0,
+    "checkPassRate": 1,
+    "exitCode": 99,
+    "latency": {
+      "max": 6814.718845,
+      "p(90)": 1605.4298265999998,
+      "p(95)": 2143.448803,
+      "p(99)": 4916.577690720001,
+      "avg": 954.1489042616419,
+      "min": 0.052748,
+      "med": 882.064582,
+      "thresholds": {
+        "p(95)<500": true
+      }
+    },
+    "writeLatency": {
+      "p(90)": 1296.4961826,
+      "p(95)": 1421.4690428000001,
+      "p(99)": 4950.53372334,
+      "avg": 891.1982385950491,
+      "min": 0.066258,
+      "med": 880.579926,
+      "max": 6731.532767,
+      "thresholds": {
+        "p(95)<1000": true
+      }
+    },
+    "loginLatency": {
+      "p(90)": 1890.4152726000002,
+      "p(95)": 2295.3157226,
+      "p(99)": 4605.389371880007,
+      "avg": 1241.9759457984092,
+      "min": 0.073159,
+      "med": 1193.04936,
+      "max": 6734.757608,
+      "thresholds": {
+        "p(95)<1000": true
+      }
+    },
+    "writes": 1899,
+    "logins": 377,
+    "resources": {
+      "api": {
+        "maxCPU": 102.95,
+        "maxMiB": 142.6,
+        "minMiB": 91.32,
+        "lastMiB": 91.32,
+        "samples": 11
+      },
+      "postgres": {
+        "maxCPU": 20.97,
+        "maxMiB": 70.32,
+        "minMiB": 58.64,
+        "lastMiB": 69.97,
+        "samples": 11
+      },
+      "generator": {
+        "maxCPU": 32.75,
+        "maxMiB": 566.6,
+        "minMiB": 95.19,
+        "lastMiB": 566.6,
+        "samples": 10
+      }
+    },
+    "warnings": 0,
+    "refusals": 0,
+    "timeouts": 0,
+    "failedThresholds": [
+      "http_req_duration{phase:load,kind:read}: p(95)<500",
+      "http_req_duration{phase:load,kind:login}: p(95)<1000",
+      "http_req_duration{phase:load,kind:write}: p(95)<1000"
+    ],
+    "cpuPeriods": 615,
+    "cpuThrottledPeriods": 598,
+    "cpuThrottledSeconds": 138.524839,
+    "poolWaitingMax": 180,
+    "containerStates": [
+      {
+        "id": "3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+        "name": "/customer-operation-cloud-v1-benchmark-api-1",
+        "imageId": "sha256:140725dfc7ff23d5e5f326408672efc4d1dbe2442c47ba2f9c9b0f57d3efeaf3",
+        "state": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "Health": {
+            "FailingStreak": 0,
+            "Log": [
+              {
+                "End": "2026-10-13T13:16:49.052924981Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:16:48.72598596Z"
+              },
+              {
+                "End": "2026-10-13T13:17:02.837695488Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:17:01.940958479Z"
+              },
+              {
+                "End": "2026-10-13T13:17:18.900987831Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:17:17.839503269Z"
+              },
+              {
+                "End": "2026-10-13T13:17:34.065278042Z",
+                "ExitCode": 1,
+                "Output": "",
+                "Start": "2026-10-13T13:17:31.659116506Z"
+              },
+              {
+                "End": "2026-10-13T13:17:51.458495257Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:17:49.067064206Z"
+              }
+            ],
+            "Status": "healthy"
+          },
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 7929,
+          "Restarting": false,
+          "Running": true,
+          "StartedAt": "2026-10-13T12:53:41.793776212Z",
+          "Status": "running"
+        },
+        "restartCount": 0,
+        "memoryBytes": 1073741824,
+        "nanoCpus": 1000000000
+      },
+      {
+        "id": "35a67e3889229ecec5b80df2e0cf93da8762b0d7158bee5e345ffd08d78ff6c2",
+        "name": "/customer-operation-cloud-v1-benchmark-postgres-1",
+        "imageId": "sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24",
+        "state": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "Health": {
+            "FailingStreak": 0,
+            "Log": [
+              {
+                "End": "2026-10-13T13:17:48.18917808Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:17:48.107176109Z"
+              },
+              {
+                "End": "2026-10-13T13:17:50.26672737Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:17:50.189885252Z"
+              },
+              {
+                "End": "2026-10-13T13:17:52.347634458Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:17:52.26739699Z"
+              },
+              {
+                "End": "2026-10-13T13:17:54.417388524Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:17:54.349113563Z"
+              },
+              {
+                "End": "2026-10-13T13:17:56.504161969Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:17:56.418729574Z"
+              }
+            ],
+            "Status": "healthy"
+          },
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 7738,
+          "Restarting": false,
+          "Running": true,
+          "StartedAt": "2026-10-13T12:53:37.088788283Z",
+          "Status": "running"
+        },
+        "restartCount": 0,
+        "memoryBytes": 1073741824,
+        "nanoCpus": 1000000000
+      }
+    ],
+    "cpuBefore": {
+      "path": "/sys/fs/cgroup/docker/3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+      "cpuMax": "100000 100000",
+      "usage_usec": 460572144,
+      "user_usec": 319839435,
+      "system_usec": 140732708,
+      "nr_periods": 6563,
+      "nr_throttled": 2393,
+      "throttled_usec": 360965263,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "cpuAfter": {
+      "path": "/sys/fs/cgroup/docker/3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+      "cpuMax": "100000 100000",
+      "usage_usec": 520647793,
+      "user_usec": 361083257,
+      "system_usec": 159564535,
+      "nr_periods": 7178,
+      "nr_throttled": 2991,
+      "throttled_usec": 499490102,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "apiLogStatuses": {
+      "200": 5687,
+      "201": 3899,
+      "400": 1,
+      "401": 1,
+      "404": 1,
+      "503": 1
+    },
+    "metricCount": 26
+  },
+  {
+    "id": "E3",
+    "campaign": "E",
+    "group": "05-docker-mixed-250-500-1000-users-30s",
+    "run": "03-1000vu-30s",
+    "role": "load",
+    "users": 1000,
+    "duration": "30s",
+    "profile": "steady",
+    "workload": "mixed",
+    "reads": 5710,
+    "readRPS": 62.25792966713811,
+    "requests": 8058,
+    "requestRPS": 87.85891370539385,
+    "totalHTTP": 12063,
+    "failures": 1082,
+    "failedReadRate": 0.1342764954082899,
+    "checkPassRate": 0.8657235045917101,
+    "exitCode": 99,
+    "latency": {
+      "med": 1308.590253,
+      "max": 10001.315211,
+      "p(90)": 6924.9902032,
+      "p(95)": 8244.559544900001,
+      "p(99)": 10000.17703055,
+      "avg": 2167.3091761248647,
+      "min": 0,
+      "thresholds": {
+        "p(95)<500": true
+      }
+    },
+    "writeLatency": {
+      "p(90)": 6938.5884296,
+      "p(95)": 8217.075695799993,
+      "p(99)": 10000.32984072,
+      "avg": 2133.08052761216,
+      "min": 0,
+      "med": 1140.994468,
+      "max": 10001.101304,
+      "thresholds": {
+        "p(95)<1000": true
+      }
+    },
+    "loginLatency": {
+      "avg": 2384.6981709411766,
+      "min": 0,
+      "med": 1502.929348,
+      "max": 10000.84713,
+      "p(90)": 6692.867243,
+      "p(95)": 8865.7988945,
+      "p(99)": 10000.2762776,
+      "thresholds": {
+        "p(95)<1000": true
+      }
+    },
+    "writes": 1957,
+    "logins": 391,
+    "resources": {
+      "api": {
+        "maxCPU": 107.76,
+        "maxMiB": 171,
+        "minMiB": 91.04,
+        "lastMiB": 164.1,
+        "samples": 17
+      },
+      "postgres": {
+        "maxCPU": 27.29,
+        "maxMiB": 72.23,
+        "minMiB": 59.78,
+        "lastMiB": 71.86,
+        "samples": 17
+      },
+      "generator": {
+        "maxCPU": 28.51,
+        "maxMiB": 1609.728,
+        "minMiB": 165.1,
+        "lastMiB": 1609.728,
+        "samples": 17
+      }
+    },
+    "warnings": 1082,
+    "refusals": 0,
+    "timeouts": 1082,
+    "failedThresholds": [
+      "checks{phase:load}: rate>0.99",
+      "http_req_duration{phase:load,kind:write}: p(95)<1000",
+      "http_req_failed{phase:load}: rate<0.01",
+      "http_req_duration{phase:load,kind:read}: p(95)<500",
+      "http_req_duration{phase:load,kind:login}: p(95)<1000"
+    ],
+    "cpuPeriods": 991,
+    "cpuThrottledPeriods": 972,
+    "cpuThrottledSeconds": 198.711145,
+    "poolWaitingMax": 376,
+    "containerStates": [
+      {
+        "id": "3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+        "name": "/customer-operation-cloud-v1-benchmark-api-1",
+        "imageId": "sha256:140725dfc7ff23d5e5f326408672efc4d1dbe2442c47ba2f9c9b0f57d3efeaf3",
+        "state": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "Health": {
+            "FailingStreak": 2,
+            "Log": [
+              {
+                "End": "2026-10-13T13:18:21.640192586Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:18:20.534742302Z"
+              },
+              {
+                "End": "2026-10-13T13:18:35.338505341Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:18:34.346307232Z"
+              },
+              {
+                "End": "2026-10-13T13:18:51.352003477Z",
+                "ExitCode": 0,
+                "Output": "",
+                "Start": "2026-10-13T13:18:50.342516492Z"
+              },
+              {
+                "End": "2026-10-13T13:19:06.620573771Z",
+                "ExitCode": 1,
+                "Output": "",
+                "Start": "2026-10-13T13:19:04.12201319Z"
+              },
+              {
+                "End": "2026-10-13T13:19:22.0021718Z",
+                "ExitCode": 1,
+                "Output": "",
+                "Start": "2026-10-13T13:19:21.621147584Z"
+              }
+            ],
+            "Status": "healthy"
+          },
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 7929,
+          "Restarting": false,
+          "Running": true,
+          "StartedAt": "2026-10-13T12:53:41.793776212Z",
+          "Status": "running"
+        },
+        "restartCount": 0,
+        "memoryBytes": 1073741824,
+        "nanoCpus": 1000000000
+      },
+      {
+        "id": "35a67e3889229ecec5b80df2e0cf93da8762b0d7158bee5e345ffd08d78ff6c2",
+        "name": "/customer-operation-cloud-v1-benchmark-postgres-1",
+        "imageId": "sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24",
+        "state": {
+          "Dead": false,
+          "Error": "",
+          "ExitCode": 0,
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "Health": {
+            "FailingStreak": 0,
+            "Log": [
+              {
+                "End": "2026-10-13T13:19:25.641845495Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:19:25.57379574Z"
+              },
+              {
+                "End": "2026-10-13T13:19:27.720488732Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:19:27.643157045Z"
+              },
+              {
+                "End": "2026-10-13T13:19:29.814403214Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:19:29.721692054Z"
+              },
+              {
+                "End": "2026-10-13T13:19:31.891051454Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:19:31.815143115Z"
+              },
+              {
+                "End": "2026-10-13T13:19:33.968491582Z",
+                "ExitCode": 0,
+                "Output": "/var/run/postgresql:5432 - accepting connections\n",
+                "Start": "2026-10-13T13:19:33.891789676Z"
+              }
+            ],
+            "Status": "healthy"
+          },
+          "OOMKilled": false,
+          "Paused": false,
+          "Pid": 7738,
+          "Restarting": false,
+          "Running": true,
+          "StartedAt": "2026-10-13T12:53:37.088788283Z",
+          "Status": "running"
+        },
+        "restartCount": 0,
+        "memoryBytes": 1073741824,
+        "nanoCpus": 1000000000
+      }
+    ],
+    "cpuBefore": {
+      "path": "/sys/fs/cgroup/docker/3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+      "cpuMax": "100000 100000",
+      "usage_usec": 520739873,
+      "user_usec": 361136116,
+      "system_usec": 159603757,
+      "nr_periods": 7183,
+      "nr_throttled": 2991,
+      "throttled_usec": 499490102,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "cpuAfter": {
+      "path": "/sys/fs/cgroup/docker/3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+      "cpuMax": "100000 100000",
+      "usage_usec": 618435061,
+      "user_usec": 428705926,
+      "system_usec": 189729134,
+      "nr_periods": 8174,
+      "nr_throttled": 3963,
+      "throttled_usec": 698201247,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "apiLogStatuses": {
+      "200": 5317,
+      "201": 5677,
+      "400": 1,
+      "401": 1,
+      "404": 1,
+      "499": 968
+    },
+    "metricCount": 26
   }
 ]
