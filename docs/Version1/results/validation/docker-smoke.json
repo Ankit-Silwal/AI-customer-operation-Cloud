@@ -1,0 +1,204 @@
+{
+  "startedAt": "2026-10-13T13:05:38.275Z",
+  "endedAt": "2026-10-13T13:05:38.740Z",
+  "baseUrl": "http://localhost:3002",
+  "checks": [
+    {
+      "name": "liveness",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "readiness",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "register owner",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "create owned organization",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "create persistent JSON document",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "register second account",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "login owner",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "reject incorrect password",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "name": "reject duplicate account",
+      "status": 409,
+      "passed": true
+    },
+    {
+      "name": "reject anonymous organization access",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "name": "reject malformed JWT",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "name": "reject foreign organization access",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "read JSON document",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "JSON-only document has no file",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "create conversation",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "read owned conversation",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "reject foreign conversation access",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "upload notes.txt",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "read notes.txt metadata",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "download notes.txt bytes",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "reject foreign notes.txt metadata",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "reject foreign notes.txt download",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "upload notes.md",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "read notes.md metadata",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "download notes.md bytes",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "reject foreign notes.md metadata",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "reject foreign notes.md download",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "upload notes.pdf",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "name": "read notes.pdf metadata",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "download notes.pdf bytes",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "reject foreign notes.pdf metadata",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "reject foreign notes.pdf download",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "reject foreign upload",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "reject unsupported executable upload",
+      "status": 415,
+      "passed": true
+    },
+    {
+      "name": "reject invalid PDF",
+      "status": 400,
+      "passed": true
+    },
+    {
+      "name": "reject invalid UTF-8",
+      "status": 400,
+      "passed": true
+    },
+    {
+      "name": "reject oversized upload",
+      "status": 413,
+      "passed": true
+    },
+    {
+      "name": "preserve safe request ID",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "replace invalid request ID",
+      "status": 404,
+      "passed": true
+    }
+  ],
+  "failed": 0,
+  "note": "Compiled Docker API, real PostgreSQL, each capped at 1 CPU / 1 GiB. Request IDs/security headers checked on every HTTP response. Credentials kept in memory only."
+}

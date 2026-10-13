@@ -1,0 +1,148 @@
+{
+  "startedAt": "2026-10-13T13:02:44.511Z",
+  "sourceCommit": "889ecc3115634629e57af8820def8bf6f6e2692f",
+  "sourceChanges": "M compose.yaml\n M docs/Version0/results/01-windows-10-50-100-250-500-1000-2000-users-30s/00-1vu-10s.log\n M docs/Version0/results/01-windows-10-50-100-250-500-1000-2000-users-30s/01-10vu-30s.summary.md\n M docs/Version0/results/02-docker-500-1000-2000-users-30s/summary.md\n?? docs/Version1/results/validation/campaign-b.log",
+  "host": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "logicalCpus": 12,
+    "cpu": "AMD Ryzen 7 7445HS w/ Radeon 740M Graphics     ",
+    "memoryBytes": 16396075008
+  },
+  "docker": {
+    "serverVersion": "29.0.1",
+    "operatingSystem": "Docker Desktop",
+    "kernelVersion": "6.6.87.2-microsoft-standard-WSL2",
+    "logicalCpus": 12,
+    "memoryBytes": 7938973696
+  },
+  "execution": "docker",
+  "workload": "organization-read",
+  "profile": "steady",
+  "composeProject": "customer-operation-cloud-v1-benchmark",
+  "composeFile": "compose.benchmark.yaml",
+  "generatorNetwork": "customer-operation-cloud-v1-benchmark_default",
+  "generatorImage": "grafana/k6:2.3.0",
+  "k6Version": "k6 v2.3.0 (commit/e088784614, go1.27.1, linux/amd64)",
+  "nodeVersion": "v24.21.0",
+  "postgresVersion": "postgres (PostgreSQL) 17.11",
+  "baseUrl": "http://api:3001",
+  "initialContainers": [
+    {
+      "id": "3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+      "name": "/customer-operation-cloud-v1-benchmark-api-1",
+      "imageId": "sha256:140725dfc7ff23d5e5f326408672efc4d1dbe2442c47ba2f9c9b0f57d3efeaf3",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "Health": {
+          "FailingStreak": 0,
+          "Log": [
+            {
+              "End": "2026-10-13T13:01:43.87793784Z",
+              "ExitCode": 0,
+              "Output": "",
+              "Start": "2026-10-13T13:01:43.597944648Z"
+            },
+            {
+              "End": "2026-10-13T13:01:57.260498759Z",
+              "ExitCode": 0,
+              "Output": "",
+              "Start": "2026-10-13T13:01:56.934584843Z"
+            },
+            {
+              "End": "2026-10-13T13:02:10.566260826Z",
+              "ExitCode": 0,
+              "Output": "",
+              "Start": "2026-10-13T13:02:10.167334939Z"
+            },
+            {
+              "End": "2026-10-13T13:02:25.833452024Z",
+              "ExitCode": 0,
+              "Output": "",
+              "Start": "2026-10-13T13:02:25.566859313Z"
+            },
+            {
+              "End": "2026-10-13T13:02:39.036695173Z",
+              "ExitCode": 0,
+              "Output": "",
+              "Start": "2026-10-13T13:02:38.740690768Z"
+            }
+          ],
+          "Status": "healthy"
+        },
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 7929,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-10-13T12:53:41.793776212Z",
+        "Status": "running"
+      },
+      "restartCount": 0,
+      "memoryBytes": 1073741824,
+      "nanoCpus": 1000000000
+    },
+    {
+      "id": "35a67e3889229ecec5b80df2e0cf93da8762b0d7158bee5e345ffd08d78ff6c2",
+      "name": "/customer-operation-cloud-v1-benchmark-postgres-1",
+      "imageId": "sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "Health": {
+          "FailingStreak": 0,
+          "Log": [
+            {
+              "End": "2026-10-13T13:02:36.655232714Z",
+              "ExitCode": 0,
+              "Output": "/var/run/postgresql:5432 - accepting connections\n",
+              "Start": "2026-10-13T13:02:36.587759844Z"
+            },
+            {
+              "End": "2026-10-13T13:02:38.733360625Z",
+              "ExitCode": 0,
+              "Output": "/var/run/postgresql:5432 - accepting connections\n",
+              "Start": "2026-10-13T13:02:38.656525239Z"
+            },
+            {
+              "End": "2026-10-13T13:02:38.724949092Z",
+              "ExitCode": 0,
+              "Output": "/var/run/postgresql:5432 - accepting connections\n",
+              "Start": "2026-10-13T13:02:38.640620842Z"
+            },
+            {
+              "End": "2026-10-13T13:02:40.804044645Z",
+              "ExitCode": 0,
+              "Output": "/var/run/postgresql:5432 - accepting connections\n",
+              "Start": "2026-10-13T13:02:40.725595434Z"
+            },
+            {
+              "End": "2026-10-13T13:02:42.881373303Z",
+              "ExitCode": 0,
+              "Output": "/var/run/postgresql:5432 - accepting connections\n",
+              "Start": "2026-10-13T13:02:42.805929602Z"
+            }
+          ],
+          "Status": "healthy"
+        },
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 7738,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-10-13T12:53:37.088788283Z",
+        "Status": "running"
+      },
+      "restartCount": 0,
+      "memoryBytes": 1073741824,
+      "nanoCpus": 1000000000
+    }
+  ],
+  "sampleDelayMs": 2000,
+  "note": "k6 against Docker API/PostgreSQL; generator location is recorded separately. Limits are maxima. Closed model; one GET then sleep(1). Each run creates a user and organization. No deletion API exists. Two-second delay between Docker stats queries; actual sampling intervals include query time. Samples include setup and graceful completion."
+}

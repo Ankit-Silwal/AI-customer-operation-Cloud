@@ -1,0 +1,27 @@
+
+k6 metrics (durations: ms; rate metrics: fractions; counter rates: /s)
+checks: rate=1.000 passes=29782.000 fails=0.000
+checks{operation:organization_read}: passes=29782.000 fails=0.000 rate=1.000
+  PASS: rate>0.99
+data_received: count=16547467.000 rate=568757.889
+data_sent: count=5466047.000 rate=187875.120
+http_req_blocked: med=0.005 max=70.759 p(90)=0.009 p(95)=0.019 p(99)=11.908 avg=0.449 min=0.002
+http_req_connecting: min=0.000 med=0.000 max=70.717 p(90)=0.000 p(95)=0.000 p(99)=11.805 avg=0.435
+http_req_duration: p(90)=17.622 p(95)=53.549 p(99)=517.659 avg=19.111 min=0.653 med=3.275 max=668.568
+http_req_duration{expected_response:true}: max=668.568 p(90)=17.622 p(95)=53.549 p(99)=517.659 avg=19.111 min=0.653 med=3.275
+http_req_duration{operation:organization_read}: avg=19.110 min=0.653 med=3.275 max=668.568 p(90)=17.618 p(95)=53.487 p(99)=517.679
+  PASS: p(95)<500
+http_req_failed: passes=0.000 fails=14894.000 rate=0.000
+http_req_failed{operation:organization_read}: rate=0.000 passes=0.000 fails=14891.000
+  PASS: rate<0.01
+http_req_receiving: avg=0.092 min=0.013 med=0.084 max=3.697 p(90)=0.143 p(95)=0.167 p(99)=0.250
+http_req_sending: min=0.004 med=0.016 max=29.148 p(90)=0.041 p(95)=0.064 p(99)=3.195 avg=0.089
+http_req_tls_handshaking: max=0.000 p(90)=0.000 p(95)=0.000 p(99)=0.000 avg=0.000 min=0.000 med=0.000
+http_req_waiting: p(90)=17.502 p(95)=52.936 p(99)=517.380 avg=18.930 min=0.599 med=3.170 max=668.385
+http_reqs: rate=511.926 count=14894.000
+http_reqs{operation:organization_read}: count=14891.000 rate=511.823
+  PASS: count>0
+iteration_duration: med=1003.986 max=1669.393 p(90)=1018.453 p(95)=1058.887 p(99)=1518.469 avg=1020.247 min=1000.801
+iterations: count=14891.000 rate=511.823
+vus: value=58.000 min=58.000 max=500.000
+vus_max: min=500.000 max=500.000 value=500.000

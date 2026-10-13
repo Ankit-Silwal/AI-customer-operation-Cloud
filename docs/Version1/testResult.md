@@ -1,6 +1,6 @@
 # Version 1 Docker and k6 test results
 
-**8 Docker-backed load runs were conducted: 5 passed and 3 failed their thresholds.** The Version 0 read workload was repeated in 8 runs covering 95,704 organization reads. Version 1 mixed traffic was exercised in 0 runs covering 0 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
+**12 Docker-backed load runs were conducted: 8 passed and 4 failed their thresholds.** The Version 0 read workload was repeated in 12 runs covering 182,880 organization reads. Version 1 mixed traffic was exercised in 0 runs covering 0 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
 
 ## Scope and environment
 
@@ -66,7 +66,20 @@ Evidence directory: [Campaign A](results/01-windows-10-50-100-250-500-1000-2000-
 
 ## Campaign B: k6 inside the Docker network
 
-Not yet executed.
+Evidence directory: [Campaign B](results/02-docker-500-1000-2000-users-30s/summary.md), with [environment](results/02-docker-500-1000-2000-users-30s/environment.json) and [run manifest](results/02-docker-500-1000-2000-users-30s/runs.json). All planned stages completed.
+
+| Run                                                                               | VUs  | Time | Reads  | Read RPS | Avg ms | p95 ms | p99 ms   | Failed reads (%) | Checks passed | Result    |
+| --------------------------------------------------------------------------------- | ---- | ---- | ------ | -------- | ------ | ------ | -------- | ---------------- | ------------- | --------- |
+| [B0](results/02-docker-500-1000-2000-users-30s/00-1vu-10s.summary.json) (warm-up) | 1    | 10s  | 10     | 0.99     | 2.48   | 3.20   | 3.27     | 0 (0.000%)       | 100.000%      | PASS (0)  |
+| [B1](results/02-docker-500-1000-2000-users-30s/01-500vu-30s.summary.json)         | 500  | 30s  | 14,891 | 511.82   | 19.11  | 53.49  | 517.68   | 0 (0.000%)       | 100.000%      | PASS (0)  |
+| [B2](results/02-docker-500-1000-2000-users-30s/02-1000vu-30s.summary.json)        | 1000 | 30s  | 29,474 | 1,014.60 | 31.59  | 149.62 | 429.61   | 0 (0.000%)       | 100.000%      | PASS (0)  |
+| [B3](results/02-docker-500-1000-2000-users-30s/03-2000vu-30s.summary.json)        | 2000 | 30s  | 42,801 | 1,453.86 | 387.27 | 796.71 | 2,284.46 | 0 (0.000%)       | 100.000%      | FAIL (99) |
+
+**PASS (0)** — 14,891 organization reads, 511.82 requests/second, read p95 53.49 ms, 0 failed requests (0.000%). Every configured load threshold passed.
+
+**PASS (0)** — 29,474 organization reads, 1,014.60 requests/second, read p95 149.62 ms, 0 failed requests (0.000%). Every configured load threshold passed.
+
+**FAIL (99)** — 42,801 organization reads, 1,453.86 requests/second, read p95 796.71 ms, 0 failed requests (0.000%). Failed criteria: `http_req_duration{operation:organization_read}: p(95)<500`.
 
 ## Campaign C: longer repeat and stress stage
 
@@ -100,6 +113,10 @@ Not yet executed.
 | A5  | 54.74%      | 93.07       | 18.34%             | 63.41              | 9 / 9            | not sampled       |
 | A6  | 96.26%      | 77.51       | 41.33%             | 61.73              | 9 / 9            | not sampled       |
 | A7  | 105.96%     | 114.10      | 50.59%             | 61.83              | 10 / 10          | not sampled       |
+| B0  | 7.09%       | 105.90      | 3.73%              | 45.38              | 2 / 2            | 11.88             |
+| B1  | 55.99%      | 77.06       | 18.68%             | 61.23              | 6 / 6            | 180.00            |
+| B2  | 67.90%      | 81.70       | 29.64%             | 61.16              | 6 / 6            | 348.10            |
+| B3  | 104.43%     | 112.40      | 46.61%             | 61.93              | 6 / 6            | 603.20            |
 
 These are the highest sampled Docker values, not continuous peaks. Memory is MiB (1 GiB = 1024 MiB). Sampling uses a two-second pause plus Docker stats queries; Docker-generator collection adds query time. Samples can include the distinct-account setup phase, so maxima cannot always be attributed to load alone. Detailed samples retain chronological values, network I/O and timestamps.
 
@@ -115,6 +132,10 @@ These are the highest sampled Docker values, not continuous peaks. Memory is MiB
 | A5  | 242               | 3                 | 1.240%          | 0.035                    | 0                        |
 | A6  | 325               | 27                | 8.308%          | 1.375                    | 0                        |
 | A7  | 335               | 103               | 30.746%         | 3.840                    | 1109                     |
+| B0  | 39                | 1                 | 2.564%          | 0.017                    | 0                        |
+| B1  | 308               | 25                | 8.117%          | 1.140                    | 0                        |
+| B2  | 308               | 14                | 4.545%          | 0.869                    | 0                        |
+| B3  | 317               | 90                | 28.391%         | 3.736                    | 603                      |
 
 The runner resolved /proc/self/cgroup and collected that group's cpu.stat and cpu.max for every stage. These counters cover the complete run interval, including setup and graceful completion; their throttled time is not an individual request's waiting time. Pool observations come from the API's ten-second JSON logs.
 
@@ -159,3 +180,4 @@ The measured stages bound observations. Untested user counts have no result; one
 - Docker image build and readiness completed successfully before the load campaigns. [Log](results/validation/docker-build-start.log).
 - Tests cover registration/login, JWT/ownership rejection, request IDs, security headers, generic errors and private logging, migration preservation/rollback, database constraints and upload byte/metadata validation.
 - Custom summary regression checks cover credential exclusion. Mocked k6 lifecycle checks establish script/account assignment correctness; actual campaigns above establish the measured traffic results.
+- Compiled Docker HTTP smoke checks: **39 passed**, **0 failed**. [Evidence](results/validation/docker-smoke.json).

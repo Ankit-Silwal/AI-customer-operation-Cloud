@@ -1,0 +1,22 @@
+{
+  "since": "2026-10-13T13:02:46.861Z",
+  "until": "2026-10-13T13:02:58.498Z",
+  "parsedLines": 11,
+  "unparsedLines": 0,
+  "events": {
+    "http_request": 10,
+    "database_pool": 1
+  },
+  "statuses": {
+    "200": 10
+  },
+  "pool": [
+    {
+      "timestamp": "2026-10-13T13:02:53.884Z",
+      "poolTotal": 1,
+      "poolIdle": 1,
+      "poolWaiting": 0
+    }
+  ],
+  "note": "Aggregated Docker API logs. Includes setup and Docker health probes; these counts are not load-tagged k6 counters. Raw request logs are not copied."
+}

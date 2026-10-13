@@ -1,0 +1,86 @@
+[
+  {
+    "sampledAt": "2026-10-13T13:02:46.872Z",
+    "BlockIO": "5.41MB / 0B",
+    "CPUPerc": "5.95%",
+    "Container": "3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+    "ID": "3c2f9c4b7aa2",
+    "MemPerc": "10.34%",
+    "MemUsage": "105.9MiB / 1GiB",
+    "Name": "customer-operation-cloud-v1-benchmark-api-1",
+    "NetIO": "80MB / 140MB",
+    "PIDs": "11"
+  },
+  {
+    "sampledAt": "2026-10-13T13:02:46.872Z",
+    "BlockIO": "14MB / 78.9MB",
+    "CPUPerc": "3.23%",
+    "Container": "35a67e3889229ecec5b80df2e0cf93da8762b0d7158bee5e345ffd08d78ff6c2",
+    "ID": "35a67e388922",
+    "MemPerc": "4.43%",
+    "MemUsage": "45.38MiB / 1GiB",
+    "Name": "customer-operation-cloud-v1-benchmark-postgres-1",
+    "NetIO": "29.4MB / 33.2MB",
+    "PIDs": "7"
+  },
+  {
+    "sampledAt": "2026-10-13T13:02:46.872Z",
+    "Name": "host",
+    "memoryFreeBytes": 3169189888
+  },
+  {
+    "sampledAt": "2026-10-13T13:02:50.697Z",
+    "role": "generator",
+    "BlockIO": "4.99MB / 0B",
+    "CPUPerc": "0.88%",
+    "Container": "customer-load-2026-10-13T13-02-44-163Z-0",
+    "ID": "36cb1cad9230",
+    "MemPerc": "0.16%",
+    "MemUsage": "11.88MiB / 7.394GiB",
+    "Name": "customer-load-2026-10-13T13-02-44-163Z-0",
+    "NetIO": "9.77kB / 3.82kB",
+    "PIDs": "13"
+  },
+  {
+    "sampledAt": "2026-10-13T13:02:52.706Z",
+    "BlockIO": "5.41MB / 0B",
+    "CPUPerc": "7.09%",
+    "Container": "3c2f9c4b7aa20435a98c8c6d3c47d417159c622f6df69927ed4d0ea5df32acde",
+    "ID": "3c2f9c4b7aa2",
+    "MemPerc": "5.02%",
+    "MemUsage": "51.39MiB / 1GiB",
+    "Name": "customer-operation-cloud-v1-benchmark-api-1",
+    "NetIO": "80MB / 140MB",
+    "PIDs": "18"
+  },
+  {
+    "sampledAt": "2026-10-13T13:02:52.706Z",
+    "BlockIO": "14MB / 78.9MB",
+    "CPUPerc": "3.73%",
+    "Container": "35a67e3889229ecec5b80df2e0cf93da8762b0d7158bee5e345ffd08d78ff6c2",
+    "ID": "35a67e388922",
+    "MemPerc": "4.43%",
+    "MemUsage": "45.36MiB / 1GiB",
+    "Name": "customer-operation-cloud-v1-benchmark-postgres-1",
+    "NetIO": "29.4MB / 33.2MB",
+    "PIDs": "7"
+  },
+  {
+    "sampledAt": "2026-10-13T13:02:52.706Z",
+    "Name": "host",
+    "memoryFreeBytes": 3293032448
+  },
+  {
+    "sampledAt": "2026-10-13T13:02:56.496Z",
+    "role": "generator",
+    "BlockIO": "4.99MB / 0B",
+    "CPUPerc": "1.34%",
+    "Container": "customer-load-2026-10-13T13-02-44-163Z-0",
+    "ID": "36cb1cad9230",
+    "MemPerc": "0.15%",
+    "MemUsage": "11.02MiB / 7.394GiB",
+    "Name": "customer-load-2026-10-13T13-02-44-163Z-0",
+    "NetIO": "17kB / 6.88kB",
+    "PIDs": "14"
+  }
+]
