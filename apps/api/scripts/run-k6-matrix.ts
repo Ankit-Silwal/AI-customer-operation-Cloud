@@ -1,8 +1,9 @@
 import { execFile, spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { cpus, platform, release, totalmem } from "node:os";
+import { cpus, freemem, platform, release, totalmem } from "node:os";
 import { join, resolve } from "node:path";
+import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
@@ -14,6 +15,9 @@ const users = (process.env.LOAD_USERS ?? "10,50,100,250,500,1000,2000")
   .map(Number);
 const duration = process.env.LOAD_DURATION ?? "30s";
 const execution = process.env.K6_EXECUTION ?? "native";
+const workload = process.env.LOAD_WORKLOAD ?? "organization-read";
+const profile = process.env.LOAD_PROFILE ?? "steady";
+const script = `${workload === "mixed" ? "version1-mixed" : "organization-read"}.k6.js`;
 const output = resolve(
   root,
   process.env.RESULTS_DIR ??
@@ -27,6 +31,15 @@ const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms));
 
 if (execution !== "native" && execution !== "docker") {
   throw new Error("K6_EXECUTION must be native or docker.");
+}
+if (workload !== "organization-read" && workload !== "mixed") {
+  throw new Error("LOAD_WORKLOAD must be organization-read or mixed.");
+}
+if (!["steady", "spike", "soak"].includes(profile)) {
+  throw new Error("LOAD_PROFILE must be steady, spike or soak.");
+}
+if (workload === "organization-read" && profile !== "steady") {
+  throw new Error("Spike and soak profiles require LOAD_WORKLOAD=mixed.");
 }
 if (users.some((value) => !Number.isSafeInteger(value) || value < 1)) {
   throw new Error("LOAD_USERS must contain comma-separated positive integers.");
@@ -89,6 +102,57 @@ async function cpuState(id: string) {
         return [key, Number(value)];
       }),
     ),
+  };
+}
+
+async function apiObservations(id: string, since: string, until: string) {
+  const child = spawn(
+    "docker",
+    ["logs", "--since", since, "--until", until, id],
+    {
+      cwd: root,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  const completion = new Promise<void>((done, reject) => {
+    child.once("error", reject);
+    child.once("close", (code) =>
+      code === 0 ? done() : reject(new Error(`docker logs exited ${code}`)),
+    );
+  });
+  const statuses: Record<string, number> = {};
+  const events: Record<string, number> = {};
+  const pool: Record<string, unknown>[] = [];
+  let parsedLines = 0;
+  let unparsedLines = 0;
+  for await (const line of createInterface({ input: child.stdout })) {
+    try {
+      const record = JSON.parse(line);
+      parsedLines++;
+      events[record.event] = (events[record.event] ?? 0) + 1;
+      if (record.event === "http_request")
+        statuses[record.status] = (statuses[record.status] ?? 0) + 1;
+      if (record.event === "database_pool")
+        pool.push({
+          timestamp: record.timestamp,
+          poolTotal: record.poolTotal,
+          poolIdle: record.poolIdle,
+          poolWaiting: record.poolWaiting,
+        });
+    } catch {
+      unparsedLines++;
+    }
+  }
+  await completion;
+  return {
+    since,
+    until,
+    parsedLines,
+    unparsedLines,
+    events,
+    statuses,
+    pool,
+    note: "Aggregated Docker API logs. Includes setup and Docker health probes; these counts are not load-tagged k6 counters. Raw request logs are not copied.",
   };
 }
 
@@ -160,6 +224,10 @@ async function run() {
       ]),
     ),
     execution,
+    workload,
+    profile,
+    composeProject: process.env.COMPOSE_PROJECT_NAME ?? null,
+    composeFile: process.env.COMPOSE_FILE ?? "compose.yaml",
     generatorNetwork:
       execution === "docker" ? network : "Windows host published port",
     generatorImage: execution === "docker" ? dockerImage : null,
@@ -179,7 +247,7 @@ async function run() {
     baseUrl,
     initialContainers: initial,
     sampleDelayMs: 2000,
-    note: "k6 against Docker API/PostgreSQL; generator location is recorded separately. Limits are maxima. Closed model; one GET then sleep(1). Each run creates a user and organization; no deletion API exists. Two-second delay between Docker stats queries; actual sampling intervals include query time.",
+    note: `k6 against Docker API/PostgreSQL; generator location is recorded separately. Limits are maxima. ${workload === "mixed" ? "Distinct account/organization/conversation/upload per VU; 20-action read/write/login cycle then sleep(1). Warm-up is 30s to cover every action." : "Closed model; one GET then sleep(1). Each run creates a user and organization."} No deletion API exists. Two-second delay between Docker stats queries; actual sampling intervals include query time. Samples include setup and graceful completion.`,
   };
   await writeFile(
     join(output, "environment.json"),
@@ -187,7 +255,11 @@ async function run() {
   );
   const runs: Record<string, unknown>[] = [];
   const cases = [
-    { users: 1, duration: "10s", role: "warmup" },
+    {
+      users: 1,
+      duration: workload === "mixed" ? "30s" : "10s",
+      role: "warmup",
+    },
     ...users.map((count) => ({ users: count, duration, role: "load" })),
   ];
   for (let index = 0; index < cases.length; index++) {
@@ -195,17 +267,31 @@ async function run() {
     const name = `${String(index).padStart(2, "0")}-${testCase.users}vu-${testCase.duration}`;
     const summaryPath = join(output, `${name}.summary.json`);
     const logPath = join(output, `${name}.log`);
+    const generatorName = `customer-load-${timestamp}-${index}`;
     const args = [
-      ...generatorPrefix,
+      ...(execution === "docker"
+        ? [
+            ...generatorPrefix.slice(0, -1),
+            "--name",
+            generatorName,
+            dockerImage,
+          ]
+        : generatorPrefix),
       "run",
       "--quiet",
       "--no-color",
       "--no-usage-report",
       "--include-system-env-vars=false",
-      "--vus",
-      String(testCase.users),
-      "--duration",
-      testCase.duration,
+      ...(workload === "mixed"
+        ? [
+            "-e",
+            `USERS=${testCase.users}`,
+            "-e",
+            `DURATION=${testCase.duration}`,
+            "-e",
+            `PROFILE=${testCase.role === "warmup" ? "steady" : profile}`,
+          ]
+        : ["--vus", String(testCase.users), "--duration", testCase.duration]),
       "--summary-trend-stats",
       "avg,min,med,max,p(90),p(95),p(99)",
       "-e",
@@ -213,8 +299,8 @@ async function run() {
       "-e",
       `BASE_URL=${baseUrl}`,
       execution === "docker"
-        ? "/scripts/organization-read.k6.js"
-        : "apps/api/tests/k6/organization-read.k6.js",
+        ? `/scripts/${script}`
+        : `apps/api/tests/k6/${script}`,
     ];
     const before = await containerState(ids);
     const cpuBefore = await cpuState(apiId);
@@ -252,6 +338,26 @@ async function run() {
           ]);
           for (const line of stats.split("\n"))
             samples.push({ sampledAt, ...JSON.parse(line) });
+          samples.push({ sampledAt, Name: "host", memoryFreeBytes: freemem() });
+          if (execution === "docker") {
+            try {
+              const generatorStats = await command("docker", [
+                "stats",
+                "--no-stream",
+                "--format",
+                "{{json .}}",
+                generatorName,
+              ]);
+              for (const line of generatorStats.split("\n").filter(Boolean))
+                samples.push({
+                  sampledAt: new Date().toISOString(),
+                  role: "generator",
+                  ...JSON.parse(line),
+                });
+            } catch {
+              // The --rm generator can disappear between its final sample and completion.
+            }
+          }
         } catch (error) {
           samples.push({ sampledAt, error: String(error) });
         }
@@ -267,6 +373,8 @@ async function run() {
     const record = {
       name,
       ...testCase,
+      workload,
+      profile: testCase.role === "warmup" ? "steady" : profile,
       startedAt,
       endedAt,
       exitCode,
@@ -279,8 +387,17 @@ async function run() {
       summaryFile: `${name}.summary.json`,
       logFile: `${name}.log`,
       statsFile: `${name}.stats.json`,
+      apiObservationsFile: `${name}.api-observations.json`,
     };
     runs.push(record);
+    await writeFile(
+      join(output, `${name}.api-observations.json`),
+      JSON.stringify(
+        await apiObservations(apiId, startedAt, endedAt),
+        null,
+        2,
+      ) + "\n",
+    );
     await writeFile(
       join(output, `${name}.stats.json`),
       JSON.stringify(samples, null, 2) + "\n",
@@ -292,7 +409,11 @@ async function run() {
     try {
       const summary = JSON.parse(await readFile(summaryPath, "utf8"));
       const metric =
-        summary.metrics["http_req_duration{operation:organization_read}"];
+        summary.metrics[
+          workload === "mixed"
+            ? "http_req_duration{kind:read,phase:load}"
+            : "http_req_duration{operation:organization_read}"
+        ] ?? summary.metrics["http_req_duration{phase:load,kind:read}"];
       console.log(
         `Finished ${name}: exit=${exitCode}, read p95=${metric?.["p(95)"] ?? metric?.values?.["p(95)"]} ms`,
       );

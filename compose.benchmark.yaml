@@ -1,0 +1,41 @@
+services:
+  api:
+    cpus: "1.0"
+    mem_limit: 1g
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "127.0.0.1:3002:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://customer_ops_benchmark:customer_ops_benchmark@postgres:5432/customer_ops_benchmark
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the benchmark}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    cpus: "1.0"
+    mem_limit: 1g
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: customer_ops_benchmark
+      POSTGRES_PASSWORD: customer_ops_benchmark
+      POSTGRES_DB: customer_ops_benchmark
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - benchmark_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U customer_ops_benchmark -d customer_ops_benchmark",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  benchmark_data:
