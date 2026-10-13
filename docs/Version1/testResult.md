@@ -1,6 +1,6 @@
 # Version 1 Docker and k6 test results
 
-**25 Docker-backed load runs were conducted: 16 passed and 9 failed their thresholds.** The Version 0 read workload was repeated in 15 runs covering 348,655 organization reads. Version 1 mixed traffic was exercised in 10 runs covering 42,376 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
+**28 Docker-backed load runs were conducted: 18 passed and 10 failed their thresholds.** The Version 0 read workload was repeated in 15 runs covering 348,655 organization reads. Version 1 mixed traffic was exercised in 13 runs covering 60,578 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
 
 The highest passing read stage was **250 VUs / 30s through Windows** and **1000 VUs / 30s inside Docker**. These are passing tested stages, not exact capacity boundaries. The highest passing Docker mixed stage was **250 distinct-account VUs / 30s**, with read/write/login p95 of 458.01 / 471.00 / 780.58 ms.
 
@@ -139,7 +139,17 @@ Evidence directory: [Campaign E](results/05-docker-mixed-250-500-1000-users-30s/
 
 ## Campaign F: Version 1 spike traffic
 
-Not yet executed.
+Evidence directory: [Campaign F](results/06-docker-mixed-spike-250-1000-users-30s/summary.md), with [environment](results/06-docker-mixed-spike-250-1000-users-30s/environment.json) and [run manifest](results/06-docker-mixed-spike-250-1000-users-30s/runs.json). All planned stages completed.
+
+| Run                                                                                      | VUs  | Time | Load requests | Load RPS | Reads | Writes | Logins | Read avg ms | Read p95 ms | Read p99 ms | Write p95 ms | Login p95 ms | Failed load (%) | Checks passed | Result    |
+| ---------------------------------------------------------------------------------------- | ---- | ---- | ------------- | -------- | ----- | ------ | ------ | ----------- | ----------- | ----------- | ------------ | ------------ | --------------- | ------------- | --------- |
+| [F0](results/06-docker-mixed-spike-250-1000-users-30s/00-1vu-30s.summary.json) (warm-up) | 1    | 30s  | 30            | 1.07     | 24    | 5      | 1      | 2.43        | 3.32        | 3.66        | 12.32        | 47.21        | 0 (0.000%)      | 100.000%      | PASS (0)  |
+| [F1](results/06-docker-mixed-spike-250-1000-users-30s/01-250vu-30s.summary.json)         | 250  | 30s  | 8,100         | 158.08   | 5,677 | 2,022  | 401    | 82.67       | 304.89      | 486.05      | 350.60       | 600.64       | 0 (0.000%)      | 100.000%      | PASS (0)  |
+| [F2](results/06-docker-mixed-spike-250-1000-users-30s/02-1000vu-30s.summary.json)        | 1000 | 30s  | 10,072        | 108.01   | 7,128 | 2,455  | 489    | 2,352.37    | 8,983.21    | 10,000.75   | 7,980.10     | 8,191.37     | 1,269 (12.599%) | 87.401%       | FAIL (99) |
+
+**PASS (0)** — 8,100 load requests, 158.08 requests/second, read p95 304.89 ms, 0 failed requests (0.000%). Every configured load threshold passed.
+
+**FAIL (99)** — 10,072 load requests, 108.01 requests/second, read p95 8,983.21 ms, 1,269 failed requests (12.599%). Failed criteria: `http_req_duration{phase:load,kind:login}: p(95)<1000`, `http_req_duration{phase:load,kind:read}: p(95)<500`, `checks{phase:load}: rate>0.99`, `http_req_duration{phase:load,kind:write}: p(95)<1000`, `http_req_failed{phase:load}: rate<0.01`.
 
 ## Campaign G: Version 1 five-minute steady repeat
 
@@ -151,9 +161,9 @@ Windows request logs recorded connection refusals in A4, A5, A6, A7. Read p95 al
 
 The 5,000-user read stress stage recorded **84,107 reads**, **1,436.77 reported read RPS**, **5,616.15 ms p95**, **6,232 failures (7.410%)**, and **38.644% of API scheduler periods throttled**. The highest observed database-pool waiting count was **3490**. API logs separately recorded statuses `{"200":77881,"201":2,"499":2659,"500":733,"503":1}`, including setup and health probes. Rising latency, throttling and pool waiters are consistent with CPU/queue pressure, but these measurements do not isolate the responsible function or SQL query.
 
-Mixed traffic produced different limits from the single shared organization read. Failed mixed stages were D5, E2, E3; their exact failing read/write/login/error/check criteria remain in the stage reports. Setup provisioned distinct datasets before load and continued to accumulate writes, so these results must be compared by workload and generator placement. Mixed steady campaigns stopped at the explicitly tested 1,000-account stage; 2,000/5,000-account mixed traffic was not tested. The read-only 2,000/5,000-user campaigns above still ran as requested.
+Mixed traffic produced different limits from the single shared organization read. Failed mixed stages were D5, E2, E3, F2; their exact failing read/write/login/error/check criteria remain in the stage reports. Setup provisioned distinct datasets before load and continued to accumulate writes, so these results must be compared by workload and generator placement. Mixed steady campaigns stopped at the explicitly tested 1,000-account stage; 2,000/5,000-account mixed traffic was not tested. The read-only 2,000/5,000-user campaigns above still ran as requested.
 
-Across these runs, the largest sampled API memory was **191.20 MiB**, and PostgreSQL's was **72.23 MiB**, against their separate 1,024 MiB limits. No recorded OOM kill, server stop or restart-count increase occurred during the load campaigns. Short sampled tests cannot establish indefinite memory stability.
+Across these runs, the largest sampled API memory was **191.20 MiB**, and PostgreSQL's was **75.46 MiB**, against their separate 1,024 MiB limits. No recorded OOM kill, server stop or restart-count increase occurred during the load campaigns. Short sampled tests cannot establish indefinite memory stability.
 
 ## Version 0 comparison for the repeated read workload
 
@@ -197,6 +207,9 @@ These numbers come from the retained Version 0 [metrics](../Version0/results/met
 | E1  | 101.65%     | 120.60      | 22.59%             | 69.25              | 8 / 8            | 198.80            |
 | E2  | 102.95%     | 142.60      | 20.97%             | 70.32              | 11 / 11          | 566.60            |
 | E3  | 107.76%     | 171.00      | 27.29%             | 72.23              | 17 / 17          | 1,609.73          |
+| F0  | 25.03%      | 98.83       | 5.45%              | 52.30              | 6 / 6            | 11.86             |
+| F1  | 100.63%     | 136.40      | 18.94%             | 73.00              | 10 / 10          | 223.10            |
+| F2  | 107.10%     | 160.70      | 22.53%             | 75.46              | 18 / 18          | 1,666.05          |
 
 These are the highest sampled Docker values, not continuous peaks. Memory is MiB (1 GiB = 1024 MiB). Sampling uses a two-second pause plus Docker stats queries; Docker-generator collection adds query time. Samples can include the distinct-account setup phase, so maxima cannot always be attributed to load alone. Detailed samples retain chronological values, network I/O and timestamps.
 
@@ -229,6 +242,9 @@ These are the highest sampled Docker values, not continuous peaks. Memory is MiB
 | E1  | 467               | 390               | 83.512%         | 76.093                   | 59                       |
 | E2  | 615               | 598               | 97.236%         | 138.525                  | 180                      |
 | E3  | 991               | 972               | 98.083%         | 198.711                  | 376                      |
+| F0  | 86                | 4                 | 4.651%          | 0.112                    | 0                        |
+| F1  | 563               | 428               | 76.021%         | 83.827                   | 30                       |
+| F2  | 1033              | 1004              | 97.193%         | 212.530                  | 503                      |
 
 The runner resolved /proc/self/cgroup and collected that group's cpu.stat and cpu.max for every stage. These counters cover the complete run interval, including setup and graceful completion; their throttled time is not an individual request's waiting time. Pool observations come from the API's ten-second JSON logs.
 

@@ -1,0 +1,11 @@
+
+> AI-customer-operation-Cloud@1.0.0 test:load:matrix
+> node apps/api/scripts/run-k6-matrix.ts
+
+Starting 00-1vu-30s; 2026-10-13T13:20:46.909Z
+Finished 00-1vu-30s: exit=0, read p95=3.3163150999999997 ms
+Starting 01-250vu-30s; 2026-10-13T13:21:23.520Z
+Finished 01-250vu-30s: exit=0, read p95=304.89258639999997 ms
+Starting 02-1000vu-30s; 2026-10-13T13:22:25.084Z
+Finished 02-1000vu-30s: exit=99, read p95=8983.21074845 ms
+Results saved in C:\Studies\Web Development\AI-customer-operation-Cloud\docs\Version1\results\06-docker-mixed-spike-250-1000-users-30s

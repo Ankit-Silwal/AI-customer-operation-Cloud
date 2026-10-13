@@ -565,8 +565,11 @@ for (const campaign of campaigns) {
 await writeFile(
   join(results, "metrics.json"),
   JSON.stringify(
-    all.map(({ raw, metrics, observation, ...row }) => ({
+    all.map(({ raw, metrics, observation, failedReadRate, ...row }) => ({
       ...row,
+      ...(row.workload === "mixed"
+        ? { failedLoadRate: failedReadRate }
+        : { failedReadRate }),
       cpuBefore: raw.cpuBefore,
       cpuAfter: raw.cpuAfter,
       apiLogStatuses: observation.statuses,
