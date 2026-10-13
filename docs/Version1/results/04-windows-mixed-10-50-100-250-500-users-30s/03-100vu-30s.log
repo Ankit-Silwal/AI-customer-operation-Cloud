@@ -1,0 +1,37 @@
+
+k6 metrics (durations: ms; rate metrics: fractions; counter rates: /s)
+checks: rate=1.000 passes=8988.000 fails=0.000
+checks{phase:load}: rate=1.000 passes=8988.000 fails=0.000
+  PASS: rate>0.99
+data_received: count=3939394.000 rate=107911.786
+data_sent: count=1668732.000 rate=45711.561
+http_req_blocked: min=0.000 med=0.000 max=13.343 p(90)=0.000 p(95)=0.000 p(99)=2.121 avg=0.072
+http_req_connecting: min=0.000 med=0.000 max=10.201 p(90)=0.000 p(95)=0.000 p(99)=1.808 avg=0.060
+http_req_duration: p(90)=50.834 p(95)=145.938 p(99)=261.906 avg=22.715 min=0.532 med=4.868 max=431.967
+http_req_duration{expected_response:true}: p(95)=146.070 p(99)=261.975 avg=22.732 min=0.532 med=4.870 max=431.967 p(90)=50.846
+http_req_duration{phase:load,kind:login}: p(95)=263.023 p(99)=340.727 avg=93.701 min=41.175 med=58.783 max=431.967 p(90)=187.540
+  PASS: p(95)<1000
+http_req_duration{phase:load,kind:read}: p(90)=25.234 p(95)=47.412 p(99)=253.441 avg=13.731 min=0.532 med=3.806 max=348.571
+  PASS: p(95)<500
+http_req_duration{phase:load,kind:write}: p(99)=257.293 avg=17.127 min=2.542 med=5.956 max=348.571 p(90)=25.889 p(95)=70.058
+  PASS: p(95)<1000
+http_req_failed: rate=0.001 passes=3.000 fails=3398.000
+http_req_failed{phase:load}: rate=0.000 passes=0.000 fails=2996.000
+  PASS: rate<0.01
+http_req_receiving: p(95)=0.541 p(99)=0.996 avg=0.096 min=0.000 med=0.000 max=19.290 p(90)=0.522
+http_req_sending: p(90)=0.000 p(95)=0.000 p(99)=0.572 avg=0.050 min=0.000 med=0.000 max=22.940
+http_req_tls_handshaking: p(99)=0.000 avg=0.000 min=0.000 med=0.000 max=0.000 p(90)=0.000 p(95)=0.000
+http_req_waiting: med=4.833 max=431.967 p(90)=50.717 p(95)=145.938 p(99)=261.906 avg=22.569 min=0.532
+http_reqs: count=3401.000 rate=93.164
+http_reqs{phase:load,kind:login}: count=150.000 rate=4.109
+  PASS: count>0
+http_reqs{phase:load,kind:read}: count=2096.000 rate=57.416
+  PASS: count>0
+http_reqs{phase:load,kind:write}: count=750.000 rate=20.545
+  PASS: count>0
+http_reqs{phase:load}: rate=82.069 count=2996.000
+  PASS: count>0
+iteration_duration: p(90)=1046.455 p(95)=1092.035 p(99)=1268.406 avg=1019.333 min=1000.927 med=1005.197 max=1434.536
+iterations: rate=82.069 count=2996.000
+vus: value=67.000 min=0.000 max=100.000
+vus_max: value=100.000 min=100.000 max=100.000

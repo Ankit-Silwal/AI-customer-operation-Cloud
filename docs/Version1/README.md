@@ -82,3 +82,33 @@ Pass criteria are at least one load request of each kind, fewer than 1% failed l
 Do not use `--summary-export`, HTTP debugging or raw setup-data dumps: they can expose live JWTs. The custom `handleSummary` exports only numeric metrics and threshold flags. A JWT is a signed access credential, not a readable copy of `JWT_SECRET`. Keep both private.
 
 Docker k6 can connect through the internal Compose network using `BASE_URL=http://api:3001`; the host can connect using `localhost:3001`. The network name and API service must match your running stack. Running k6 on another computer separates its CPU/RAM usage from the server. At large account counts, k6's per-VU setup-data copies also consume memory; observe the load generator as well as the API.
+
+## Repeat the recorded campaigns
+
+The [full test report](testResult.md) records all executed stages and the reproduction settings. The matrix runner now defaults to a timestamped directory under `docs/Version1/results/` and refuses an existing campaign directory. Every stage retains a safe metrics summary, console log, Docker samples, API log observations and before/after container states. It pauses five seconds between stages and continues after threshold failures.
+
+Use [compose.benchmark.yaml](../../compose.benchmark.yaml) for an isolated API on host port 3002 and PostgreSQL on 5434. Each server is capped at 1 CPU and 1 GiB. This stack has its own persistent database volume and does not use the development database. Set a temporary random signing secret when starting it, and keep it out of logs.
+
+```powershell
+$env:JWT_SECRET = [guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N')
+docker compose -p customer-operation-cloud-v1-benchmark -f compose.benchmark.yaml up --build -d --wait
+Remove-Item Env:JWT_SECRET
+$env:COMPOSE_PROJECT_NAME = 'customer-operation-cloud-v1-benchmark'
+$env:COMPOSE_FILE = 'compose.benchmark.yaml'
+$env:BASE_URL = 'http://localhost:3002'
+npm run test:load:matrix
+```
+
+| Matrix setting  | Meaning                                                                        |
+| --------------- | ------------------------------------------------------------------------------ |
+| `LOAD_WORKLOAD` | `organization-read` (default) or `mixed`                                       |
+| `LOAD_USERS`    | Comma-separated VU counts; default `10,50,100,250,500,1000,2000`               |
+| `LOAD_DURATION` | Duration of each load stage; default `30s`                                     |
+| `LOAD_PROFILE`  | `steady` (default); mixed traffic also supports `spike` and `soak`             |
+| `K6_EXECUTION`  | `native` (default) or `docker`                                                 |
+| `BASE_URL`      | Native benchmark: `http://localhost:3002`; Docker benchmark: `http://api:3001` |
+| `RESULTS_DIR`   | Optional new evidence directory; never reuse an earlier campaign               |
+
+The read workload warms up for 10 seconds. Mixed traffic warms up for 30 seconds so its one VU reaches reads, writes and login. A matrix with any failing threshold returns exit 1 while preserving every conducted stage; the individual k6 threshold failure is exit 99.
+
+For the isolated stack's real PostgreSQL functional suite, set `TEST_DATABASE_URL=postgresql://customer_ops_benchmark:customer_ops_benchmark@localhost:5434/customer_ops_benchmark` and run `npm run test --workspace @repo/api`. Temporary schemas are removed afterward. Run `node apps/api/scripts/check-version1-docker.ts` for compiled HTTP smoke checks, or add `--resilience` for controlled database-stop/recovery and API-restart checks. Run resilience checks after load traffic has finished. Rebuild the readable reports with `node apps/api/scripts/report-version1.ts --final` after the seven documented campaigns complete.

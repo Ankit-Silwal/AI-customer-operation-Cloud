@@ -213,6 +213,7 @@ function metric(metrics: Record<string, Metric>, name: string, tags: string[]) {
     Object.entries(metrics).find(
       ([key]) =>
         key.startsWith(`${name}{`) &&
+        key.slice(key.indexOf("{") + 1, -1).split(",").length === tags.length &&
         tags.every((tag) =>
           key
             .slice(key.indexOf("{") + 1, -1)
@@ -648,6 +649,115 @@ for (const file of ["docker-smoke.json", "resilience.json"]) {
     const validation = await json(path);
     report += `- Compiled Docker ${file === "docker-smoke.json" ? "HTTP smoke checks" : "readiness/restart checks"}: **${validation.checks.length} passed**, **${validation.failed ?? 0} failed**. [Evidence](results/validation/${file}).\n`;
   }
+}
+const highestPass = (campaign: string) =>
+  all
+    .filter(
+      (row) =>
+        row.campaign === campaign &&
+        row.role !== "warmup" &&
+        row.exitCode === 0,
+    )
+    .sort((a, b) => b.users - a.users)[0];
+const aPass = highestPass("A");
+const bPass = highestPass("B");
+const ePass = highestPass("E");
+const stress = all.find((row) => row.id === "C2");
+let findings = "";
+if (aPass && bPass)
+  findings += `The highest passing read stage was **${aPass.users} VUs / ${aPass.duration} through Windows** and **${bPass.users} VUs / ${bPass.duration} inside Docker**. These are passing tested stages, not exact capacity boundaries. `;
+if (ePass)
+  findings += `The highest passing Docker mixed stage was **${ePass.users} distinct-account VUs / ${ePass.duration}**, with read/write/login p95 of ${n(ePass.latency["p(95)"]!)} / ${n(ePass.writeLatency["p(95)"]!)} / ${n(ePass.loginLatency["p(95)"]!)} ms. `;
+if (findings)
+  report = report.replace(
+    "\n## Scope and environment",
+    `\n${findings}\n\n## Scope and environment`,
+  );
+let interpretation = "\n## What the measured limits show\n\n";
+const windowsFailures = all.filter(
+  (row) => row.campaign === "A" && row.role !== "warmup" && row.failures,
+);
+if (windowsFailures.length)
+  interpretation += `Windows request logs recorded connection refusals in ${windowsFailures.map((row) => row.id).join(", ")}. Read p95 also failed at ${
+    windowsFailures
+      .filter((row) => row.latency["p(95)"]! >= 500)
+      .map((row) => `${row.users} VUs`)
+      .join(", ") || "none of those stages"
+  }. Moving k6 inside Docker eliminated refusal warnings in the comparison stages, while high-concurrency latency could still fail. This separates a published-port observation from an intrinsic application-capacity claim; it does not isolate one operating-system/proxy cause.\n\n`;
+if (stress)
+  interpretation += `The 5,000-user read stress stage recorded **${n(stress.reads, 0)} reads**, **${n(stress.readRPS)} reported read RPS**, **${n(stress.latency["p(95)"]!)} ms p95**, **${n(stress.failures, 0)} failures (${pct(stress.failedReadRate)})**, and **${pct(stress.cpuThrottledPeriods / stress.cpuPeriods)} of API scheduler periods throttled**. The highest observed database-pool waiting count was **${stress.poolWaitingMax}**. API logs separately recorded statuses \`${JSON.stringify(stress.observation.statuses)}\`, including setup and health probes. Rising latency, throttling and pool waiters are consistent with CPU/queue pressure, but these measurements do not isolate the responsible function or SQL query.\n\n`;
+const mixedFailures = mixed.filter(
+  (row) => row.role !== "warmup" && row.exitCode !== 0,
+);
+if (mixed.length)
+  interpretation += `Mixed traffic produced different limits from the single shared organization read. ${mixedFailures.length ? `Failed mixed stages were ${mixedFailures.map((row) => row.id).join(", ")}; their exact failing read/write/login/error/check criteria remain in the stage reports.` : "All mixed stages completed so far passed their configured criteria."} Setup provisioned distinct datasets before load and continued to accumulate writes, so these results must be compared by workload and generator placement. Mixed steady campaigns stopped at the explicitly tested 1,000-account stage; 2,000/5,000-account mixed traffic was not tested. The read-only 2,000/5,000-user campaigns above still ran as requested.\n\n`;
+const maxApi = Math.max(...all.map((row) => row.resources.api.maxMiB));
+const maxDb = Math.max(...all.map((row) => row.resources.postgres.maxMiB));
+const unhealthy = all.flatMap((row) =>
+  row.raw.after
+    .filter(
+      (container, index) =>
+        container.state.OOMKilled ||
+        !container.state.Running ||
+        container.restartCount > (row.raw.before[index]?.restartCount ?? 0),
+    )
+    .map((container) => `${row.id}: ${container.name}`),
+);
+interpretation += `Across these runs, the largest sampled API memory was **${n(maxApi)} MiB**, and PostgreSQL's was **${n(maxDb)} MiB**, against their separate 1,024 MiB limits. ${unhealthy.length ? `State anomalies: ${unhealthy.join("; ")}.` : "No recorded OOM kill, server stop or restart-count increase occurred during the load campaigns."} Short sampled tests cannot establish indefinite memory stability.\n`;
+const old: {
+  id: string;
+  readRPS: number;
+  latency: Metric;
+  failedReadRate: number;
+  exitCode: number;
+}[] = await json(join(root, "docs/Version0/results/metrics.json"));
+const comparisons = ["A7", "B1", "B2", "B3", "C1", "C2"].flatMap((id) => {
+  const before = old.find((row) => row.id === id);
+  const after = all.find((row) => row.id === id);
+  return before && after
+    ? [
+        [
+          id,
+          after.users,
+          after.duration,
+          n(before.readRPS),
+          n(after.readRPS),
+          n(before.latency["p(95)"]!),
+          n(after.latency["p(95)"]!),
+          pct(before.failedReadRate),
+          pct(after.failedReadRate),
+          before.exitCode === 0 ? "PASS" : "FAIL",
+          after.exitCode === 0 ? "PASS" : "FAIL",
+        ],
+      ]
+    : [];
+});
+interpretation += `\n## Version 0 comparison for the repeated read workload\n\n${table(["Stage", "VUs", "Time", "V0 read RPS", "V1 read RPS", "V0 p95 ms", "V1 p95 ms", "V0 failed reads", "V1 failed reads", "V0", "V1"], comparisons)}\nThese numbers come from the retained Version 0 [metrics](../Version0/results/metrics.json) and the new raw summaries. Workload, thresholds and server caps match; dates, API implementation, database content, host-port number, background activity and test order differ. The observed change is not a controlled attribution to any one Version 1 feature.\n`;
+report = report.replace(
+  "\n## Resource observations for every run",
+  `${interpretation}\n## Resource observations for every run`,
+);
+for (const filename of [
+  "dataset-before-mixed.json",
+  "dataset-after-campaigns.json",
+]) {
+  if (await exists(join(results, "validation", filename))) {
+    const data = JSON.parse(
+      (await readFile(join(results, "validation", filename), "utf8")).replace(
+        /^\uFEFF/,
+        "",
+      ),
+    );
+    report += `- Database snapshot [${filename}](results/validation/${filename}): ${n(data.users, 0)} users, ${n(data.organizations, 0)} organizations, ${n(data.conversations, 0)} conversations, ${n(data.documents, 0)} documents and ${n(data.uploads, 0)} uploads; ${n(data.databaseBytes / 1048576)} MiB total database size.\n`;
+  }
+}
+if (await exists(join(results, "validation/runtime-audit.json"))) {
+  const audit = JSON.parse(
+    (
+      await readFile(join(results, "validation/runtime-audit.json"), "utf8")
+    ).replace(/^\uFEFF/, ""),
+  );
+  report += `- API production dependency audit: **${audit.metadata.vulnerabilities.total} vulnerabilities**. [Evidence](results/validation/runtime-audit.json). This is not a whole-monorepo audit.\n`;
 }
 await writeFile(join(docs, "testResult.md"), report);
 await writeFile(

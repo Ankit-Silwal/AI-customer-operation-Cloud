@@ -1,0 +1,37 @@
+
+k6 metrics (durations: ms; rate metrics: fractions; counter rates: /s)
+checks: rate=1.000 passes=900.000 fails=0.000
+checks{phase:load}: rate=1.000 passes=900.000 fails=0.000
+  PASS: rate>0.99
+data_received: count=398415.000 rate=12946.155
+data_sent: count=164197.000 rate=5335.441
+http_req_blocked: p(90)=0.000 p(95)=0.000 p(99)=1.708 avg=0.065 min=0.000 med=0.000 max=10.604
+http_req_connecting: avg=0.018 min=0.000 med=0.000 max=0.540 p(90)=0.000 p(95)=0.000 p(99)=0.533
+http_req_duration: avg=11.618 min=1.057 med=4.352 max=247.629 p(90)=11.543 p(95)=52.309 p(99)=171.879
+http_req_duration{expected_response:true}: med=4.357 max=247.629 p(90)=11.543 p(95)=52.325 p(99)=171.911 avg=11.700 min=1.573
+http_req_duration{phase:load,kind:login}: avg=54.370 min=43.067 med=52.528 max=73.453 p(90)=64.824 p(95)=69.139 p(99)=72.590
+  PASS: p(95)<1000
+http_req_duration{phase:load,kind:read}: max=11.543 p(90)=6.452 p(95)=8.058 p(99)=10.374 avg=4.127 min=1.573 med=3.600
+  PASS: p(95)<500
+http_req_duration{phase:load,kind:write}: p(99)=23.075 avg=7.096 min=2.526 med=5.857 max=23.639 p(90)=11.943 p(95)=20.080
+  PASS: p(95)<1000
+http_req_failed: rate=0.009 passes=3.000 fails=342.000
+http_req_failed{phase:load}: rate=0.000 passes=0.000 fails=300.000
+  PASS: rate<0.01
+http_req_receiving: med=0.000 max=1.546 p(90)=0.521 p(95)=0.537 p(99)=1.007 avg=0.085 min=0.000
+http_req_sending: avg=0.009 min=0.000 med=0.000 max=1.076 p(90)=0.000 p(95)=0.000 p(99)=0.511
+http_req_tls_handshaking: p(99)=0.000 avg=0.000 min=0.000 med=0.000 max=0.000 p(90)=0.000 p(95)=0.000
+http_req_waiting: max=247.629 p(90)=11.543 p(95)=52.309 p(99)=171.879 avg=11.524 min=1.057 med=4.327
+http_reqs: count=345.000 rate=11.210
+http_reqs{phase:load,kind:login}: count=10.000 rate=0.325
+  PASS: count>0
+http_reqs{phase:load,kind:read}: rate=7.311 count=225.000
+  PASS: count>0
+http_reqs{phase:load,kind:write}: rate=2.112 count=65.000
+  PASS: count>0
+http_reqs{phase:load}: count=300.000 rate=9.748
+  PASS: count>0
+iteration_duration: min=1001.693 med=1004.602 max=1074.853 p(90)=1009.264 p(95)=1014.385 p(99)=1055.626 avg=1007.032
+iterations: count=300.000 rate=9.748
+vus: value=10.000 min=10.000 max=10.000
+vus_max: value=10.000 min=10.000 max=10.000

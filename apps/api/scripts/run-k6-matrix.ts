@@ -1,6 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { cpus, freemem, platform, release, totalmem } from "node:os";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
@@ -21,7 +21,7 @@ const script = `${workload === "mixed" ? "version1-mixed" : "organization-read"}
 const output = resolve(
   root,
   process.env.RESULTS_DIR ??
-    `docs/Version0/results/${execution}-${users.join("-")}-users-${duration}-${timestamp}`,
+    `docs/Version1/results/${execution}-${workload}-${profile}-${users.join("-")}-users-${duration}-${timestamp}`,
 );
 const baseUrl =
   process.env.BASE_URL ??
@@ -157,6 +157,16 @@ async function apiObservations(id: string, since: string, until: string) {
 }
 
 async function run() {
+  if (
+    await access(join(output, "environment.json")).then(
+      () => true,
+      () => false,
+    )
+  ) {
+    throw new Error(
+      "RESULTS_DIR already contains a campaign. Choose a new directory to preserve its evidence.",
+    );
+  }
   await mkdir(output, { recursive: true });
   const ids = (
     await command("docker", ["compose", "ps", "-q", "api", "postgres"])

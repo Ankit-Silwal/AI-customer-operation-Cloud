@@ -1,0 +1,8 @@
+node : Error: RESULTS_DIR already contains a campaign. Choose a new directory to preserve its evidence.
+At line:2 char:92
++ ... users-30s'; node apps/api/scripts/run-k6-matrix.ts *> docs/Version1/r ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: RESULTS_...e its evidence.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    at run (file:///C:/Studies/Web%20Development/AI-customer-operation-Cloud/apps/api/scripts/run-k6-matrix.ts:166:11)

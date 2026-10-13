@@ -1,6 +1,8 @@
 # Version 1 Docker and k6 test results
 
-**15 Docker-backed load runs were conducted: 9 passed and 6 failed their thresholds.** The Version 0 read workload was repeated in 15 runs covering 348,655 organization reads. Version 1 mixed traffic was exercised in 0 runs covering 0 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
+**21 Docker-backed load runs were conducted: 14 passed and 7 failed their thresholds.** The Version 0 read workload was repeated in 15 runs covering 348,655 organization reads. Version 1 mixed traffic was exercised in 6 runs covering 20,081 load requests. Testing is in progress; subsequent campaigns and conclusions will be added as they complete.
+
+The highest passing read stage was **250 VUs / 30s through Windows** and **1000 VUs / 30s inside Docker**. These are passing tested stages, not exact capacity boundaries.
 
 ## Scope and environment
 
@@ -97,7 +99,26 @@ Evidence directory: [Campaign C](results/03-docker-2000-5000-users-1m/summary.md
 
 ## Campaign D: Version 1 mixed traffic on Windows
 
-Not yet executed.
+Evidence directory: [Campaign D](results/04-windows-mixed-10-50-100-250-500-users-30s/summary.md), with [environment](results/04-windows-mixed-10-50-100-250-500-users-30s/environment.json) and [run manifest](results/04-windows-mixed-10-50-100-250-500-users-30s/runs.json). All planned stages completed.
+
+| Run                                                                                          | VUs | Time | Load requests | Load RPS | Reads | Writes | Logins | Read avg ms | Read p95 ms | Read p99 ms | Write p95 ms | Login p95 ms | Failed load (%) | Checks passed | Result    |
+| -------------------------------------------------------------------------------------------- | --- | ---- | ------------- | -------- | ----- | ------ | ------ | ----------- | ----------- | ----------- | ------------ | ------------ | --------------- | ------------- | --------- |
+| [D0](results/04-windows-mixed-10-50-100-250-500-users-30s/00-1vu-30s.summary.json) (warm-up) | 1   | 30s  | 30            | 0.99     | 24    | 5      | 1      | 3.24        | 4.92        | 6.22        | 6.37         | 51.41        | 0 (0.000%)      | 100.000%      | PASS (0)  |
+| [D1](results/04-windows-mixed-10-50-100-250-500-users-30s/01-10vu-30s.summary.json)          | 10  | 30s  | 300           | 9.75     | 225   | 65     | 10     | 4.13        | 8.06        | 10.37       | 20.08        | 69.14        | 0 (0.000%)      | 100.000%      | PASS (0)  |
+| [D2](results/04-windows-mixed-10-50-100-250-500-users-30s/02-50vu-30s.summary.json)          | 50  | 30s  | 1,500         | 44.92    | 1,065 | 365    | 70     | 9.25        | 33.50       | 81.14       | 23.08        | 121.14       | 0 (0.000%)      | 100.000%      | PASS (0)  |
+| [D3](results/04-windows-mixed-10-50-100-250-500-users-30s/03-100vu-30s.summary.json)         | 100 | 30s  | 2,996         | 82.07    | 2,096 | 750    | 150    | 13.73       | 47.41       | 253.44      | 70.06        | 263.02       | 0 (0.000%)      | 100.000%      | PASS (0)  |
+| [D4](results/04-windows-mixed-10-50-100-250-500-users-30s/04-250vu-30s.summary.json)         | 250 | 30s  | 6,863         | 149.44   | 4,822 | 1,704  | 337    | 90.40       | 314.21      | 600.30      | 320.39       | 665.16       | 0 (0.000%)      | 100.000%      | PASS (0)  |
+| [D5](results/04-windows-mixed-10-50-100-250-500-users-30s/05-500vu-30s.summary.json)         | 500 | 30s  | 8,392         | 144.90   | 5,889 | 2,083  | 420    | 833.60      | 1,690.15    | 4,013.12    | 1,118.11     | 2,102.23     | 0 (0.000%)      | 100.000%      | FAIL (99) |
+
+**PASS (0)** — 300 load requests, 9.75 requests/second, read p95 8.06 ms, 0 failed requests (0.000%). Every configured load threshold passed.
+
+**PASS (0)** — 1,500 load requests, 44.92 requests/second, read p95 33.50 ms, 0 failed requests (0.000%). Every configured load threshold passed.
+
+**PASS (0)** — 2,996 load requests, 82.07 requests/second, read p95 47.41 ms, 0 failed requests (0.000%). Every configured load threshold passed.
+
+**PASS (0)** — 6,863 load requests, 149.44 requests/second, read p95 314.21 ms, 0 failed requests (0.000%). Every configured load threshold passed.
+
+**FAIL (99)** — 8,392 load requests, 144.90 requests/second, read p95 1,690.15 ms, 0 failed requests (0.000%). Failed criteria: `http_req_duration{phase:load,kind:read}: p(95)<500`, `http_req_duration{phase:load,kind:login}: p(95)<1000`, `http_req_duration{phase:load,kind:write}: p(95)<1000`.
 
 ## Campaign E: Version 1 mixed traffic inside Docker
 
@@ -110,6 +131,29 @@ Not yet executed.
 ## Campaign G: Version 1 five-minute steady repeat
 
 Not yet executed.
+
+## What the measured limits show
+
+Windows request logs recorded connection refusals in A4, A5, A6, A7. Read p95 also failed at 2000 VUs. Moving k6 inside Docker eliminated refusal warnings in the comparison stages, while high-concurrency latency could still fail. This separates a published-port observation from an intrinsic application-capacity claim; it does not isolate one operating-system/proxy cause.
+
+The 5,000-user read stress stage recorded **84,107 reads**, **1,436.77 reported read RPS**, **5,616.15 ms p95**, **6,232 failures (7.410%)**, and **38.644% of API scheduler periods throttled**. The highest observed database-pool waiting count was **3490**. API logs separately recorded statuses `{"200":77881,"201":2,"499":2659,"500":733,"503":1}`, including setup and health probes. Rising latency, throttling and pool waiters are consistent with CPU/queue pressure, but these measurements do not isolate the responsible function or SQL query.
+
+Mixed traffic produced different limits from the single shared organization read. Failed mixed stages were D5; their exact failing read/write/login/error/check criteria remain in the stage reports. Setup provisioned distinct datasets before load and continued to accumulate writes, so these results must be compared by workload and generator placement. Mixed steady campaigns stopped at the explicitly tested 1,000-account stage; 2,000/5,000-account mixed traffic was not tested. The read-only 2,000/5,000-user campaigns above still ran as requested.
+
+Across these runs, the largest sampled API memory was **191.20 MiB**, and PostgreSQL's was **70.40 MiB**, against their separate 1,024 MiB limits. No recorded OOM kill, server stop or restart-count increase occurred during the load campaigns. Short sampled tests cannot establish indefinite memory stability.
+
+## Version 0 comparison for the repeated read workload
+
+| Stage | VUs  | Time | V0 read RPS | V1 read RPS | V0 p95 ms | V1 p95 ms | V0 failed reads | V1 failed reads | V0   | V1   |
+| ----- | ---- | ---- | ----------- | ----------- | --------- | --------- | --------------- | --------------- | ---- | ---- |
+| A7    | 2000 | 30s  | 1,843.67    | 1,259.82    | 199.65    | 990.24    | 6.659%          | 9.453%          | FAIL | FAIL |
+| B1    | 500  | 30s  | 487.93      | 511.82      | 60.34     | 53.49     | 0.000%          | 0.000%          | PASS | PASS |
+| B2    | 1000 | 30s  | 972.95      | 1,014.60    | 66.38     | 149.62    | 0.000%          | 0.000%          | PASS | PASS |
+| B3    | 2000 | 30s  | 1,850.80    | 1,453.86    | 227.52    | 796.71    | 0.000%          | 0.000%          | PASS | FAIL |
+| C1    | 2000 | 1m   | 1,918.94    | 1,434.53    | 109.60    | 1,010.86  | 0.000%          | 0.000%          | PASS | FAIL |
+| C2    | 5000 | 1m   | 1,915.27    | 1,436.77    | 2,341.15  | 5,616.15  | 0.484%          | 7.410%          | FAIL | FAIL |
+
+These numbers come from the retained Version 0 [metrics](../Version0/results/metrics.json) and the new raw summaries. Workload, thresholds and server caps match; dates, API implementation, database content, host-port number, background activity and test order differ. The observed change is not a controlled attribution to any one Version 1 feature.
 
 ## Resource observations for every run
 
@@ -130,6 +174,12 @@ Not yet executed.
 | C0  | 7.08%       | 106.30      | 0.40%              | 45.54              | 2 / 2            | 11.11             |
 | C1  | 103.19%     | 116.90      | 47.83%             | 61.21              | 11 / 11          | 691.00            |
 | C2  | 104.35%     | 191.20      | 50.56%             | 61.66              | 11 / 11          | 1,528.83          |
+| D0  | 5.83%       | 165.60      | 4.54%              | 45.93              | 9 / 9            | not sampled       |
+| D1  | 5.20%       | 66.19       | 7.72%              | 56.00              | 9 / 9            | not sampled       |
+| D2  | 105.10%     | 117.20      | 8.14%              | 65.45              | 9 / 9            | not sampled       |
+| D3  | 106.28%     | 129.80      | 12.04%             | 67.66              | 10 / 10          | not sampled       |
+| D4  | 106.81%     | 148.40      | 25.64%             | 68.84              | 13 / 13          | not sampled       |
+| D5  | 105.28%     | 153.30      | 26.54%             | 70.40              | 15 / 15          | not sampled       |
 
 These are the highest sampled Docker values, not continuous peaks. Memory is MiB (1 GiB = 1024 MiB). Sampling uses a two-second pause plus Docker stats queries; Docker-generator collection adds query time. Samples can include the distinct-account setup phase, so maxima cannot always be attributed to load alone. Detailed samples retain chronological values, network I/O and timestamps.
 
@@ -152,6 +202,12 @@ These are the highest sampled Docker values, not continuous peaks. Memory is MiB
 | C0  | 33                | 0                 | 0.000%          | 0.000                    | 0                        |
 | C1  | 612               | 208               | 33.987%         | 8.444                    | 718                      |
 | C2  | 634               | 245               | 38.644%         | 14.721                   | 3490                     |
+| D0  | 94                | 3                 | 3.191%          | 0.042                    | 0                        |
+| D1  | 100               | 9                 | 9.000%          | 0.781                    | 0                        |
+| D2  | 201               | 60                | 29.851%         | 6.027                    | 0                        |
+| D3  | 356               | 117               | 32.865%         | 14.948                   | 0                        |
+| D4  | 493               | 398               | 80.730%         | 82.521                   | 34                       |
+| D5  | 624               | 614               | 98.397%         | 144.594                  | 361                      |
 
 The runner resolved /proc/self/cgroup and collected that group's cpu.stat and cpu.max for every stage. These counters cover the complete run interval, including setup and graceful completion; their throttled time is not an individual request's waiting time. Pool observations come from the API's ten-second JSON logs.
 
@@ -197,3 +253,5 @@ The measured stages bound observations. Untested user counts have no result; one
 - Tests cover registration/login, JWT/ownership rejection, request IDs, security headers, generic errors and private logging, migration preservation/rollback, database constraints and upload byte/metadata validation.
 - Custom summary regression checks cover credential exclusion. Mocked k6 lifecycle checks establish script/account assignment correctness; actual campaigns above establish the measured traffic results.
 - Compiled Docker HTTP smoke checks: **39 passed**, **0 failed**. [Evidence](results/validation/docker-smoke.json).
+- Database snapshot [dataset-before-mixed.json](results/validation/dataset-before-mixed.json): 17 users, 16 organizations, 1 conversations, 4 documents and 3 uploads; 8.16 MiB total database size.
+- API production dependency audit: **0 vulnerabilities**. [Evidence](results/validation/runtime-audit.json). This is not a whole-monorepo audit.
