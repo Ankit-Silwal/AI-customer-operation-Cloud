@@ -10,12 +10,12 @@
     "db:studio": "prisma studio",
     "db:check": "node --env-file-if-exists=../../.env --import tsx scripts/check-database.ts",
     "predev": "npm run db:generate",
-    "dev": "node --env-file-if-exists=../../.env --import tsx --watch src/server.ts",
+    "dev": "node --env-file-if-exists=../../.env --env-file-if-exists=.env --import tsx --watch src/server.ts",
     "build": "npm run db:generate && tsc -p tsconfig.build.json && node scripts/copy-assets.ts",
-    "start": "node --env-file-if-exists=../../.env dist/server.js",
+    "start": "node --env-file-if-exists=../../.env --env-file-if-exists=.env dist/server.js",
     "check-types": "npm run db:generate && tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "npm run db:generate && node scripts/test.ts",
+    "test": "npm run build --workspace @repo/service-common && npm run build --workspace @repo/conversation-server && npm run build --workspace @repo/document-server && npm run db:generate && node scripts/test.ts",
     "test:load": "k6 run tests/k6/organization-read.k6.js",
     "test:load:v1": "k6 run tests/k6/version1-mixed.k6.js"
   },
@@ -29,7 +29,8 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.4.0",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "@repo/service-common": "1.0.0"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^8.0.1",
@@ -47,6 +48,8 @@
     "prisma": "7.10.1",
     "supertest": "^7.3.1",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "@repo/conversation-server": "1.0.0",
+    "@repo/document-server": "1.0.0"
   }
 }

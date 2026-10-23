@@ -34,25 +34,21 @@ Executed checks and their limits are recorded in [verification results](docs/mic
 ## Code layout
 
 ```text
-apps/api/src/
-  app.ts                 # Domain Express app and middleware
-  routes.ts              # setupRoutes; registers the selected service's routes
-  services.ts            # Validated domain roles
-  server.ts              # Domain process startup and shutdown
-  servers/               # Dedicated core, conversations and documents entrypoints
-  runtime/               # Shared process lifecycle, database pools and shutdown
-  gateway/               # Stateless streaming gateway; setupGatewayRoutes
-  clients/               # HTTP organization ownership checks
-  modules/               # Domain controllers, services and Prisma repositories
-  database/services/     # SQL initialization per domain database
-apps/api/prisma/         # Prisma models and generated-client configuration
-apps/rag/app/            # FastAPI, BGE embeddings, tenant retrieval and Gemini client
-infra/postgres/          # Separate database/role bootstrap
-contracts/              # API contracts
-postman/                # Local provider mocks and simulations
+apps/
+  api/                    # Core: auth + organizations; gateway entrypoint
+  conversation-server/    # Own app, routes, server, controllers, Prisma schema and Dockerfile
+  document-server/        # Own app, routes, server, upload processing, Prisma schema and Dockerfile
+  rag/                    # Python FastAPI, BGE embeddings, Qdrant retrieval and Gemini
+packages/
+  service-common/         # Shared HTTP/auth infrastructure, validation, logging and lifecycle
+infra/postgres/           # Separate database/role bootstrap
+contracts/               # API contracts
+postman/                 # Local provider mocks and simulations
 ```
 
-Each server registers its routes using `setupRoutes`. Core registers auth and organizations together; it does not mount conversation or document routes. Conversations and documents have explicit server entrypoints and separate processes. The gateway uses `setupGatewayRoutes`. Apps configure middleware and final error handling separately from route composition. The Node servers share a build image and lifecycle utilities. No requests need a sticky session.
+Each Node app has its own `package.json`, `src/app.ts`, `src/routes.ts`, `src/server.ts`, Prisma schema and Dockerfile. Conversation and document controllers/repositories live in their own application folders, not in `apps/api`. Each app builds its own image and uses only its own database models. They share infrastructure through `packages/service-common`; neither processing app has a production dependency on the core API. Each app registers its own routes using `setupRoutes`, and the gateway uses `setupGatewayRoutes`. No requests need a sticky session.
+
+The app-specific READMEs explain standalone development: [conversation server](apps/conversation-server/README.md) and [document server](apps/document-server/README.md). Copy each Node app's `.env.example` to its local `.env` when running outside Docker; the root `.env` supplies the shared signing secret.
 
 ## Validate
 
@@ -68,4 +64,4 @@ docker compose run --rm --no-deps rag python -m unittest discover -s tests -p "t
 
 `npm test` uses a disposable PostgreSQL container on port `55433`; set `TEST_DATABASE_URL` to use another test database. The smoke check uses the running multi-service stack and real embeddings/Qdrant. Gemini generation is additionally exercised against a local Postman simulation; the real provider requires your key and permitted model access.
 
-The former `SERVICE_ROLE=all` Node runtime remains available for regression tests and the older benchmark configuration. It is not the default Docker architecture. Its `.env` `DATABASE_URL`, `db:check` and `db:studio` commands refer to that compatibility database; use explicit service connection URLs when inspecting the new databases. Do not use Prisma `db push` on an individual domain database.
+The regression fixture composes the independently exported app routers against isolated PostgreSQL schemas. Production core does not import the conversation or document apps. Historical SQL is retained for migration regression checks; use explicit service connection URLs when inspecting databases. Each app owns only its own Prisma models. Do not use schema push to bypass the SQL initialization/migration process.

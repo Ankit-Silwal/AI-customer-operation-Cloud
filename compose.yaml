@@ -33,7 +33,7 @@ services:
 
   core:
     <<: *node
-    command: ["node", "apps/api/dist/servers/core.js"]
+    command: ["node", "apps/api/dist/server.js"]
     environment:
       <<: *domain-env
       SERVICE_ROLE: core
@@ -45,7 +45,11 @@ services:
 
   conversations:
     <<: *node
-    command: ["node", "apps/api/dist/servers/conversations.js"]
+    image: customer-ops-conversation:local
+    build:
+      context: .
+      dockerfile: apps/conversation-server/Dockerfile
+    command: ["node", "apps/conversation-server/dist/server.js"]
     environment:
       <<: *domain-env
       SERVICE_ROLE: conversations
@@ -56,7 +60,11 @@ services:
 
   documents:
     <<: *node
-    command: ["node", "apps/api/dist/servers/documents.js"]
+    image: customer-ops-document:local
+    build:
+      context: .
+      dockerfile: apps/document-server/Dockerfile
+    command: ["node", "apps/document-server/dist/server.js"]
     environment:
       <<: *domain-env
       SERVICE_ROLE: documents
@@ -87,8 +95,12 @@ services:
 
   migrate-conversations:
     <<: *node
+    image: customer-ops-conversation:local
+    build:
+      context: .
+      dockerfile: apps/conversation-server/Dockerfile
     restart: "no"
-    command: ["node", "apps/api/dist/database/migrate.js"]
+    command: ["node", "apps/conversation-server/dist/database/migrate.js"]
     environment:
       SERVICE_ROLE: conversations
       DATABASE_URL: postgresql://conversations_app:${CONVERSATIONS_DB_PASSWORD:-conversations_local}@postgres:5432/conversations
@@ -97,8 +109,12 @@ services:
 
   migrate-documents:
     <<: *node
+    image: customer-ops-document:local
+    build:
+      context: .
+      dockerfile: apps/document-server/Dockerfile
     restart: "no"
-    command: ["node", "apps/api/dist/database/migrate.js"]
+    command: ["node", "apps/document-server/dist/database/migrate.js"]
     environment:
       SERVICE_ROLE: documents
       DATABASE_URL: postgresql://documents_app:${DOCUMENTS_DB_PASSWORD:-documents_local}@postgres:5432/documents

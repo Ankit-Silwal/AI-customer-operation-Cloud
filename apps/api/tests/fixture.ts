@@ -3,7 +3,10 @@ import { type TestContext } from "node:test";
 import { Pool } from "pg";
 import request from "supertest";
 
-import { createApp } from "../src/app.js";
+import { createHttpApp, finishHttpApp } from "@repo/service-common/app";
+import { setupRoutes } from "../src/routes.js";
+import { createPrisma as createConversationPrisma, setupRoutes as setupConversationRoutes } from "@repo/conversation-server";
+import { createPrisma as createDocumentPrisma, setupRoutes as setupDocumentRoutes } from "@repo/document-server";
 import { initializeDatabase } from "../src/database/database.js";
 import { createPrisma } from "../src/database/prisma.js";
 
@@ -32,11 +35,13 @@ export async function fixture(t: TestContext) {
   });
 
   const prisma = createPrisma(db, schema);
+  const conversationPrisma = createConversationPrisma(db, schema);
+  const documentPrisma = createDocumentPrisma(db, schema);
   // Remove this test's schema and close connections afterward.
   t.after(async () => {
     try {
       try {
-        await prisma.$disconnect();
+        await Promise.all([prisma.$disconnect(), conversationPrisma.$disconnect(), documentPrisma.$disconnect()]);
       } finally {
         await db.end();
       }
@@ -50,7 +55,16 @@ export async function fixture(t: TestContext) {
   });
 
   await initializeDatabase(db);
-  const app = createApp(prisma, secret, { logger: () => undefined });
+  // Integration-only composition: production apps mount only their own routes.
+  const organizationAccess = async (organizationId: string, ownerId: string) => {
+    const result = await db.query("SELECT id FROM organizations WHERE id = $1 AND owner_id = $2", [organizationId, ownerId]);
+    return result.rows.length > 0;
+  };
+  const app = createHttpApp(() => prisma.$queryRaw`SELECT 1`, { logger: () => undefined });
+  setupRoutes(app, prisma, secret);
+  setupConversationRoutes(app, conversationPrisma, secret, organizationAccess);
+  setupDocumentRoutes(app, documentPrisma, secret, organizationAccess);
+  finishHttpApp(app, () => undefined);
 
   // Helper: register a user and return { user, token }.
   async function register(email = "owner@example.com"): Promise<AuthResponse> {
@@ -77,5 +91,5 @@ export async function fixture(t: TestContext) {
     return response.body as Organization;
   }
 
-  return { app, db, prisma, register, organization };
+  return { app, db, prisma, conversationPrisma, documentPrisma, organizationAccess, register, organization };
 }

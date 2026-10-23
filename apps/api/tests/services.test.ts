@@ -5,13 +5,15 @@ import { createApp } from "../src/app.js";
 import type { PrismaClient } from "../src/database/prisma.js";
 import { readServiceRole } from "../src/services.js";
 import { fixture, secret } from "./fixture.js";
+import { createApp as createDocumentApp, type PrismaClient as DocumentPrismaClient } from "@repo/document-server";
+import { createApp as createConversationApp, type PrismaClient as ConversationPrismaClient } from "@repo/conversation-server";
 
 test("domain roles expose only their own routes and reject invalid role names", async () => {
   const db = { $queryRaw: async () => [] } as unknown as PrismaClient;
   const secret = "service-boundary-test-at-least-32-characters";
   const identity = createApp(db, secret, { serviceRole: "identity", logger: () => {} });
   await request(identity).post("/organizations").send({}).expect(404);
-  const documents = createApp(db, secret, { serviceRole: "documents", organizationAccess: async () => false, logger: () => {} });
+  const documents = createDocumentApp(db as unknown as DocumentPrismaClient, secret, async () => false, { logger: () => {} });
   await request(documents).post("/register").send({}).expect(404);
   await request(documents).post("/documents").send({}).expect(401);
   await request(documents).get("/health/ready").expect(200);
@@ -43,7 +45,7 @@ test("core readiness requires both identity and organization databases", async (
   const core = createApp(healthy, secret, { serviceRole: "core", organizationDb: unavailable, logger: () => {} });
   await request(core).get("/health/live").expect(200);
   await request(core).get("/health/ready").expect(503);
-  const conversations = createApp(healthy, secret, { serviceRole: "conversations", logger: () => {} });
+  const conversations = createConversationApp(healthy as unknown as ConversationPrismaClient, secret, async () => false, { logger: () => {} });
   await request(conversations).post("/organizations").send({}).expect(404);
   await request(conversations).post("/register").send({}).expect(404);
   await request(conversations).post("/documents").send({}).expect(404);

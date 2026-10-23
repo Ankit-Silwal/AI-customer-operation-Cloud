@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import request from "supertest";
 import { fixture } from "./fixture.js";
-import { MAX_UPLOAD_BYTES } from "../src/modules/documents/document.upload.js";
+import { MAX_UPLOAD_BYTES } from "@repo/document-server";
 import { initializeDatabase } from "../src/database/database.js";
 
 test("Text, Markdown and PDF uploads preserve bytes, metadata and account isolation", async (t) => {
@@ -74,11 +74,11 @@ test("migration is repeatable and database constraints reject invalid direct wri
 });
 
 test("real PostgreSQL rolls back document metadata when file persistence fails", { skip: !process.env.TEST_DATABASE_URL }, async (t) => {
-  const { db, prisma, register, organization } = await fixture(t);
-  const { PrismaDocumentRepository } = await import("../src/modules/documents/document.repository.js");
+  const { db, documentPrisma, organizationAccess, register, organization } = await fixture(t);
+  const { PrismaDocumentRepository } = await import("@repo/document-server");
   const user = await register();
   const org = await organization(user.token);
-  const repository = new PrismaDocumentRepository(prisma);
+  const repository = new PrismaDocumentRepository(documentPrisma, organizationAccess);
   await assert.rejects(repository.createUploadForOwner({ organizationId: org.id, title: "Atomic", content: "x", fileName: "bad.txt", mediaType: "invalid", bytes: Buffer.from("x") }, user.user.id));
   assert.equal((await db.query("SELECT * FROM documents")).rowCount, 0);
 });

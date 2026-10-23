@@ -26,49 +26,11 @@ model Organization {
   ownerId       String         @map("owner_id") @db.Uuid
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   owner         User           @relation(fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  conversations Conversation[]
-  documents     Document[]
 
   @@index([ownerId], map: "organizations_owner_idx")
   @@map("organizations")
 }
 
-model Conversation {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId String       @map("organization_id") @db.Uuid
-  customerEmail  String       @map("customer_email")
-  subject        String
-  messages       Json         @default("[]") @db.JsonB
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([organizationId], map: "conversations_organization_idx")
-  @@map("conversations")
-}
-
-model Document {
-  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId String          @map("organization_id") @db.Uuid
-  title          String
-  content        String
-  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  upload         DocumentUpload?
-
-  @@index([organizationId], map: "documents_organization_idx")
-  @@map("documents")
-}
-
-model DocumentUpload {
-  documentId String   @id @map("document_id") @db.Uuid
-  fileName   String   @map("file_name")
-  mediaType  String   @map("media_type")
-  byteLength Int      @map("byte_length")
-  fileData   Bytes    @map("file_data")
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@map("document_uploads")
-}
 
 model SchemaMigration {
   version   Int      @id

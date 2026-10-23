@@ -13,7 +13,7 @@
     "db:validate": "npm run db:validate --workspace @repo/api",
     "db:check": "npm run db:generate && npm run db:check --workspace @repo/api",
     "db:studio": "npm run db:studio --workspace @repo/api",
-    "test:postgres": "npm run db:generate && node apps/api/scripts/test-postgres.ts",
+    "test:postgres": "npm test --workspace @repo/api",
     "test:load": "k6 run apps/api/tests/k6/organization-read.k6.js",
     "test:load:matrix": "node apps/api/scripts/run-k6-matrix.ts",
     "test:load:v1": "k6 run apps/api/tests/k6/version1-mixed.k6.js"

@@ -1,0 +1,29 @@
+{
+  "extends": [
+    "//"
+  ],
+  "tasks": {
+    "build": {
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "check-types": {
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "^build"
+      ],
+      "passThroughEnv": [
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "PORT",
+        "ORGANIZATIONS_URL",
+        "DB_POOL_*"
+      ]
+    }
+  }
+}

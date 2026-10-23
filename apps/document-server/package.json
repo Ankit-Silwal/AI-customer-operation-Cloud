@@ -1,0 +1,39 @@
+{
+  "name": "@repo/document-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "build": "npm run db:generate && tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "dev": "npm run db:generate && node --env-file-if-exists=../../.env --env-file-if-exists=.env --import tsx --watch src/server.ts",
+    "start": "node --env-file-if-exists=../../.env --env-file-if-exists=.env dist/server.js",
+    "check-types": "npm run db:generate && tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@repo/service-common": "1.0.0",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "express": "^5.2.1",
+    "pg": "^8.23.1",
+    "multer": "^2.4.0"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "^0.0.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.4.1",
+    "@types/pg": "^8.23.1",
+    "prisma": "7.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "@types/multer": "^2.3.0"
+  }
+}

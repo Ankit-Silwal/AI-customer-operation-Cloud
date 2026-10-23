@@ -1,15 +1,36 @@
 {
-  "extends": ["//"],
+  "extends": [
+    "//"
+  ],
   "tasks": {
     "build": {
-      "outputs": ["dist/**"]
+      "outputs": [
+        "dist/**"
+      ]
     },
     "dev": {
-      "passThroughEnv": ["DATABASE_URL", "JWT_SECRET", "PORT", "DB_POOL_*"]
+      "passThroughEnv": [
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "PORT",
+        "DB_POOL_*",
+        "ORGANIZATIONS_DATABASE_URL",
+        "SERVICE_ROLE"
+      ],
+      "dependsOn": [
+        "^build"
+      ]
     },
     "test": {
       "cache": false,
-      "passThroughEnv": ["TEST_DATABASE_URL"]
+      "passThroughEnv": [
+        "TEST_DATABASE_URL"
+      ]
+    },
+    "check-types": {
+      "dependsOn": [
+        "^build"
+      ]
     }
   }
 }

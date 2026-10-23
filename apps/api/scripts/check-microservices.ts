@@ -5,8 +5,8 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import type { AuthResponse } from "../src/modules/auth/auth.types.js";
 import type { Organization } from "../src/modules/organizations/organization.types.js";
-import type { Conversation } from "../src/modules/conversations/conversation.types.js";
-import type { Document } from "../src/modules/documents/document.types.js";
+import type { Conversation } from "@repo/conversation-server";
+import type { Document } from "@repo/document-server";
 
 const base = process.env.BASE_URL ?? "http://localhost:3001";
 const includeRag = process.argv.includes("--rag");

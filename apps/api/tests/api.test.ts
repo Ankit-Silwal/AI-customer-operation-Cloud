@@ -4,8 +4,8 @@ import { test } from "node:test";
 import jwt from "jsonwebtoken";
 import request from "supertest";
 
-import type { Conversation } from "../src/modules/conversations/conversation.types.js";
-import type { Document } from "../src/modules/documents/document.types.js";
+import type { Conversation } from "@repo/conversation-server";
+import type { Document } from "@repo/document-server";
 
 import { fixture, secret } from "./fixture.js";
 

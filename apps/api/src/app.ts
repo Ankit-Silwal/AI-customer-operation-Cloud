@@ -1,25 +1,11 @@
-import express, { type Express } from "express";
+import { createHttpApp, finishHttpApp } from "@repo/service-common/app";
 import type { PrismaClient } from "./database/prisma.js";
-import helmet from "helmet";
-import { jsonLogger, type Logger } from "./common/logger.js";
-import { requestContext } from "./middleware/request-context.js";
-import { createErrorHandler } from "./middleware/error-handler.js";
 import { setupRoutes, type RouteOptions } from "./routes.js";
 
-export interface AppOptions extends RouteOptions {
-  logger?: Logger;
-}
-
-export function createApp(db: PrismaClient, jwtSecret: string, options: AppOptions = {}): Express {
-  const app = express();
-  app.disable("x-powered-by");
-  const logger = options.logger ?? jsonLogger;
-  app.use(requestContext(logger));
-  app.use(helmet());
+export type AppOptions = RouteOptions;
+export function createApp(db: PrismaClient, jwtSecret: string, options: AppOptions = {}) {
+  const databases = options.organizationDb && options.organizationDb !== db ? [db, options.organizationDb] : [db];
+  const app = createHttpApp(() => Promise.all(databases.map(client => client.$queryRaw`SELECT 1`)), options);
   setupRoutes(app, db, jwtSecret, options);
-  app.use((_req, res) => {
-    res.status(404).json({ error: "Endpoint not found", requestId: res.locals.requestId });
-  });
-  app.use(createErrorHandler(logger));
-  return app;
+  return finishHttpApp(app, options.logger);
 }

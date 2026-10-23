@@ -3,9 +3,11 @@ node_modules
 .git
 .env
 .env.*
+**/.env
+**/.env.*
 .turbo
 **/dist
 **/.next
 **/__pycache__
 .local-validation
-apps/api/src/generated
+**/src/generated
