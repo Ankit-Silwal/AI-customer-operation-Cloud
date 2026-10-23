@@ -7,18 +7,17 @@ The default Docker stack starts a new application. Existing PostgreSQL data is n
 ```mermaid
 flowchart LR
   Client --> Gateway
-  Gateway --> Identity
-  Gateway --> Organizations
+  Gateway --> Core[Core: auth + organizations]
   Gateway --> Conversations
   Gateway --> Documents
   Gateway --> RAG
-  Identity --> IdentityDB[(Identity DB)]
-  Organizations --> OrganizationsDB[(Organizations DB)]
+  Core --> IdentityDB[(Identity DB)]
+  Core --> OrganizationsDB[(Organizations DB)]
   Conversations --> ConversationsDB[(Conversations DB)]
   Documents --> DocumentsDB[(Documents DB)]
-  Conversations --> Organizations
-  Documents --> Organizations
-  RAG --> Organizations
+  Conversations --> Core
+  Documents --> Core
+  RAG --> Core
   RAG --> Documents
   RAG --> Qdrant[(learning_rag)]
   RAG --> BGE[BGE CPU embeddings]
@@ -28,17 +27,16 @@ flowchart LR
 | Process | Responsibility | Durable state |
 | --- | --- | --- |
 | `api` | Streaming HTTP gateway; preserves public route paths | None |
-| `identity` | Registration, password hashing, signed JWTs | `identity` database |
-| `organizations` | Organization creation and ownership authority | `organizations` database |
+| `core` | Registration, password hashing, JWTs, organizations and ownership authority | `identity` and `organizations` databases, with separate pools |
 | `conversations` | Conversation messages; verifies organization access by HTTP | `conversations` database |
 | `documents` | Document content, uploads and downloads; verifies access by HTTP | `documents` database |
 | `rag` | Indexing, retrieval, prompt construction, Gemini calls | Qdrant; weights cached separately |
 
-Domain processes share a built Node image and TypeScript modules, but run separately, register only their own routes, and use different PostgreSQL databases and roles. PostgreSQL is initially one server hosting those databases; it remains a shared infrastructure failure domain. There are no cross-database joins or foreign keys. An ownership lookup fails closed if the organizations service is unavailable. Organization owners are currently immutable; adding ownership transfer or deletion requires defining cross-service lifecycle behavior.
+Core, conversations and documents use dedicated entrypoints under `apps/api/src/servers`. They share a built Node image and lifecycle utilities but start separate HTTP servers. Core exposes only auth and organizations; conversations and document processing are excluded from that server. The gateway and RAG also remain separate processes. Core retains both existing databases through separate Prisma clients, so no data copy is needed. PostgreSQL is initially one server hosting the four databases; it remains a shared infrastructure failure domain. There are no cross-database joins or foreign keys. An ownership lookup fails closed if core is unavailable. Organization owners are currently immutable; adding ownership transfer or deletion requires defining cross-service lifecycle behavior.
 
 JWTs are verified by every service, including Python RAG. No sticky sessions, in-memory chat history, local upload files or per-user process state are required. Upload bytes stay in the documents database. Model weights and connection pools are process resources, not user sessions. All services currently trust the same HS256 signing secret; conversations/documents issue 30-second delegated tokens for organization checks. Use asymmetric verification keys if different services must not be able to mint user tokens.
 
-Four one-shot initialization containers apply the SQL files under `apps/api/src/database/services` before domain services start. These initialize the new databases; they do not migrate old records. Prisma Client maps the domain tables. The unified schema also supports the earlier all-in-one runtime for regression tests; do not run Prisma `db push` against a domain database, since that would create tables owned by other services.
+Four one-shot initialization containers apply the SQL files under `apps/api/src/database/services` before domain services start. Core waits for identity and organization initialization, then checks both database connections in startup and readiness. Conversations and documents each wait for their own database initialization. These initialize the databases; they do not migrate old records. Prisma Client maps the domain tables. The unified schema also supports the earlier all-in-one runtime for regression tests; do not run Prisma `db push` against a domain database, since that would create tables owned by other services.
 
 ## Start and configure
 
@@ -108,6 +106,6 @@ The Node regression suite retains isolated PostgreSQL schemas. The Docker smoke 
 docker compose up -d --scale conversations=2 --scale documents=2
 ```
 
-Service DNS supplies replica addresses; no instance has a fixed container name or published domain port. The gateway makes fresh upstream connections. Each Node replica has its own bounded pool (default 10); plan the total number of connections before scaling beyond PostgreSQL's limit. The model needs memory per RAG replica, even when cached weights are shared. PostgreSQL and Qdrant remain stateful and require backups; stateless API scaling does not make the data stores highly available.
+Service DNS supplies replica addresses; no instance has a fixed container name or published domain port. The gateway makes fresh upstream connections. Each database pool defaults to 10 connections; a core replica owns two pools and conversation/document replicas own one each. Plan the total before scaling beyond PostgreSQL's limit. The model needs memory per RAG replica, even when cached weights are shared. PostgreSQL and Qdrant remain stateful and require backups; stateless API scaling does not make the data stores highly available.
 
 Provider references: [Google OpenAI compatibility](https://ai.google.dev/gemini-api/docs/openai), [BGE model card](https://huggingface.co/BAAI/bge-small-en-v1.5), [Qdrant LangChain integration](https://qdrant.tech/documentation/frameworks/langchain/).

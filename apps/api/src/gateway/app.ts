@@ -12,7 +12,7 @@ export function createGateway(targets: GatewayTargets, logger: Logger = jsonLogg
   app.get("/health/live", (_req, res) => res.json({ status: "ok", service: "gateway" }));
   app.get("/health/ready", async (_req, res) => {
     // Missing LLM credentials do not prevent the core business services from starting.
-    const core = [targets.identity, targets.organizations, targets.conversations, targets.documents];
+    const core = [targets.core, targets.conversations, targets.documents];
     try {
       if (isDraining()) throw new Error("Draining");
       const checks = await Promise.all(core.map(url => fetch(`${url}/health/ready`, { signal: AbortSignal.timeout(1500) })));

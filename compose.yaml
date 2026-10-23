@@ -11,7 +11,7 @@ x-domain-env: &domain-env
   PORT: 3001
   JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env file}
   DB_POOL_MAX: ${DB_POOL_MAX:-10}
-  ORGANIZATIONS_URL: http://organizations:3001
+  ORGANIZATIONS_URL: http://core:3001
 
 services:
   api:
@@ -21,54 +21,48 @@ services:
       - "${PORT:-3001}:3001"
     environment:
       PORT: 3001
-      IDENTITY_URL: http://identity:3001
-      ORGANIZATIONS_URL: http://organizations:3001
+      CORE_URL: http://core:3001
       CONVERSATIONS_URL: http://conversations:3001
       DOCUMENTS_URL: http://documents:3001
       RAG_URL: http://rag:8000
     depends_on:
-      identity: { condition: service_healthy }
-      organizations: { condition: service_healthy }
+      core: { condition: service_healthy }
       conversations: { condition: service_healthy }
       documents: { condition: service_healthy }
       rag: { condition: service_started }
 
-  identity:
+  core:
     <<: *node
+    command: ["node", "apps/api/dist/servers/core.js"]
     environment:
       <<: *domain-env
-      SERVICE_ROLE: identity
+      SERVICE_ROLE: core
       DATABASE_URL: postgresql://identity_app:${IDENTITY_DB_PASSWORD:-identity_local}@postgres:5432/identity
+      ORGANIZATIONS_DATABASE_URL: postgresql://organizations_app:${ORGANIZATIONS_DB_PASSWORD:-organizations_local}@postgres:5432/organizations
     depends_on:
       migrate-identity: { condition: service_completed_successfully }
-
-  organizations:
-    <<: *node
-    environment:
-      <<: *domain-env
-      SERVICE_ROLE: organizations
-      DATABASE_URL: postgresql://organizations_app:${ORGANIZATIONS_DB_PASSWORD:-organizations_local}@postgres:5432/organizations
-    depends_on:
       migrate-organizations: { condition: service_completed_successfully }
 
   conversations:
     <<: *node
+    command: ["node", "apps/api/dist/servers/conversations.js"]
     environment:
       <<: *domain-env
       SERVICE_ROLE: conversations
       DATABASE_URL: postgresql://conversations_app:${CONVERSATIONS_DB_PASSWORD:-conversations_local}@postgres:5432/conversations
     depends_on:
-      organizations: { condition: service_healthy }
+      core: { condition: service_healthy }
       migrate-conversations: { condition: service_completed_successfully }
 
   documents:
     <<: *node
+    command: ["node", "apps/api/dist/servers/documents.js"]
     environment:
       <<: *domain-env
       SERVICE_ROLE: documents
       DATABASE_URL: postgresql://documents_app:${DOCUMENTS_DB_PASSWORD:-documents_local}@postgres:5432/documents
     depends_on:
-      organizations: { condition: service_healthy }
+      core: { condition: service_healthy }
       migrate-documents: { condition: service_completed_successfully }
 
   migrate-identity:
@@ -127,13 +121,13 @@ services:
       QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
       QDRANT_COLLECTION: ${QDRANT_COLLECTION:-learning_rag}
       QDRANT_CREATE_COLLECTION: ${QDRANT_CREATE_COLLECTION:-true}
-      ORGANIZATIONS_URL: http://organizations:3001
+      ORGANIZATIONS_URL: http://core:3001
       DOCUMENTS_URL: http://documents:3001
     volumes:
       - embedding_models:/models
     depends_on:
       qdrant: { condition: service_started }
-      organizations: { condition: service_healthy }
+      core: { condition: service_healthy }
       documents: { condition: service_healthy }
     restart: unless-stopped
 

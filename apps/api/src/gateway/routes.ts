@@ -2,8 +2,7 @@ import { request as httpRequest, type OutgoingHttpHeaders } from "node:http";
 import type { Express, RequestHandler } from "express";
 
 export interface GatewayTargets {
-  identity: string;
-  organizations: string;
+  core: string;
   conversations: string;
   documents: string;
   rag: string;
@@ -47,8 +46,7 @@ function proxy(target: string): RequestHandler {
 }
 
 export function setupGatewayRoutes(app: Express, targets: GatewayTargets): void {
-  app.use(["/register", "/login"], proxy(targets.identity));
-  app.use("/organizations", proxy(targets.organizations));
+  app.use(["/register", "/login", "/organizations"], proxy(targets.core));
   app.use("/conversation", proxy(targets.conversations));
   app.use("/documents", proxy(targets.documents));
   app.use("/rag", proxy(targets.rag));

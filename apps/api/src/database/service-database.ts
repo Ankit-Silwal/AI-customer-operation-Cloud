@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import type { Pool } from "pg";
-import type { ServiceRole } from "../services.js";
+import type { DatabaseRole } from "../services.js";
 
-export async function initializeServiceDatabase(pool: Pool, role: Exclude<ServiceRole, "all">): Promise<void> {
+export async function initializeServiceDatabase(pool: Pool, role: DatabaseRole): Promise<void> {
   const sql = await readFile(new URL(`./services/${role}.sql`, import.meta.url), "utf8");
   const client = await pool.connect();
   try {

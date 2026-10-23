@@ -12,7 +12,7 @@ For a new checkout, copy `.env.example` to `.env` and set a random `JWT_SECRET` 
 docker compose up --build -d --wait --wait-timeout 600
 ```
 
-The gateway is at `http://localhost:3001`. The first build installs CPU PyTorch and downloads `BAAI/bge-small-en-v1.5` into a persistent model cache. Identity, organizations, conversations and documents each use a separate PostgreSQL database and role. This stack creates fresh data; it does not migrate or delete the earlier application's volume.
+The gateway is at `http://localhost:3001`. The first build installs CPU PyTorch and downloads `BAAI/bge-small-en-v1.5` into a persistent model cache. Auth and organizations share the `core` server; conversations and documents run in their own servers, with RAG separate. The four domain databases and roles are retained, so changing the server grouping does not move or discard records.
 
 Add `api_key=...` or `GEMINI_API_KEY=...` to `.env` when ready, then run `docker compose up -d --force-recreate rag`. Indexing and search already work without that key; answer generation returns `503` until it is configured. The generation defaults are `gemini-3.1-flash-lite` and `https://generativelanguage.googleapis.com/v1beta/openai/`.
 
@@ -20,8 +20,7 @@ Add `api_key=...` or `GEMINI_API_KEY=...` to `.env` when ready, then run `docker
 
 | Service | Public routes through the gateway |
 | --- | --- |
-| Identity | `POST /register`, `POST /login` |
-| Organizations | `POST /organizations`, `GET /organizations/:id` |
+| Core (auth + organizations) | `POST /register`, `POST /login`, `POST /organizations`, `GET /organizations/:id` |
 | Conversations | `POST /conversation`, `GET /conversation/:id` |
 | Documents | `POST /documents`, `POST /documents/upload`, `GET /documents/:id`, `GET /documents/:id/download` |
 | RAG | `POST /rag/documents/:id/index`, `POST /rag/search`, `POST /rag/query` |
@@ -40,6 +39,8 @@ apps/api/src/
   routes.ts              # setupRoutes; registers the selected service's routes
   services.ts            # Validated domain roles
   server.ts              # Domain process startup and shutdown
+  servers/               # Dedicated core, conversations and documents entrypoints
+  runtime/               # Shared process lifecycle, database pools and shutdown
   gateway/               # Stateless streaming gateway; setupGatewayRoutes
   clients/               # HTTP organization ownership checks
   modules/               # Domain controllers, services and Prisma repositories
@@ -51,7 +52,7 @@ contracts/              # API contracts
 postman/                # Local provider mocks and simulations
 ```
 
-Each domain registers its routes using `setupRoutes`. The gateway uses `setupGatewayRoutes`. Apps configure middleware and final error handling separately from route composition. The Node services share a build image, but each container exposes only its own domain routes. No requests need a sticky session.
+Each server registers its routes using `setupRoutes`. Core registers auth and organizations together; it does not mount conversation or document routes. Conversations and documents have explicit server entrypoints and separate processes. The gateway uses `setupGatewayRoutes`. Apps configure middleware and final error handling separately from route composition. The Node servers share a build image and lifecycle utilities. No requests need a sticky session.
 
 ## Validate
 

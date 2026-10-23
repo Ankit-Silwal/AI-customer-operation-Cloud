@@ -19,28 +19,34 @@ import { OrganizationService } from "./modules/organizations/organization.servic
 import type { ServiceRole } from "./services.js";
 import type { OrganizationAccess } from "./clients/organizations.js";
 
+export interface RouteOptions {
+  isDraining?: () => boolean;
+  serviceRole?: ServiceRole;
+  organizationAccess?: OrganizationAccess;
+  organizationDb?: PrismaClient;
+}
+
 export function setupRoutes(
   app: Express,
   db: PrismaClient,
   jwtSecret: string,
-  isDraining: () => boolean = () => false,
-  serviceRole: ServiceRole = "all",
-  organizationAccess?: OrganizationAccess,
+  options: RouteOptions = {},
 ): void {
+  const { isDraining = () => false, serviceRole = "all", organizationAccess, organizationDb = db } = options;
   const tokens = new TokenService(jwtSecret);
   const auth = authenticate(tokens);
 
   // Health probes must remain independent of request body parsing.
-  app.use("/health", rememberRoutePrefix, healthRoutes(db, isDraining));
+  app.use("/health", rememberRoutePrefix, healthRoutes(db, isDraining, organizationDb === db ? [] : [organizationDb]));
   app.use(express.json({ limit: "1mb" }));
-  if (serviceRole === "all" || serviceRole === "identity") {
+  if (serviceRole === "all" || serviceRole === "core" || serviceRole === "identity") {
     app.use(authRoutes(new AuthService(new PrismaAuthRepository(db), tokens)));
   }
-  if (serviceRole === "all" || serviceRole === "organizations") app.use(
+  if (serviceRole === "all" || serviceRole === "core" || serviceRole === "organizations") app.use(
     "/organizations",
     rememberRoutePrefix,
     organizationRoutes(
-      new OrganizationService(new PrismaOrganizationRepository(db)),
+      new OrganizationService(new PrismaOrganizationRepository(organizationDb)),
       auth,
     ),
   );

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class Settings:
     jwt_secret: str
-    organizations_url: str = "http://organizations:3001"
+    organizations_url: str = "http://core:3001"
     documents_url: str = "http://documents:3001"
     qdrant_url: str = "http://qdrant:6333"
     collection: str = "learning_rag"
