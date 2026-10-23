@@ -53,6 +53,11 @@ export function setupRoutes(app: Express, config: WebConfig): void {
     setCookie(res, "hearth_session", "", config.secure, 0);
     res.json({ ok: true });
   });
+  app.post(["/api/auth/password/forgot", "/api/auth/password/reset"], async (req, res) => {
+    const response = await upstream(config, req.path.slice(4), { req, body: req.body });
+    copyResponseHeaders(response, res);
+    res.status(response.status).send(Buffer.from(await response.arrayBuffer()));
+  });
   app.use("/api", (req, res, next) => {
     const token = cookie(req, "hearth_session");
     try {
@@ -63,6 +68,13 @@ export function setupRoutes(app: Express, config: WebConfig): void {
       throw new HttpError(401, "Please sign in to continue");
     }
     void authenticatedLimit()(req, res, next);
+  });
+  app.post("/api/auth/password/change/confirm", async (req, res) => {
+    const response = await upstream(config, "/auth/password/change/confirm", { req, body: req.body, token: cookie(req, "hearth_session")! });
+    const result = await responseJson<{ token?: string; user?: unknown }>(response);
+    copyResponseHeaders(response, res);
+    if (response.ok && result.token) { setCookie(res, "hearth_session", result.token, config.secure); res.json({ user: result.user }); }
+    else res.status(response.status).json(result);
   });
   app.get("/api/session", async (req, res) => {
     const response = await upstream(config, "/me", {
@@ -88,7 +100,8 @@ export function setupRoutes(app: Express, config: WebConfig): void {
   app.use("/api", async (req, res) => {
     const path = req.originalUrl.slice(4);
     const pathname = path.split("?")[0]!;
-    const allowed =
+    const allowed = (req.method === "GET" && pathname === "/developer/keys") || (req.method === "POST" && ["/developer/keys", "/auth/password/change/request"].includes(pathname)) || (req.method === "DELETE" && /^\/developer\/keys\/[a-f\d-]{36}$/i.test(pathname)) ||
+ (
       req.method === "GET"
         ? /^\/(organizations|documents|conversation)(\/[a-f\d-]{36})?(\/download)?$/i.test(
             pathname,
@@ -101,7 +114,8 @@ export function setupRoutes(app: Express, config: WebConfig): void {
               /^\/conversation\/[a-f\d-]{36}\/messages$/i.test(pathname) ||
               /^\/rag\/(search|query|chat|documents\/[a-f\d-]{36}\/index)$/i.test(
                 pathname,
-              ));
+              ))
+    );
     if (!allowed) throw new HttpError(404, "Endpoint not found");
     const response = await upstream(config, path, {
       req,

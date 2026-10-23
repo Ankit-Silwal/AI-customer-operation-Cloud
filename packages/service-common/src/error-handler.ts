@@ -17,6 +17,7 @@ export const createErrorHandler = (logger: Logger = jsonLogger): ErrorRequestHan
     return;
   }
   if (error instanceof HttpError) {
+    if (error.retryAfter && /^\d+$/.test(String(error.retryAfter))) res.set("Retry-After", String(error.retryAfter));
     respond(error.status, error.message);
     return;
   }

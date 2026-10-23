@@ -7,6 +7,7 @@ export interface GatewayTargets {
   conversations: string;
   documents: string;
   rag: string;
+  developer?: string;
 }
 
 const hopHeaders = new Set(["connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade", "host"]);
@@ -49,7 +50,8 @@ function proxy(target: string, secret?: string): RequestHandler {
 }
 
 export function setupGatewayRoutes(app: Express, targets: GatewayTargets, secret?: string): void {
-  app.use(["/register", "/login", "/me", "/organizations"], proxy(targets.core, secret));
+  app.use(["/register", "/login", "/me", "/organizations", "/auth", "/developer"], proxy(targets.core, secret));
+  if (targets.developer) app.use("/v1", proxy(targets.developer, secret));
   app.use("/conversation", proxy(targets.conversations, secret));
   app.use("/documents", proxy(targets.documents, secret));
   app.use("/rag", proxy(targets.rag, secret));

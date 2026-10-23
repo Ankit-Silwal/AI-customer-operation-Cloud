@@ -5,3 +5,5 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL CHECK (char_length(password_hash) >= 32),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_version INTEGER NOT NULL DEFAULT 0;

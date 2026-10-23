@@ -9,6 +9,7 @@ const app = createGateway({
   conversations: process.env.CONVERSATIONS_URL ?? "http://conversations:3001",
   documents: process.env.DOCUMENTS_URL ?? "http://documents:3001",
   rag: process.env.RAG_URL ?? "http://rag:8000",
+  developer: process.env.DEVELOPER_URL ?? "http://developer-portal:3006",
 }, undefined, () => draining);
 const server = app.listen(port, "0.0.0.0", () => console.log(JSON.stringify({ event: "gateway_started" })));
 server.headersTimeout = 10000;

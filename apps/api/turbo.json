@@ -16,7 +16,9 @@
         "DB_POOL_*",
         "ORGANIZATIONS_DATABASE_URL",
         "SERVICE_ROLE",
-        "RATE_LIMIT_*"
+        "RATE_LIMIT_*",
+        "SMTP_*",
+        "AUTH_SESSION_URL"
       ],
       "dependsOn": [
         "^build"

@@ -7,7 +7,7 @@ export function createOrganizationAccess(baseUrl: string, secret: string): Organ
   const origin = new URL(baseUrl);
   return async (organizationId, ownerId) => {
     // Delegate the already authenticated caller for this single, short-lived lookup.
-    const token = jwt.sign({}, secret, {
+    const token = jwt.sign({ service: true }, secret, {
       algorithm: "HS256", subject: ownerId, expiresIn: "30s", issuer: "customer-operation-api",
     });
     try {

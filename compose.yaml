@@ -13,10 +13,20 @@ x-rate-env: &rate-env
   RATE_LIMIT_NAMESPACE: ${RATE_LIMIT_NAMESPACE:-customer-ops}
   RATE_LIMIT_POLICY_OVERRIDES: ${RATE_LIMIT_POLICY_OVERRIDES:-}
 
+x-smtp-env: &smtp-env
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASS: ${SMTP_PASS:-}
+  SMTP_FROM: ${SMTP_FROM:-}
+  SMTP_SECURE: ${SMTP_SECURE:-false}
+  SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-true}
+
 x-domain-env: &domain-env
   <<: *rate-env
   PORT: 3001
   DB_POOL_MAX: ${DB_POOL_MAX:-10}
+  AUTH_SESSION_URL: http://core:3001/auth/session
   ORGANIZATIONS_URL: http://core:3001
 
 services:
@@ -37,6 +47,27 @@ services:
       api: { condition: service_healthy }
     restart: unless-stopped
 
+  developer-portal:
+    image: customer-ops-developer:local
+    build:
+      context: .
+      dockerfile: apps/developer-portal/Dockerfile
+    ports:
+      - "${DOCS_PORT:-3040}:3006"
+    environment:
+      <<: [*rate-env, *smtp-env]
+      DOCS_PORT: 3006
+      DOCS_ORIGIN: ${DOCS_ORIGIN:-http://localhost:3040}
+      WEB_COOKIE_SECURE: ${WEB_COOKIE_SECURE:-false}
+      API_URL: http://api:3001
+      CORE_URL: http://core:3001
+      DOCS_DEMO_EMAIL: ${DOCS_DEMO_EMAIL:-sandbox@hearth.example}
+      DOCS_DEMO_PASSWORD: ${DOCS_DEMO_PASSWORD:-}
+    depends_on:
+      api: { condition: service_healthy }
+      rag: { condition: service_healthy }
+    restart: unless-stopped
+
   company-demo:
     image: customer-ops-demo:local
     build:
@@ -44,15 +75,18 @@ services:
       dockerfile: apps/company-demo/Dockerfile
     ports:
       - "${DEMO_PORT:-3035}:3005"
+    env_file:
+      - path: ./apps/company-demo/.env
+        required: false
     environment:
       <<: *rate-env
       DEMO_PORT: 3005
       DEMO_ORIGIN: ${DEMO_ORIGIN:-http://localhost:3035}
       WEB_COOKIE_SECURE: ${WEB_COOKIE_SECURE:-false}
       API_URL: http://api:3001
-      DEMO_OWNER_EMAIL: ${DEMO_OWNER_EMAIL:-care@oakandember.example}
-      DEMO_OWNER_PASSWORD: ${DEMO_OWNER_PASSWORD:-}
+      HEARTH_API_BASE_URL: http://api:3001/v1
     depends_on:
+      developer-portal: { condition: service_healthy }
       api: { condition: service_healthy }
       rag: { condition: service_healthy }
     restart: unless-stopped
@@ -65,6 +99,7 @@ services:
     environment:
       <<: *rate-env
       PORT: 3001
+      DEVELOPER_URL: http://developer-portal:3006
       CORE_URL: http://core:3001
       CONVERSATIONS_URL: http://conversations:3001
       DOCUMENTS_URL: http://documents:3001
@@ -81,7 +116,7 @@ services:
     <<: *node
     command: ["node", "apps/api/dist/server.js"]
     environment:
-      <<: *domain-env
+      <<: [*domain-env, *smtp-env]
       SERVICE_ROLE: core
       DATABASE_URL: postgresql://identity_app:${IDENTITY_DB_PASSWORD:-identity_local}@postgres:5432/identity
       ORGANIZATIONS_DATABASE_URL: postgresql://organizations_app:${ORGANIZATIONS_DB_PASSWORD:-organizations_local}@postgres:5432/organizations

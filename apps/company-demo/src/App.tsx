@@ -104,7 +104,8 @@ class ChatError extends Error {
 }
 interface Status {
   ready: boolean;
-  mode: "retrieval" | "generation" | "preparing";
+  mode: "retrieval" | "generation" | "preparing" | "chat";
+  configured?: boolean;
 }
 interface Source {
   title: string;
@@ -833,9 +834,7 @@ function Chat({
       </header>
       <div className="chat-mode">
         <Sparkles size={13} />
-        {status?.mode === "generation"
-          ? "AI assistant · Answers with sources"
-          : "Policy lookup · Direct passages, no AI-written claims"}
+        Answers grounded in our company policies
       </div>
       <div className="chat-scroll" ref={scroller}>
         <div className="chat-message assistant">

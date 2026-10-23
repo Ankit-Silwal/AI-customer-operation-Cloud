@@ -22,6 +22,7 @@ export async function initializeDatabase(pool: Pool): Promise<void> {
       await client.query(migration);
       await client.query("INSERT INTO schema_migrations (version) VALUES (1)");
     }
+    await client.query(await readFile(new URL("./services/developer.sql", import.meta.url), "utf8"));
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");

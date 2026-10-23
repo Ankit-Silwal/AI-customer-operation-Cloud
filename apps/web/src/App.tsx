@@ -1,3 +1,4 @@
+import { DeveloperAccess, PasswordChange } from "./DeveloperAccess";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   ArrowRight,
@@ -374,6 +375,7 @@ export function App() {
                 description="Your account, your workspace, and the connections behind it."
               />
               <div className="settings-grid">
+<DeveloperAccess key={workspace.id} organization={workspace}/><PasswordChange/>
                 <article className="panel">
                   <h2>Workspace details</h2>
                   <dl>

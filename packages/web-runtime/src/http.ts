@@ -1,3 +1,4 @@
+import { closeOtpServices } from "@repo/service-common/otp";
 import { randomUUID } from "node:crypto";
 import type { Express, Request, RequestHandler, Response } from "express";
 import express from "express";
@@ -186,9 +187,9 @@ export class ApiFailure extends HttpError {
   constructor(
     status: number,
     message: string,
-    readonly retryAfter: string | null = null,
+    retryAfter: string | null = null,
   ) {
-    super(status, message);
+    super(status, message, retryAfter ?? undefined);
   }
 }
 
@@ -249,17 +250,17 @@ export async function startWeb(
     deadline.unref();
     server.close(() => {
       void closePreview?.().finally(() => {
-        closeRateLimiters();
+        closeRateLimiters(); closeOtpServices();
         clearTimeout(deadline);
       });
       if (!closePreview) {
-        closeRateLimiters();
+        closeRateLimiters(); closeOtpServices();
         clearTimeout(deadline);
       }
     });
   }
   server.on("error", () => {
-    closeRateLimiters();
+    closeRateLimiters(); closeOtpServices();
     process.exitCode = 1;
   });
   process.on("SIGTERM", shutdown);

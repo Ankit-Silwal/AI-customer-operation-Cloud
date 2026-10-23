@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file-if-exists=../../.env --env-file-if-exists=.env.local --import tsx server/server.ts",
+    "dev": "node --env-file-if-exists=../../.env --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx server/server.ts",
     "build": "tsc --noEmit && vite build && tsc -p tsconfig.server.json",
-    "start": "node --env-file-if-exists=../../.env --env-file-if-exists=.env.local dist/server/server.js",
+    "start": "node --env-file-if-exists=../../.env --env-file-if-exists=.env --env-file-if-exists=.env.local dist/server/server.js",
     "check-types": "tsc --noEmit",
     "lint": "tsc --noEmit"
   },

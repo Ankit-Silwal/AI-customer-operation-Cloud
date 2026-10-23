@@ -20,8 +20,7 @@ async function prepare() {
   }
 }
 void prepare();
-// Refresh the private owner session before its seven-day expiry and recover
-// after a dependency outage without requiring a container restart.
+// Retry preparation after configuring a key or recovering a dependency.
 setInterval(() => {
   void prepare();
 }, 60000).unref();

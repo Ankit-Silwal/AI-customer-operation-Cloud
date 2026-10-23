@@ -25,7 +25,8 @@
         "WEB_COOKIE_SECURE",
         "DEMO_*",
         "PORT",
-        "NODE_ENV"
+        "NODE_ENV",
+        "HEARTH_*"
       ]
     }
   }

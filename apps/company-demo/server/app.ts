@@ -7,7 +7,7 @@ import { setupRoutes } from "./routes.js";
 export function createApp(config: WebConfig, demo = new DemoService(config)) {
   const app = createHttpApp(
     async () => {
-      if (demo.state !== "ready") throw new Error("Demo preparing");
+      // The storefront stays available while an operator configures an API key.
       await demo.status();
     },
     { rateService: "company-demo" },
@@ -21,7 +21,7 @@ export function createApp(config: WebConfig, demo = new DemoService(config)) {
       next: import("express").NextFunction,
     ) => {
       if (error instanceof ApiFailure && error.retryAfter)
-        res.set("Retry-After", error.retryAfter);
+        res.set("Retry-After", String(error.retryAfter));
       if (error instanceof HttpError && error.status === 503)
         res.set("Retry-After", "5");
       next(error);

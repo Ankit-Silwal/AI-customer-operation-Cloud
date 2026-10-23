@@ -33,3 +33,5 @@ CREATE TABLE IF NOT EXISTS documents (
 CREATE INDEX IF NOT EXISTS organizations_owner_idx ON organizations(owner_id);
 CREATE INDEX IF NOT EXISTS conversations_organization_idx ON conversations(organization_id);
 CREATE INDEX IF NOT EXISTS documents_organization_idx ON documents(organization_id);
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_version INTEGER NOT NULL DEFAULT 0;

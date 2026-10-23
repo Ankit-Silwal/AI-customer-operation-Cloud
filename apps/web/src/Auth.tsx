@@ -1,3 +1,4 @@
+import { PasswordReset } from "./PasswordReset";
 import { useState, type FormEvent } from "react";
 import {
   ArrowRight,
@@ -11,6 +12,7 @@ import { post, type User } from "./api";
 import { Brand, DemoLink, ErrorNotice, Spinner } from "./components";
 
 export function Auth({ signedIn }: { signedIn: (user: User) => void }) {
+  const [forgot, setForgot] = useState(false);
   const [register, setRegister] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<unknown>();
@@ -100,6 +102,7 @@ export function Auth({ signedIn }: { signedIn: (user: User) => void }) {
           <span className="pill">
             <ShieldCheck size={14} /> Your private workspace
           </span>
+          {forgot ? <PasswordReset back={() => setForgot(false)}/> : <>
           <h2>{register ? "Make yourself at home." : "Welcome back."}</h2>
           <p>
             {register
@@ -180,6 +183,8 @@ export function Auth({ signedIn }: { signedIn: (user: User) => void }) {
               )}
             </button>
           </form>
+          {!register && <button className="button ghost" onClick={() => setForgot(true)}>Forgot password?</button>}
+          </>}
           <p className="auth-note">
             Your company’s knowledge stays in your account.
             <br />

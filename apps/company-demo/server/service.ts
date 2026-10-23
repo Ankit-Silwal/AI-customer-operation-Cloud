@@ -1,4 +1,3 @@
-import { createHmac } from "node:crypto";
 import type { Request } from "express";
 import { apiJson, type WebConfig } from "@repo/web-runtime/http";
 import { HttpError } from "@repo/service-common/http";
@@ -11,14 +10,6 @@ interface Page<T> {
 interface Document {
   id: string;
   title: string;
-}
-interface Organization {
-  id: string;
-  name: string;
-}
-interface Auth {
-  token: string;
-  user: { id: string };
 }
 export interface Source {
   documentId: string;
@@ -35,8 +26,6 @@ export interface Conversation {
 }
 
 export class DemoService {
-  private auth: Auth | undefined;
-  private organizationId = "";
   private pending: Promise<void> | undefined;
   private preparedAt = 0;
   state: "preparing" | "ready" | "unavailable" = "preparing";
@@ -46,8 +35,6 @@ export class DemoService {
     if (this.pending) return this.pending;
     if (this.state === "ready" && Date.now() - this.preparedAt < 6 * 86400_000)
       return;
-    if (this.preparedAt && Date.now() - this.preparedAt >= 6 * 86400_000)
-      this.auth = undefined;
     this.pending ??= this.initialize().finally(() => {
       this.pending = undefined;
     });
@@ -56,54 +43,21 @@ export class DemoService {
   private async initialize(): Promise<void> {
     this.state = "preparing";
     try {
-      const email = process.env.DEMO_OWNER_EMAIL ?? "care@oakandember.example";
-      const password =
-        process.env.DEMO_OWNER_PASSWORD ||
-        createHmac("sha256", this.config.secret)
-          .update("oak-and-ember-demo-account-v1")
-          .digest("base64url");
-      if (!this.auth)
-        try {
-          this.auth = await apiJson<Auth>(this.config, "/login", {
-            body: { email, password },
-          });
-        } catch (error) {
-          if (!(error instanceof HttpError) || error.status !== 401)
-            throw error;
-          this.auth = await apiJson<Auth>(this.config, "/register", {
-            body: { email, password, name: "Oak & Ember demo" },
-          });
-        }
-      const token = this.auth.token;
-      const organizations = await apiJson<Page<Organization>>(
-        this.config,
-        "/organizations?pageSize=100",
-        { token },
-      );
-      let organization = organizations.items.find(
-        (item) => item.name === "Oak & Ember",
-      );
-      organization ??= await apiJson<Organization>(
-        this.config,
-        "/organizations",
-        { token, body: { name: "Oak & Ember" } },
-      );
-      this.organizationId = organization.id;
+      const token = this.key();
       const documents = await apiJson<Page<Document>>(
-        this.config,
-        `/documents?organizationId=${organization.id}&pageSize=100`,
+        this.apiConfig(),
+        "/documents?pageSize=100",
         { token },
       );
       let document = documents.items.find((item) => item.title === policyTitle);
-      document ??= await apiJson<Document>(this.config, "/documents", {
+      document ??= await apiJson<Document>(this.apiConfig(), "/documents", {
         token,
         body: {
-          organizationId: organization.id,
           title: policyTitle,
           content: policyContent,
         },
       });
-      await apiJson(this.config, `/rag/documents/${document.id}/index`, {
+      await apiJson(this.apiConfig(), `/documents/${document.id}/index`, {
         token,
         body: {},
       });
@@ -114,30 +68,27 @@ export class DemoService {
       throw error;
     }
   }
+  private key(): string {
+    const key = process.env.HEARTH_API_KEY?.trim();
+    if (!key || !/^hrt_live_[A-Za-z0-9_-]{43}$/.test(key)) throw new HttpError(503, "Set HEARTH_API_KEY in apps/company-demo/.env to connect this demo");
+    return key;
+  }
+  private apiConfig(): WebConfig {
+    const url = new URL(process.env.HEARTH_API_BASE_URL ?? `${this.config.apiUrl}/v1`);
+    if (!/^https?:$/.test(url.protocol) || url.username || url.password || url.search || url.hash || ! /\/v1\/?$/.test(url.pathname)) throw new Error("HEARTH_API_BASE_URL must be an HTTP(S) URL ending in /v1");
+    return { ...this.config, apiUrl: `${url.origin}${url.pathname.replace(/\/$/, "")}` };
+  }
   async status() {
-    if (this.state !== "ready")
-      return { ready: false, mode: "preparing", company: "Oak & Ember" };
-    const rag = await apiJson<{ generationConfigured: boolean }>(
-      this.config,
-      "/rag/health/ready",
-      { timeoutMs: 750 },
-    );
-    return {
-      ready: true,
-      mode: rag.generationConfigured ? "generation" : "retrieval",
-      company: "Oak & Ember",
-    };
+    return { ready: this.state === "ready", mode: "chat", company: "Oak & Ember", configured: Boolean(process.env.HEARTH_API_KEY?.trim()) };
   }
   async history(id: string | undefined): Promise<Conversation | undefined> {
-    if (!id || !this.auth) return undefined;
+    if (!id) return undefined;
     await this.prepare();
     const saved = await apiJson<Conversation>(
-      this.config,
-      `/conversation/${id}`,
-      { token: this.auth.token },
+      this.apiConfig(),
+      `/conversations/${id}`,
+      { token: this.key() },
     );
-    if (saved.organizationId !== this.organizationId)
-      throw new HttpError(404, "Conversation not found");
     return saved;
   }
   async ask(
@@ -146,7 +97,7 @@ export class DemoService {
     visitorId: string,
     req: Request,
   ) {
-    if (this.state !== "ready" || !this.auth)
+    if (this.state !== "ready")
       throw new HttpError(
         503,
         "Our demo assistant is getting ready. Please try again shortly",
@@ -158,59 +109,32 @@ export class DemoService {
         400,
         "This conversation is full. Start a new chat to continue",
       );
-    const token = this.auth.token;
-    const status = await this.status();
-    let answer: string;
-    let sources: Source[];
-    if (status.mode === "generation") {
-      const result = await apiJson<{ answer: string; sources: Source[] }>(
-        this.config,
-        "/rag/query",
-        {
-          req,
-          token,
-          body: { organizationId: this.organizationId, question, topK: 3 },
-        },
-      );
-      answer = result.answer;
-      sources = result.sources;
-    } else {
-      const result = await apiJson<{ sources: Source[] }>(
-        this.config,
-        "/rag/search",
-        {
-          req,
-          token,
-          body: { organizationId: this.organizationId, question, topK: 2 },
-        },
-      );
-      sources = result.sources.filter((source) => source.score >= 0.35);
-      answer = sources.length
-        ? `Here’s the relevant passage from our customer care handbook:\n\n${sources[0]!.text}`
-        : "I couldn’t find a clear answer in our policies. Please email care@oakandember.example and our team will help.";
-    }
+    const token = this.key();
+    const result = await apiJson<{ answer: string; sources: Source[]; mode: string }>(this.apiConfig(), "/chat", {
+      req, token, body: { question, history: previous?.messages.slice(-10) ?? [], topK: 3 },
+    });
+    const { answer, sources } = result;
     const messages = [
       { role: "user" as const, content: question },
       { role: "assistant" as const, content: answer.slice(0, 10000) },
     ];
     const saved = previous
       ? await apiJson<Conversation>(
-          this.config,
-          `/conversation/${previous.id}/messages`,
+          this.apiConfig(),
+          `/conversations/${previous.id}/messages`,
           {
             token,
             body: { expectedCount: previous.messages.length, messages },
           },
         )
-      : await apiJson<Conversation>(this.config, "/conversation", {
+      : await apiJson<Conversation>(this.apiConfig(), "/conversations", {
           token,
           body: {
-            organizationId: this.organizationId,
             customerEmail: `${visitorId}@visitor.example`,
             subject: question.slice(0, 255),
             messages,
           },
         });
-    return { conversationId: saved.id, answer, sources, mode: status.mode };
+    return { conversationId: saved.id, answer, sources, mode: result.mode };
   }
 }

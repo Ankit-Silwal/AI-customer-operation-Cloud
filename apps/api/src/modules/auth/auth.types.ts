@@ -6,6 +6,7 @@ export interface User {
 }
 
 export interface UserWithPassword extends User {
+  authVersion?: number;
   passwordHash: string;
 }
 

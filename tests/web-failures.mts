@@ -97,6 +97,8 @@ await withWeb(config.apiUrl, async (base) => {
   checks++;
 });
 
+process.env.HEARTH_API_KEY = `hrt_live_${"A".repeat(43)}`;
+process.env.HEARTH_API_BASE_URL = `${config.apiUrl}/v1`;
 const demo = new DemoService(config);
 await assert.rejects(demo.prepare(), (error: unknown) => {
   assert.ok(error instanceof ApiFailure);

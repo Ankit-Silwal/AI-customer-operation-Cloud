@@ -13,6 +13,7 @@ model User {
   id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String
   email         String         @unique
+  authVersion   Int @default(0) @map("auth_version")
   passwordHash  String         @map("password_hash")
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   organizations Organization[]
@@ -26,11 +27,26 @@ model Organization {
   ownerId       String         @map("owner_id") @db.Uuid
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   owner         User           @relation(fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  apiKeys       DeveloperApiKey[]
 
   @@index([ownerId], map: "organizations_owner_idx")
   @@map("organizations")
 }
 
+model DeveloperApiKey {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name String
+  keyHash String @unique @map("key_hash")
+  prefix String
+  scopes String[]
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  @@index([organizationId], map: "developer_api_keys_org_idx")
+  @@map("developer_api_keys")
+}
 
 model SchemaMigration {
   version   Int      @id

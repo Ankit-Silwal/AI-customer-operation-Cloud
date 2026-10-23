@@ -33,6 +33,6 @@ export class AuthService {
       email: storedUser.email,
       createdAt: storedUser.createdAt,
     };
-    return { user, token: this.tokens.create(user.id) };
+    return { user, token: this.tokens.create(user.id, 7 * 86400, storedUser.authVersion ?? 0) };
   }
 }

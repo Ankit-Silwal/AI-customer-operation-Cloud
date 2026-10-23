@@ -1,3 +1,4 @@
+import { closeOtpServices } from "./otp.js";
 import type { Express } from "express";
 import type { Pool } from "pg";
 import { errorCode, jsonLogger } from "./logger.js";
@@ -18,7 +19,7 @@ export async function startDatabaseServer(options: {
   let closePromise: Promise<void> | undefined;
   function closeDatabase(): Promise<void> {
     closePromise ??= (async () => {
-      closeRateLimiters();
+      closeRateLimiters(); closeOtpServices();
       try { await Promise.all(clients.map(client => client.$disconnect())); }
       finally { await Promise.all(pools.map(pool => pool.end())); }
     })();

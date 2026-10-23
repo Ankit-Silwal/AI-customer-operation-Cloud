@@ -1,23 +1,134 @@
 {
-  "gateway_global": { "limit": 1000, "seconds": 1 },
-  "gateway_burst": { "limit": 30, "seconds": 1 },
-  "gateway_ip": { "limit": 600, "seconds": 60 },
-  "service_global": { "limit": 200, "seconds": 1 },
-  "service_ip": { "limit": 1200, "seconds": 60 },
-  "user_read": { "limit": 300, "seconds": 60 },
-  "user_write": { "limit": 60, "seconds": 60 },
-  "register_ip": { "limit": 20, "seconds": 3600 },
-  "login_ip": { "limit": 30, "seconds": 900 },
-  "login_account_ip": { "limit": 5, "seconds": 900 },
-  "document_upload": { "limit": 10, "seconds": 60 },
-  "document_download": { "limit": 60, "seconds": 60 },
-  "rag_global": { "limit": 120, "seconds": 60 },
-  "rag_search": { "limit": 30, "seconds": 60 },
-  "rag_query": { "limit": 10, "seconds": 60 },
-  "rag_query_daily": { "limit": 100, "seconds": 86400 },
-  "rag_query_global": { "limit": 60, "seconds": 60 },
-  "rag_index": { "limit": 5, "seconds": 60 },
-  "rag_index_hourly": { "limit": 20, "seconds": 3600 },
-  "demo_chat_ip": { "limit": 10, "seconds": 60 },
-  "demo_chat_global": { "limit": 60, "seconds": 60 }
+  "gateway_global": {
+    "limit": 1000,
+    "seconds": 1
+  },
+  "gateway_burst": {
+    "limit": 30,
+    "seconds": 1
+  },
+  "gateway_ip": {
+    "limit": 600,
+    "seconds": 60
+  },
+  "service_global": {
+    "limit": 200,
+    "seconds": 1
+  },
+  "service_ip": {
+    "limit": 1200,
+    "seconds": 60
+  },
+  "user_read": {
+    "limit": 300,
+    "seconds": 60
+  },
+  "user_write": {
+    "limit": 60,
+    "seconds": 60
+  },
+  "register_ip": {
+    "limit": 20,
+    "seconds": 3600
+  },
+  "login_ip": {
+    "limit": 30,
+    "seconds": 900
+  },
+  "login_account_ip": {
+    "limit": 5,
+    "seconds": 900
+  },
+  "document_upload": {
+    "limit": 10,
+    "seconds": 60
+  },
+  "document_download": {
+    "limit": 60,
+    "seconds": 60
+  },
+  "rag_global": {
+    "limit": 120,
+    "seconds": 60
+  },
+  "rag_search": {
+    "limit": 30,
+    "seconds": 60
+  },
+  "rag_query": {
+    "limit": 10,
+    "seconds": 60
+  },
+  "rag_query_daily": {
+    "limit": 100,
+    "seconds": 86400
+  },
+  "rag_query_global": {
+    "limit": 60,
+    "seconds": 60
+  },
+  "rag_index": {
+    "limit": 5,
+    "seconds": 60
+  },
+  "rag_index_hourly": {
+    "limit": 20,
+    "seconds": 3600
+  },
+  "demo_chat_ip": {
+    "limit": 10,
+    "seconds": 60
+  },
+  "demo_chat_global": {
+    "limit": 60,
+    "seconds": 60
+  },
+  "developer_key_create": {
+    "limit": 3,
+    "seconds": 3600
+  },
+  "developer_key_resolve": {
+    "limit": 120,
+    "seconds": 60
+  },
+  "developer_key": {
+    "limit": 60,
+    "seconds": 60
+  },
+  "developer_workspace": {
+    "limit": 100,
+    "seconds": 60
+  },
+  "developer_chat": {
+    "limit": 20,
+    "seconds": 60
+  },
+  "otp_global": {
+    "limit": 30,
+    "seconds": 60
+  },
+  "otp_scope": {
+    "limit": 10,
+    "seconds": 60
+  },
+  "otp_recipient": {
+    "limit": 3,
+    "seconds": 900
+  },
+  "otp_verify_ip": {
+    "limit": 20,
+    "seconds": 60
+  },
+  "password_ip": {
+    "limit": 10,
+    "seconds": 900
+  },
+  "docs_demo": {
+    "limit": 10,
+    "seconds": 60
+  },
+  "docs_demo_global": {
+    "limit": 30,
+    "seconds": 60
+  }
 }

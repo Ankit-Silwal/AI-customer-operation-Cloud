@@ -25,6 +25,7 @@ export function loadPolicies(overrides = process.env.RATE_LIMIT_POLICY_OVERRIDES
 }
 
 export class RateLimiter {
+  private closed = false;
   private readonly client;
   readonly policies: Record<string, Policy>;
   constructor(readonly service: string, readonly secret: string, url: string,
@@ -34,13 +35,14 @@ export class RateLimiter {
     this.client = createClient({ url, disableOfflineQueue: true, commandsQueueMaxLength: 1024, socket: { connectTimeout: 500, reconnectStrategy: retries => Math.min(100 * (retries + 1), 1000) } });
     // No raw connection errors or credential-bearing URLs in application logs.
     this.client.on("error", () => undefined);
+    this.client.on("connect", () => { if (this.closed) this.client.destroy(); });
     void this.client.connect().catch(() => undefined);
   }
   async ready(): Promise<void> {
     if (!this.client.isReady) throw new Error("Rate limiter unavailable");
     await this.client.withCommandOptions({ timeout: 500 }).ping();
   }
-  close(): void { if (this.client.isOpen) this.client.destroy(); }
+  close(): void { this.closed = true; this.client.destroy(); }
   address(req: Request): string {
     if (this.service === "gateway") return clientAddress(req, this.secret, process.env.RATE_LIMIT_TRUST_FRONTEND === "true", "rate-frontend-v1");
     return clientAddress(req, this.secret);
