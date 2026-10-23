@@ -75,3 +75,5 @@ docker compose -p customer-operation-cloud-test -f compose.test.yaml down
 ```
 
 Docker Desktop supplies `host.docker.internal`; on Linux provide a reachable Redis URL or host-gateway mapping. Tests use isolated namespaces and never flush production Redis. Checks cover atomic cross-replica admission, refill, application restart continuity, spoofed headers, user isolation, pre-parser rejection, dependency failure, distributed concurrency, lease release and crash expiry. The shared atomic execution design follows the [Redis Lua documentation](https://redis.io/docs/latest/develop/programmability/eval-intro/).
+
+The live stack check is `node --import tsx apps/api/scripts/check-rate-limits.ts`. It tests login, upload, generation and indexing budgets using invalid operations that stop before database document writes, retrieval or Gemini calls. It creates one smoke account. Use the configured default budgets, or load matching overrides into the checker. Add `--redis-restart` to stop/restart the local Redis container and check fail-closed responses, recovery and AOF counter retention; this briefly interrupts local business traffic.

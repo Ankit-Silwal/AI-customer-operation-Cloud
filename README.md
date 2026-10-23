@@ -61,6 +61,7 @@ npm run lint
 npm test
 npm run build
 node --import tsx apps/api/scripts/check-microservices.ts --rag
+node --import tsx apps/api/scripts/check-rate-limits.ts
 docker compose -p customer-operation-cloud-test -f compose.test.yaml up -d --wait
 docker compose run --rm --no-deps -e TEST_REDIS_URL=redis://host.docker.internal:55479 rag python -m unittest discover -s tests -p "test_*.py"
 docker compose -p customer-operation-cloud-test -f compose.test.yaml down
