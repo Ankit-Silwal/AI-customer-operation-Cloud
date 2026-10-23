@@ -30,6 +30,7 @@ Add `api_key=...` or `GEMINI_API_KEY=...` to `.env` when ready, then run `docker
 Resources and RAG require the JWT returned by registration/login. Create an organization and document, index the document, then search or query with `{"organizationId":"<UUID>","question":"What is our refund policy?","topK":4}`. Queries retrieve only chunks belonging to both the caller and the selected organization.
 
 See [architecture, environment variables, RAG workflow and scaling](docs/microservices.md) and the [RAG OpenAPI contract](contracts/rag.openapi.yaml).
+Executed checks and their limits are recorded in [verification results](docs/microservices-validation.md).
 
 ## Code layout
 

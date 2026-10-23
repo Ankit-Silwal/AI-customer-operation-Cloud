@@ -1,5 +1,7 @@
 # Stateless services and RAG
 
+[Executed verification results and reproduction commands](microservices-validation.md).
+
 The default Docker stack starts a new application. Existing PostgreSQL data is not copied, reset or deleted. The former `postgres_data` volume remains available; new data uses `microservices_postgres_data`.
 
 ```mermaid
@@ -94,10 +96,13 @@ npm run lint
 npm test
 npm run build
 node --import tsx apps/api/scripts/check-microservices.ts --rag
+node --import tsx apps/api/scripts/check-microservices.ts --rag --restart
 docker compose run --rm --no-deps rag python -m unittest discover -s tests -p "test_*.py"
 ```
 
 The Node regression suite retains isolated PostgreSQL schemas. The Docker smoke check exercises separate service databases through the real gateway, including multipart bytes, ownership rejection, real BGE indexing and Qdrant tenant isolation. It never calls paid generation. `apps/rag/tests/check_generation.py` checks the actual generation client against `postman/simulations/rag.sim.yaml`; the stand-in validates the OpenAI-compatible request and returns a completion. This verifies wiring, not Google's model access or answer quality. Google calls remain unverified until the real key is provided.
+
+`--restart` additionally restarts documents and RAG, waits for readiness, and reads the same document and indexed vectors using the original session token. This confirms that those records and the session do not depend on a process surviving.
 
 ```sh
 docker compose up -d --scale conversations=2 --scale documents=2

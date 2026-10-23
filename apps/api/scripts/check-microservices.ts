@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 import type { AuthResponse } from "../src/modules/auth/auth.types.js";
 import type { Organization } from "../src/modules/organizations/organization.types.js";
 import type { Conversation } from "../src/modules/conversations/conversation.types.js";
@@ -68,6 +71,30 @@ if (includeRag) {
   assert.deepEqual(privateResults.sources, [], "Vector search must exclude other tenants");
   if (!health.generationConfigured) {
     await call("/rag/query", 503, owner.token, { organizationId: org.id, question: "refund policy" });
+  }
+}
+if (process.argv.includes("--restart")) {
+  const execute = promisify(execFile);
+  await execute("docker", ["compose", "restart", "documents", ...(includeRag ? ["rag"] : [])], {
+    cwd: fileURLToPath(new URL("../../../", import.meta.url)),
+    timeout: 60000,
+  });
+  const deadline = Date.now() + 90000;
+  let recovered = false;
+  while (Date.now() < deadline) {
+    try {
+      const core = await fetch(`${base}/health/ready`, { signal: AbortSignal.timeout(2000) });
+      const rag = !includeRag || (await fetch(`${base}/rag/health/ready`, { signal: AbortSignal.timeout(2000) })).ok;
+      if (core.ok && rag) { recovered = true; break; }
+    } catch { /* A restarting process can briefly refuse the connection. */ }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  assert.ok(recovered, "Service readiness must recover after restart");
+  const retained = await call<Document>(`/documents/${document.id}`, 200, owner.token);
+  assert.equal(retained.content, document.content);
+  if (includeRag) {
+    const retainedVectors = await call<{sources: {documentId: string}[]}>("/rag/search", 200, owner.token, { organizationId: org.id, question: "refund policy" });
+    assert.equal(retainedVectors.sources[0]?.documentId, document.id);
   }
 }
 console.log(`Microservices smoke checks: ${checks} passed. Credentials were kept in memory.`);
