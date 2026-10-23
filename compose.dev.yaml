@@ -1,0 +1,5 @@
+# Optional loopback access for applications running on the host.
+services:
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"

@@ -30,6 +30,7 @@ try {
       stdio: "inherit",
       env: {
         ...process.env,
+        NODE_ENV: "test",
         TEST_DATABASE_URL:
           "postgresql://customer_ops_test:customer_ops_test@127.0.0.1:55433/customer_ops_test",
       },

@@ -14,6 +14,7 @@ class Settings:
     api_key: str = ""
     base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     create_collection: bool = True
+    rate_limit_redis_url: str = "redis://127.0.0.1:6379"
 
     @classmethod
     def from_env(cls):
@@ -31,4 +32,5 @@ class Settings:
             api_key=os.getenv("GEMINI_API_KEY") or os.getenv("api_key", ""),
             base_url=os.getenv("OPENAI_BASE_URL", cls.base_url),
             create_collection=os.getenv("QDRANT_CREATE_COLLECTION", "true").lower() == "true",
+            rate_limit_redis_url=os.getenv("RATE_LIMIT_REDIS_URL", cls.rate_limit_redis_url),
         )

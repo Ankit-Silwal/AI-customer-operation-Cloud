@@ -28,7 +28,7 @@ class ContractTests(unittest.TestCase):
                 raise AssertionError("Invalid requests must not invoke retrieval")
 
         settings = Settings(jwt_secret=os.environ["JWT_SECRET"])
-        with TestClient(create_app(settings, RuntimeWithoutExternalCalls)) as client:
+        with TestClient(create_app(settings, RuntimeWithoutExternalCalls, limiter_factory=None)) as client:
             body = {"organizationId": str(uuid4()), "question": "refund policy"}
             self.assertEqual(client.post("/rag/search", json=body).status_code, 401)
             self.assertEqual(client.post("/rag/search", json=body, headers={"Authorization": "Bearer invalid"}).status_code, 401)

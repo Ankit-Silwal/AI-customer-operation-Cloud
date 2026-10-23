@@ -31,6 +31,8 @@ Resources and RAG require the JWT returned by registration/login. Create an orga
 See [architecture, environment variables, RAG workflow and scaling](docs/microservices.md) and the [RAG OpenAPI contract](contracts/rag.openapi.yaml).
 Executed checks and their limits are recorded in [verification results](docs/microservices-validation.md).
 
+All servers enforce Redis-backed rate limits: global ceilings, IP burst and sustained budgets, verified-user quotas, login and registration protection, document limits, and tighter RAG budgets with distributed concurrency control. See [limits, headers, configuration and failure behavior](docs/rate-limiting.md). Redis runs inside Docker with persistent counters; application replicas remain stateless.
+
 ## Code layout
 
 ```text
@@ -59,9 +61,11 @@ npm run lint
 npm test
 npm run build
 node --import tsx apps/api/scripts/check-microservices.ts --rag
-docker compose run --rm --no-deps rag python -m unittest discover -s tests -p "test_*.py"
+docker compose -p customer-operation-cloud-test -f compose.test.yaml up -d --wait
+docker compose run --rm --no-deps -e TEST_REDIS_URL=redis://host.docker.internal:55479 rag python -m unittest discover -s tests -p "test_*.py"
+docker compose -p customer-operation-cloud-test -f compose.test.yaml down
 ```
 
-`npm test` uses a disposable PostgreSQL container on port `55433`; set `TEST_DATABASE_URL` to use another test database. The smoke check uses the running multi-service stack and real embeddings/Qdrant. Gemini generation is additionally exercised against a local Postman simulation; the real provider requires your key and permitted model access.
+`npm test` uses disposable PostgreSQL and Redis containers on ports `55433` and `55479`; set `TEST_DATABASE_URL` and `TEST_REDIS_URL` to use existing test infrastructure. The smoke check uses the running multi-service stack and real embeddings/Qdrant. Gemini generation is additionally exercised against a local Postman simulation; the real provider requires your key and permitted model access.
 
 The regression fixture composes the independently exported app routers against isolated PostgreSQL schemas. Production core does not import the conversation or document apps. Historical SQL is retained for migration regression checks; use explicit service connection URLs when inspecting databases. Each app owns only its own Prisma models. Do not use schema push to bypass the SQL initialization/migration process.

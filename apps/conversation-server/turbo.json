@@ -10,7 +10,7 @@
     },
     "check-types": {
       "dependsOn": [
-        "^build"
+        "build"
       ]
     },
     "dev": {
@@ -22,7 +22,8 @@
         "JWT_SECRET",
         "PORT",
         "ORGANIZATIONS_URL",
-        "DB_POOL_*"
+        "DB_POOL_*",
+        "RATE_LIMIT_*"
       ]
     }
   }

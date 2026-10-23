@@ -4,9 +4,10 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/package.json
 COPY apps/conversation-server/package.json ./apps/conversation-server/package.json
 COPY apps/document-server/package.json ./apps/document-server/package.json
-COPY packages/service-common ./packages/service-common
+COPY packages/service-common/package.json ./packages/service-common/package.json
 COPY packages/typescript-config ./packages/typescript-config
 RUN npm ci --workspace @repo/api --include-workspace-root
+COPY packages/service-common ./packages/service-common
 COPY apps/api ./apps/api
 RUN npm run build --workspace @repo/service-common && npm run build --workspace @repo/api
 

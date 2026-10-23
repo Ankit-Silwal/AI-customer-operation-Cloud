@@ -9,3 +9,4 @@ httpx==0.28.1
 pypdf==6.21.2
 sentence-transformers==6.2.0
 transformers==5.20.2
+redis==8.1.0

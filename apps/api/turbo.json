@@ -15,7 +15,8 @@
         "PORT",
         "DB_POOL_*",
         "ORGANIZATIONS_DATABASE_URL",
-        "SERVICE_ROLE"
+        "SERVICE_ROLE",
+        "RATE_LIMIT_*"
       ],
       "dependsOn": [
         "^build"
@@ -24,12 +25,13 @@
     "test": {
       "cache": false,
       "passThroughEnv": [
-        "TEST_DATABASE_URL"
+        "TEST_DATABASE_URL",
+        "TEST_REDIS_URL"
       ]
     },
     "check-types": {
       "dependsOn": [
-        "^build"
+        "build"
       ]
     }
   }

@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import type { Pool } from "pg";
 import { errorCode, jsonLogger } from "./logger.js";
+import { closeRateLimiters } from "./rate-limit.js";
 
 export interface ManagedClient {
   $connect(): Promise<void>;
@@ -17,6 +18,7 @@ export async function startDatabaseServer(options: {
   let closePromise: Promise<void> | undefined;
   function closeDatabase(): Promise<void> {
     closePromise ??= (async () => {
+      closeRateLimiters();
       try { await Promise.all(clients.map(client => client.$disconnect())); }
       finally { await Promise.all(pools.map(pool => pool.end())); }
     })();

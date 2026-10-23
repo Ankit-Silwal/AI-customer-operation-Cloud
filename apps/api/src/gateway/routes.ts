@@ -1,5 +1,6 @@
 import { request as httpRequest, type OutgoingHttpHeaders } from "node:http";
 import type { Express, RequestHandler } from "express";
+import { addressHeaders, signedAddressHeaders } from "@repo/service-common/client-address";
 
 export interface GatewayTargets {
   core: string;
@@ -10,12 +11,14 @@ export interface GatewayTargets {
 
 const hopHeaders = new Set(["connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade", "host"]);
 
-function proxy(target: string): RequestHandler {
+function proxy(target: string, secret?: string): RequestHandler {
   const origin = new URL(target);
   if (origin.protocol !== "http:") throw new Error("Internal service URLs must use HTTP");
   return (req, res) => {
     const headers: OutgoingHttpHeaders = { ...req.headers, "x-request-id": String(res.locals.requestId) };
     for (const name of hopHeaders) delete headers[name];
+    for (const name of [...addressHeaders, "forwarded", "x-forwarded-for", "x-real-ip"]) delete headers[name];
+    if (secret) Object.assign(headers, signedAddressHeaders(req, String(res.locals.requestId), secret));
     const upstream = httpRequest({
       hostname: origin.hostname,
       port: origin.port || 80,
@@ -45,9 +48,9 @@ function proxy(target: string): RequestHandler {
   };
 }
 
-export function setupGatewayRoutes(app: Express, targets: GatewayTargets): void {
-  app.use(["/register", "/login", "/organizations"], proxy(targets.core));
-  app.use("/conversation", proxy(targets.conversations));
-  app.use("/documents", proxy(targets.documents));
-  app.use("/rag", proxy(targets.rag));
+export function setupGatewayRoutes(app: Express, targets: GatewayTargets, secret?: string): void {
+  app.use(["/register", "/login", "/organizations"], proxy(targets.core, secret));
+  app.use("/conversation", proxy(targets.conversations, secret));
+  app.use("/documents", proxy(targets.documents, secret));
+  app.use("/rag", proxy(targets.rag, secret));
 }

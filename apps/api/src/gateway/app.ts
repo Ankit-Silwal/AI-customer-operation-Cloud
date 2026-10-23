@@ -3,9 +3,11 @@ import helmet from "helmet";
 import { requestContext } from "../middleware/request-context.js";
 import { jsonLogger, type Logger } from "../common/logger.js";
 import { setupGatewayRoutes, type GatewayTargets } from "./routes.js";
+import { environmentLimiter, type RateLimiter } from "@repo/service-common/rate-limit";
 
-export function createGateway(targets: GatewayTargets, logger: Logger = jsonLogger, isDraining = () => false): Express {
+export function createGateway(targets: GatewayTargets, logger: Logger = jsonLogger, isDraining = () => false, rateLimiter?: RateLimiter): Express {
   const app = express();
+  const limiter = rateLimiter ?? environmentLimiter("gateway");
   app.disable("x-powered-by");
   app.use(requestContext(logger));
   app.use(helmet());
@@ -15,6 +17,7 @@ export function createGateway(targets: GatewayTargets, logger: Logger = jsonLogg
     const core = [targets.core, targets.conversations, targets.documents];
     try {
       if (isDraining()) throw new Error("Draining");
+      await limiter?.ready();
       const checks = await Promise.all(core.map(url => fetch(`${url}/health/ready`, { signal: AbortSignal.timeout(1500) })));
       if (checks.some(response => !response.ok)) throw new Error("Dependency unavailable");
       res.json({ status: "ready", service: "gateway" });
@@ -23,7 +26,8 @@ export function createGateway(targets: GatewayTargets, logger: Logger = jsonLogg
     }
   });
   // Stream JSON and multipart bytes to the owning service without buffering uploads.
-  setupGatewayRoutes(app, targets);
+  if (limiter) app.use(limiter.global());
+  setupGatewayRoutes(app, targets, limiter?.secret);
   app.use((_req, res) => res.status(404).json({ error: "Endpoint not found", requestId: res.locals.requestId }));
   return app;
 }

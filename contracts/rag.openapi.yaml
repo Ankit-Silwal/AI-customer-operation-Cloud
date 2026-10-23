@@ -38,6 +38,7 @@ paths:
                   organizationId: { type: string, format: uuid }
                   chunks: { type: integer, minimum: 1 }
                   status: { type: string, const: indexed }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/Invalid' }
@@ -57,6 +58,7 @@ paths:
                 required: [sources]
                 properties:
                   sources: { type: array, items: { $ref: '#/components/schemas/Source' } }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/Invalid' }
@@ -78,6 +80,7 @@ paths:
                   answer: { type: string }
                   sources: { type: array, items: { $ref: '#/components/schemas/Source' } }
                   model: { type: string }
+        '429': { $ref: '#/components/responses/RateLimited' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/Invalid' }
@@ -120,6 +123,16 @@ components:
         error: { type: string }
         requestId: { type: string }
   responses:
+    RateLimited:
+      description: User, global or expensive-operation concurrency budget exhausted. Honor Retry-After and add jitter. RateLimit headers report the last evaluated admission's constrained bucket.
+      headers:
+        Retry-After: { description: Seconds until retry is permitted, schema: { type: integer, minimum: 1 } }
+        RateLimit-Limit: { description: Reported bucket capacity, schema: { type: integer } }
+        RateLimit-Remaining: { description: Whole tokens remaining, schema: { type: integer } }
+        RateLimit-Reset: { description: Seconds until the reported bucket refills fully, schema: { type: integer } }
+        RateLimit-Policy: { description: Bucket capacity and refill interval, schema: { type: string, example: '10;w=60' } }
+        X-Request-ID: { schema: { type: string } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     Unauthorized:
       description: Missing, invalid or expired JWT.
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
@@ -130,5 +143,7 @@ components:
       description: Invalid query, UUID, empty text, unsupported PDF or document limit.
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     Unavailable:
-      description: Missing Gemini key, unavailable dependency or dependency timeout.
+      description: Missing Gemini key, unavailable dependency or dependency timeout. Redis rate-protection failure is fail-closed and includes Retry-After 1.
+      headers:
+        Retry-After: { schema: { type: integer, minimum: 1 } }
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }

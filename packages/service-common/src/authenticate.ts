@@ -1,5 +1,6 @@
 import type { HttpHandler } from "./http.js";
 import type { TokenService } from "./token.js";
+import { authenticatedLimit } from "./rate-limit.js";
 
 export function authenticate(tokens: TokenService): HttpHandler {
   return (req, res, next) => {
@@ -14,6 +15,6 @@ export function authenticate(tokens: TokenService): HttpHandler {
       res.status(401).json({ error: "Invalid or expired token", requestId: res.locals.requestId });
       return;
     }
-    next();
+    void authenticatedLimit()(req, res, next);
   };
 }

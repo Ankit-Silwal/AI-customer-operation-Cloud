@@ -1,4 +1,5 @@
 import { createGateway } from "./app.js";
+import { closeRateLimiters } from "@repo/service-common/rate-limit";
 
 const port = Number(process.env.PORT ?? 3001);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid PORT");
@@ -17,8 +18,8 @@ function shutdown() {
   draining = true;
   const deadline = setTimeout(() => process.exit(1), 10000);
   deadline.unref();
-  server.close(() => { clearTimeout(deadline); });
+  server.close(() => { closeRateLimiters(); clearTimeout(deadline); });
 }
-server.on("error", () => { process.exitCode = 1; });
+server.on("error", () => { closeRateLimiters(); process.exitCode = 1; });
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);

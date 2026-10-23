@@ -1,6 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+// Existing DB-focused suites isolate their concern; rate-limit suites explicitly
+// inject real Redis instances and never use a process-local counter fallback.
+process.env.NODE_ENV = "test";
+
 if (process.env.TEST_DATABASE_URL) {
   const result = spawnSync(
     process.execPath,
