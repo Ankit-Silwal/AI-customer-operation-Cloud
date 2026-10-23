@@ -34,6 +34,14 @@ flowchart LR
 
 Core, conversations and documents use dedicated entrypoints under `apps/api/src/servers`. They share a built Node image and lifecycle utilities but start separate HTTP servers. Core exposes only auth and organizations; conversations and document processing are excluded from that server. The gateway and RAG also remain separate processes. Core retains both existing databases through separate Prisma clients, so no data copy is needed. PostgreSQL is initially one server hosting the four databases; it remains a shared infrastructure failure domain. There are no cross-database joins or foreign keys. An ownership lookup fails closed if core is unavailable. Organization owners are currently immutable; adding ownership transfer or deletion requires defining cross-service lifecycle behavior.
 
+| Server | Compiled entrypoint | Database configuration |
+| --- | --- | --- |
+| Core | `apps/api/dist/servers/core.js` | `DATABASE_URL` for identity, `ORGANIZATIONS_DATABASE_URL` for organizations |
+| Conversations | `apps/api/dist/servers/conversations.js` | Its own `DATABASE_URL`; `ORGANIZATIONS_URL` points to core |
+| Documents | `apps/api/dist/servers/documents.js` | Its own `DATABASE_URL`; `ORGANIZATIONS_URL` points to core |
+
+Compose supplies these URLs. Gateway `CORE_URL` and RAG `ORGANIZATIONS_URL` also point to `http://core:3001`. All server ports are private to the Docker network; the gateway remains the public entrypoint. The former identity and organizations containers are replaced by core, while their database volumes and records are retained.
+
 JWTs are verified by every service, including Python RAG. No sticky sessions, in-memory chat history, local upload files or per-user process state are required. Upload bytes stay in the documents database. Model weights and connection pools are process resources, not user sessions. All services currently trust the same HS256 signing secret; conversations/documents issue 30-second delegated tokens for organization checks. Use asymmetric verification keys if different services must not be able to mint user tokens.
 
 Four one-shot initialization containers apply the SQL files under `apps/api/src/database/services` before domain services start. Core waits for identity and organization initialization, then checks both database connections in startup and readiness. Conversations and documents each wait for their own database initialization. These initialize the databases; they do not migrate old records. Prisma Client maps the domain tables. The unified schema also supports the earlier all-in-one runtime for regression tests; do not run Prisma `db push` against a domain database, since that would create tables owned by other services.

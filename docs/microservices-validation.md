@@ -49,3 +49,15 @@ $env:PYTHONPATH = Join-Path (Get-Location) 'apps/rag'
 ```
 
 This establishes local integration and contract handling. Google's real endpoint, API key permissions, requested model availability and generated answer quality remain unverified until real credentials are configured. Shared PostgreSQL/Qdrant host availability and production load capacity were not tested by these functional checks.
+
+## Follow-up: core, conversation and document servers
+
+The server grouping was updated on 23 October 2026: auth and organizations now share the core HTTP server; conversations and documents use dedicated entrypoints and separate processes. Gateway and RAG targets were updated to core. Docker inspection confirmed the commands `servers/core.js`, `servers/conversations.js` and `servers/documents.js`.
+
+- Type checking, lint, compiled build, both Docker image builds and Compose validation passed.
+- The Node suite passed 26 entries, with no failures or skips. Added checks verify that core uses the correct identity/organization clients, excludes conversation/document routes, and becomes unready if either database is unavailable.
+- Twelve direct HTTP boundary checks against the actual containers passed. Core exposes auth/organization routes but rejects conversation/document routes; conversations and documents reject each other's routes and core's routes.
+- All 29 end-to-end smoke checks passed through the gateway, including real BGE/Qdrant retrieval, tenant isolation, multipart bytes and document/vector persistence after restarting documents and RAG.
+- Both Python RAG contract tests passed.
+- Counts immediately before and after replacing the servers matched: 6 users, 5 organizations, 3 conversations and 6 documents. No data migration or deletion was performed. Subsequent smoke checks created their usual new test records.
+- The final stack has core, conversations, documents, gateway and RAG running as separate healthy processes. PostgreSQL and Qdrant remain the durable stores. Real Gemini generation remains pending credentials.
