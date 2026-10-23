@@ -5,7 +5,7 @@
       "outputs": ["dist/**"]
     },
     "dev": {
-      "passThroughEnv": ["DATABASE_URL", "JWT_SECRET", "PORT"]
+      "passThroughEnv": ["DATABASE_URL", "JWT_SECRET", "PORT", "DB_POOL_*"]
     },
     "test": {
       "cache": false,

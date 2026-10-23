@@ -6,6 +6,8 @@ COPY packages/typescript-config ./packages/typescript-config
 RUN npm ci --workspace @repo/api --include-workspace-root
 COPY apps/api/tsconfig*.json ./apps/api/
 COPY apps/api/scripts ./apps/api/scripts
+COPY apps/api/prisma ./apps/api/prisma
+COPY apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 COPY apps/api/src ./apps/api/src
 RUN npm run build --workspace @repo/api
 

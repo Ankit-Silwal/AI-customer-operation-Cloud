@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import type { Pool } from "pg";
+import type { PrismaClient } from "../src/database/prisma.js";
 import request from "supertest";
 import { createApp } from "../src/app.js";
 import type { LogRecord } from "../src/common/logger.js";
@@ -11,7 +11,10 @@ import { createDatabase } from "../src/database/database.js";
 import { TokenService } from "../src/modules/auth/token.service.js";
 
 const secret = "observability-test-key-at-least-32-characters";
-const database = (query: () => Promise<unknown>): Pool => ({ query }) as unknown as Pool;
+const database = (query: () => Promise<unknown>): PrismaClient => ({
+  $queryRaw: query,
+  organization: { findFirst: query },
+}) as unknown as PrismaClient;
 
 test("liveness stays healthy when database readiness fails, including draining", async () => {
   const db = database(async () => { throw new Error("PRIVATE_DATABASE_ERROR"); });

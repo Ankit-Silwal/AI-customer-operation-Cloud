@@ -1,4 +1,4 @@
-import type { Pool } from "pg";
+import type { PrismaClient } from "../../database/prisma.js";
 import type {
   Conversation,
   CreateConversationInput,
@@ -12,26 +12,20 @@ export interface ConversationRepository {
   findOwnedById(id: string, ownerId: string): Promise<Conversation | undefined>;
 }
 
-export class PostgresConversationRepository implements ConversationRepository {
-  constructor(private readonly db: Pool) {}
+export class PrismaConversationRepository implements ConversationRepository {
+  constructor(private readonly db: PrismaClient) {}
 
   async createForOwner(
     input: CreateConversationInput,
     ownerId: string,
   ): Promise<Conversation | undefined> {
-    const { rows } = await this.db.query<Conversation>(
-      `INSERT INTO conversations (organization_id, customer_email, subject, messages)
-       SELECT id, $3, $4, $5::jsonb FROM organizations WHERE id = $1 AND owner_id = $2
+    // Keep ownership verification and insertion in a single SQL statement.
+    const rows = await this.db.$queryRaw<Conversation[]>`
+      INSERT INTO conversations (organization_id, customer_email, subject, messages)
+       SELECT id, ${input.customerEmail}, ${input.subject}, ${JSON.stringify(input.messages)}::jsonb
+       FROM organizations WHERE id = ${input.organizationId}::uuid AND owner_id = ${ownerId}::uuid
        RETURNING id, organization_id AS "organizationId", customer_email AS "customerEmail",
-                 subject, messages, created_at AS "createdAt"`,
-      [
-        input.organizationId,
-        ownerId,
-        input.customerEmail,
-        input.subject,
-        JSON.stringify(input.messages),
-      ],
-    );
+                 subject, messages, created_at AS "createdAt"`;
     return rows[0];
   }
 
@@ -39,13 +33,11 @@ export class PostgresConversationRepository implements ConversationRepository {
     id: string,
     ownerId: string,
   ): Promise<Conversation | undefined> {
-    const { rows } = await this.db.query<Conversation>(
-      `SELECT c.id, c.organization_id AS "organizationId", c.customer_email AS "customerEmail",
-              c.subject, c.messages, c.created_at AS "createdAt"
-       FROM conversations c JOIN organizations o ON o.id = c.organization_id
-       WHERE c.id = $1 AND o.owner_id = $2`,
-      [id, ownerId],
-    );
-    return rows[0];
+    const conversation = await this.db.conversation.findFirst({
+      where: { id, organization: { ownerId } },
+    });
+    if (!conversation) return undefined;
+    // Request validation and the SQL array constraint define the stored message shape.
+    return { ...conversation, messages: conversation.messages as unknown as Conversation["messages"] };
   }
 }

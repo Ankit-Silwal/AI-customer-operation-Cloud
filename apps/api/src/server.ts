@@ -2,20 +2,27 @@ import { createApp } from "./app.js";
 import { readEnvironment } from "./config/env.js";
 import { createDatabase, initializeDatabase } from "./database/database.js";
 import { errorCode, jsonLogger } from "./common/logger.js";
+import { createPrisma } from "./database/prisma.js";
 
 const env = readEnvironment();
 const db = createDatabase(env.databaseUrl, env);
+const prisma = createPrisma(db);
+async function closeDatabase(): Promise<void> {
+  try { await prisma.$disconnect(); } finally { await db.end(); }
+}
 let shuttingDown = false;
 
 try {
   await initializeDatabase(db);
+  await prisma.$connect();
+  await prisma.$queryRaw`SELECT 1`;
 } catch (error) {
-  await db.end();
+  await closeDatabase();
   jsonLogger({ level: "error", event: "database_startup_failed", code: errorCode(error) });
   process.exit(1);
 }
 
-const server = createApp(db, env.jwtSecret, { isDraining: () => shuttingDown }).listen(env.port, "0.0.0.0", () => {
+const server = createApp(prisma, env.jwtSecret, { isDraining: () => shuttingDown }).listen(env.port, "0.0.0.0", () => {
   jsonLogger({ level: "info", event: "server_started" });
 });
 server.headersTimeout = 10000;
@@ -33,7 +40,7 @@ metricsTimer.unref();
 server.on("error", (error: Error) => {
   jsonLogger({ level: "error", event: "server_error", code: errorCode(error) });
   clearInterval(metricsTimer);
-  void db.end().finally(() => {
+  void closeDatabase().finally(() => {
     process.exitCode = 1;
   });
 });
@@ -49,8 +56,7 @@ function shutdown(): void {
   }, 10000);
   timeout.unref();
   server.close((error) => {
-    void db
-      .end()
+    void closeDatabase()
       .then(() => {
         clearTimeout(timeout);
         process.exitCode = error ? 1 : 0;

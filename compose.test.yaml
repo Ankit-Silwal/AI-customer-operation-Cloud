@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: customer_ops_test
       POSTGRES_DB: customer_ops_test
     ports:
-      - "127.0.0.1:5433:5432"
+      - "127.0.0.1:55433:5432"
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:

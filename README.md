@@ -1,6 +1,6 @@
 # AI Customer Operation Cloud
 
-TypeScript monorepo with an Express 5 API, PostgreSQL persistence, and project documentation. The API implements registration, login, organizations, conversations, and documents.
+TypeScript monorepo with an Express 5 API, Prisma ORM 7, PostgreSQL persistence in Docker, and project documentation. The API implements registration, login, organizations, conversations, and documents.
 
 **Current version: 1.0.0.** See [Version 1](docs/Version1/README.md) for health/readiness, security headers, validation, request IDs, structured logs, database constraints/pooling, Text/Markdown/PDF uploads, and k6 traffic with one distinct account per VU. Start with the [study guide](docs/Version1/study-guide.md). Version 1 load campaigns/results are deferred; recorded Version 0 performance numbers describe the older read-only workload.
 
@@ -9,11 +9,14 @@ TypeScript monorepo with an Express 5 API, PostgreSQL persistence, and project d
 ```text
 apps/
   api/
+    prisma/schema.prisma       # Prisma models mapped to existing PostgreSQL tables
+    prisma.config.ts           # Prisma CLI configuration; loads the root .env
     src/
-      app.ts                   # Application composition and module wiring
+      app.ts                   # Express app, shared middleware and error handling
+      routes.ts                # setupRoutes: route registration and module wiring
       server.ts                # Startup and graceful shutdown
       config/                  # Validated environment configuration
-      database/                # Connection pool and SQL schema
+      database/                # Shared pool, Prisma client, SQL schema and migrations
       common/                  # HTTP types, errors, and input validation
       middleware/              # Authentication and error handling
       modules/
@@ -30,13 +33,13 @@ packages/
   eslint-config/               # Shared frontend lint configuration
 ```
 
-Each API module contains its own `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, and `*.types.ts`. Routes select handlers; controllers validate HTTP input; services apply application rules; repositories execute parameterized SQL. Dependencies are passed through constructors and composed in `app.ts`.
+Each API module contains its own `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, and `*.types.ts`. Routes select handlers; controllers validate HTTP input; services apply application rules; repositories use Prisma Client. Conditional inserts use Prisma's parameterized SQL templates to verify ownership and insert in one statement. Upload metadata and file bytes are saved in a Prisma transaction. Dependencies are passed through constructors and composed in `setupRoutes` in `src/routes.ts`. `app.ts` configures shared middleware, calls `setupRoutes`, then installs the 404 and error handlers.
 
 The API uses strict TypeScript, unknown request bodies, typed database results, checked array access, and checked optional properties. Compiled ESM and the SQL schema are emitted into `apps/api/dist`; production runs the compiled JavaScript.
 
 ## Local development
 
-Requires Node.js 24+, npm 11.6.1 or later within npm 11, and PostgreSQL 17.
+Requires Node.js 24.11+ (within Node 24), npm 11.6.1 or later within npm 11, and Docker Desktop running Linux containers. Docker Compose supplies PostgreSQL 17.
 
 ```powershell
 Copy-Item .env.example .env
@@ -46,13 +49,27 @@ npm install
 Set `JWT_SECRET` in the root `.env` to a random secret of at least 32 characters, then start PostgreSQL and the apps:
 
 ```sh
-docker compose up postgres -d
+npm run db:up
+npm run db:check
 npm run dev
 ```
 
 API: `http://localhost:3001`. Architecture and performance notes: [docs/Version0](docs/Version0/README.md).
 
 To run only the API, use `npm run dev --workspace @repo/api`. If you change PostgreSQL credentials in `.env`, update `DATABASE_URL` for local development too. Environment configuration is checked on startup. The schema is initialized automatically and existing tables/data are preserved.
+
+The connection path is API → Prisma Client → PostgreSQL adapter/shared `pg` pool → Docker PostgreSQL. `POSTGRES_PORT` controls the host port (default `5432`); keep the port in `DATABASE_URL` in sync. For example, to use host port `5433`:
+
+```dotenv
+POSTGRES_PORT=5433
+DATABASE_URL=postgresql://customer_ops:customer_ops_local@localhost:5433/customer_ops
+```
+
+Inside Docker, Compose uses `postgres:5432` regardless of the host port. Database storage remains in the existing `postgres_data` named volume. Changing `.env` credentials does not change credentials already initialized in that volume.
+
+`npm run db:check` generates Prisma Client, initializes the schema with the same migrations as API startup, then checks the connection and a Prisma model query. `npm run db:studio` opens Prisma Studio. Client generation also runs before development, build, type checking and tests.
+
+The existing SQL schema and versioned migrations in `apps/api/src/database` remain authoritative, preserving database CHECK constraints and migration history. Update `apps/api/prisma/schema.prisma` alongside SQL changes, then run `npm run db:generate`. Prisma Migrate is not enabled; do not use `prisma db push` to bypass the SQL migration process. The generated client is ignored by Git and compiled into the production image.
 
 ## Production
 
@@ -78,9 +95,9 @@ npm test
 npm run build
 ```
 
-To run against a disposable PostgreSQL 17 container, use `npm run test:postgres`. This starts a test database on port 5433 and removes the container when the suite finishes.
+Both `npm test` and `npm run test:postgres` run Prisma integration tests against a disposable PostgreSQL 17 container on port `55433`, then remove it. Docker Desktop must be running. The test database uses temporary storage separate from development data.
 
-The API tests exercise routes through the actual controllers, services, and SQL repositories. Without `TEST_DATABASE_URL`, tests use an isolated PostgreSQL emulator. Set `TEST_DATABASE_URL` to run database tests against PostgreSQL; each test creates and drops its own random schema. The database role must be allowed to create schemas. Real PostgreSQL additionally verifies migration and transaction rollback behavior.
+The API tests exercise routes through the actual controllers, services, Prisma repositories and PostgreSQL. Set `TEST_DATABASE_URL` to use an existing test database instead of starting a container; each test creates and drops its own random schema. The database role must be allowed to create schemas. Tests verify migration preservation and transaction rollback against real PostgreSQL.
 
 Tests cover password hashing, registration/login, JWT rejection, duplicate emails, input validation, malformed/oversized JSON, persistence, camelCase responses, missing resources, and ownership isolation.
 

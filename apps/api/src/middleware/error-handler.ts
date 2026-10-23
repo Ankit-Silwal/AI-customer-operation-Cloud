@@ -26,15 +26,15 @@ export const createErrorHandler = (logger: Logger = jsonLogger): ErrorRequestHan
     return;
   }
   if (typeof error === "object" && error !== null) {
-    if ("code" in error && error.code === "23505") {
+    if ("code" in error && (error.code === "23505" || error.code === "P2002")) {
       respond(409, "Email is already registered");
       return;
     }
-    if ("code" in error && (error.code === "23503" || error.code === "23514" || error.code === "23502")) {
+    if ("code" in error && ["23503", "23514", "23502", "P2003", "P2004", "P2011"].includes(String(error.code))) {
       respond(400, "Request violates a database constraint");
       return;
     }
-    if ("code" in error && (error.code === "53300" || error.code === "57P01" || error.code === "ECONNREFUSED" || error.code === "57014")) {
+    if ("code" in error && ["53300", "57P01", "ECONNREFUSED", "57014", "P1001", "P1002", "P1008", "P1017", "P2024", "P2037"].includes(String(error.code))) {
       respond(503, "Service temporarily unavailable");
       return;
     }

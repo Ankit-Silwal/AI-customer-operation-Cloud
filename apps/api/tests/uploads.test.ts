@@ -74,11 +74,11 @@ test("migration is repeatable and database constraints reject invalid direct wri
 });
 
 test("real PostgreSQL rolls back document metadata when file persistence fails", { skip: !process.env.TEST_DATABASE_URL }, async (t) => {
-  const { db, register, organization } = await fixture(t);
-  const { PostgresDocumentRepository } = await import("../src/modules/documents/document.repository.js");
+  const { db, prisma, register, organization } = await fixture(t);
+  const { PrismaDocumentRepository } = await import("../src/modules/documents/document.repository.js");
   const user = await register();
   const org = await organization(user.token);
-  const repository = new PostgresDocumentRepository(db);
+  const repository = new PrismaDocumentRepository(prisma);
   await assert.rejects(repository.createUploadForOwner({ organizationId: org.id, title: "Atomic", content: "x", fileName: "bad.txt", mediaType: "invalid", bytes: Buffer.from("x") }, user.user.id));
   assert.equal((await db.query("SELECT * FROM documents")).rowCount, 0);
 });

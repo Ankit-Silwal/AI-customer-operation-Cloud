@@ -2,15 +2,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
 import jwt from "jsonwebtoken";
-import { DataType, newDb } from "pg-mem";
-import { Pool } from "pg";
 import request from "supertest";
 
-import { createApp } from "../src/app.js";
-import { initializeDatabase } from "../src/database/database.js";
-
-import type { AuthResponse } from "../src/modules/auth/auth.types.js";
-import type { Organization } from "../src/modules/organizations/organization.types.js";
 import type { Conversation } from "../src/modules/conversations/conversation.types.js";
 import type { Document } from "../src/modules/documents/document.types.js";
 

@@ -4,12 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:pull": "prisma db pull",
+    "db:studio": "prisma studio",
+    "db:check": "node --env-file-if-exists=../../.env --import tsx scripts/check-database.ts",
+    "predev": "npm run db:generate",
     "dev": "node --env-file-if-exists=../../.env --import tsx --watch src/server.ts",
-    "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.ts",
+    "build": "npm run db:generate && tsc -p tsconfig.build.json && node scripts/copy-assets.ts",
     "start": "node --env-file-if-exists=../../.env dist/server.js",
-    "check-types": "tsc --noEmit",
+    "check-types": "npm run db:generate && tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "node --import tsx --test tests/*.test.ts",
+    "test": "npm run db:generate && node scripts/test.ts",
     "test:load": "k6 run tests/k6/organization-read.k6.js",
     "test:load:v1": "k6 run tests/k6/version1-mixed.k6.js"
   },
@@ -17,6 +23,8 @@
     "node": ">=24"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "express": "^5.2.1",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
@@ -36,7 +44,7 @@
     "@types/supertest": "^7.2.1",
     "eslint": "^10.9.1",
     "globals": "^17.12.0",
-    "pg-mem": "^3.0.14",
+    "prisma": "7.10.1",
     "supertest": "^7.3.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"

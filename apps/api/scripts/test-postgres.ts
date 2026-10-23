@@ -25,16 +25,13 @@ function docker(args: string[]): number {
 try {
   process.exitCode = docker(["up", "-d", "--wait", "--wait-timeout", "60"]);
   if (process.exitCode === 0) {
-    const command = process.platform === "win32" ? "cmd.exe" : "npm";
-    const args =
-      process.platform === "win32" ? ["/d", "/s", "/c", "npm test"] : ["test"];
-    const result = spawnSync(command, args, {
-      cwd: root,
+    const result = spawnSync(process.execPath, ["--import", "tsx", "--test", "tests/*.test.ts"], {
+      cwd: fileURLToPath(new URL("../", import.meta.url)),
       stdio: "inherit",
       env: {
         ...process.env,
         TEST_DATABASE_URL:
-          "postgresql://customer_ops_test:customer_ops_test@127.0.0.1:5433/customer_ops_test",
+          "postgresql://customer_ops_test:customer_ops_test@127.0.0.1:55433/customer_ops_test",
       },
     });
     if (result.error) console.error(result.error.message);

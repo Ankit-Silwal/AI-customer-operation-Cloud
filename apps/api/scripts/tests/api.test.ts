@@ -1,73 +1,12 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { test, type TestContext } from "node:test";
+import { test } from "node:test";
 import jwt from "jsonwebtoken";
-import { DataType, newDb } from "pg-mem";
-import { Pool } from "pg";
 import request from "supertest";
-import { createApp } from "../../src/app.js";
-import { initializeDatabase } from "../../src/database/database.js";
-import type { AuthResponse } from "../../src/modules/auth/auth.types.js";
-import type { Organization } from "../../src/modules/organizations/organization.types.js";
 import type { Conversation } from "../../src/modules/conversations/conversation.types.js";
 import type { Document } from "../../src/modules/documents/document.types.js";
 
-const secret = "integration-test-secret-at-least-32-characters";
-
-async function fixture(t: TestContext) {
-  let db: Pool;
-  const databaseUrl = process.env.TEST_DATABASE_URL;
-  if (databaseUrl) {
-    const schema = `test_${randomUUID().replaceAll("-", "")}`;
-    const admin = new Pool({ connectionString: databaseUrl });
-    await admin.query(`CREATE SCHEMA "${schema}"`);
-    db = new Pool({
-      connectionString: databaseUrl,
-      options: `-c search_path=${schema}`,
-    });
-    t.after(async () => {
-      await db.end();
-      try {
-        await admin.query(`DROP SCHEMA "${schema}" CASCADE`);
-      } finally {
-        await admin.end();
-      }
-    });
-  } else {
-    const memory = newDb();
-    memory.public.registerFunction({
-      name: "gen_random_uuid",
-      returns: DataType.uuid,
-      impure: true,
-      implementation: randomUUID,
-    });
-    const adapter = memory.adapters.createPg();
-    db = new adapter.Pool();
-    t.after(() => db.end());
-  }
-  await initializeDatabase(db);
-  const app = createApp(db, secret);
-  async function register(email = "owner@example.com"): Promise<AuthResponse> {
-    const response = await request(app)
-      .post("/register")
-      .send({
-        name: "Owner",
-        email,
-        password: "password123",
-      })
-      .expect(201);
-    return response.body as AuthResponse;
-  }
-  async function organization(token: string): Promise<Organization> {
-    const response = await request(app)
-      .post("/organizations")
-      .auth(token, { type: "bearer" })
-      .send({ name: "Support" })
-      .expect(201);
-    return response.body as Organization;
-  }
-  return { app, db, register, organization };
-}
+import { fixture, secret } from "../../tests/fixture.js";
 
 test("register and login persist a hashed password and never expose it", async (t) => {
   const { app, db, register } = await fixture(t);
