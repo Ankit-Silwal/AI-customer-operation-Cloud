@@ -48,12 +48,10 @@ export function csrf(origin: string): RequestHandler {
       !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
       req.get("origin") !== origin
     ) {
-      res
-        .status(403)
-        .json({
-          error: "Open this form from the application website",
-          requestId: res.locals.requestId,
-        });
+      res.status(403).json({
+        error: "Open this form from the application website",
+        requestId: res.locals.requestId,
+      });
       return;
     }
     next();
@@ -163,7 +161,7 @@ export async function apiJson<T>(
   options: Parameters<typeof upstream>[2] = {},
 ): Promise<T> {
   const response = await upstream(config, path, options);
-  const data = (await response.json()) as { error?: string };
+  const data = await responseJson<{ error?: string }>(response);
   if (!response.ok)
     throw new ApiFailure(
       response.status,
@@ -171,6 +169,18 @@ export async function apiJson<T>(
       response.headers.get("retry-after"),
     );
   return data as T;
+}
+export async function responseJson<T>(
+  response: globalThis.Response,
+): Promise<T> {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new HttpError(
+      503,
+      "The service returned an invalid response. Please try again",
+    );
+  }
 }
 export class ApiFailure extends HttpError {
   constructor(

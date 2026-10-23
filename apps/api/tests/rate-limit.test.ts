@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
+import type { Request } from "express";
 import test, { type TestContext } from "node:test";
 import request from "supertest";
 import { createHttpApp, finishHttpApp } from "@repo/service-common/app";
 import { authenticate } from "@repo/service-common/authenticate";
-import { clientAddress, normalizeAddress } from "@repo/service-common/client-address";
+import { clientAddress, normalizeAddress, signedAddressHeaders } from "@repo/service-common/client-address";
 import { credentialLimit, loadPolicies, RateLimiter } from "@repo/service-common/rate-limit";
 import { TokenService } from "@repo/service-common/token";
 import { createApp as createDocumentApp, type PrismaClient } from "@repo/document-server";
@@ -109,6 +110,36 @@ test("gateway replaces spoofed proxy headers with a signed socket address", asyn
   assert.equal(first.body.forwarded, undefined);
   await request(gateway).get("/organizations/address").set("X-Forwarded-For", "203.0.113.5").expect(200);
   await request(gateway).get("/organizations/address").set("X-Forwarded-For", "203.0.113.6").expect(429);
+});
+
+test("gateway trusts only enabled frontend-purpose signatures and re-signs downstream identity", async t => {
+  const previous = process.env.RATE_LIMIT_TRUST_FRONTEND;
+  t.after(() => {
+    if (previous === undefined) delete process.env.RATE_LIMIT_TRUST_FRONTEND;
+    else process.env.RATE_LIMIT_TRUST_FRONTEND = previous;
+  });
+  const edge = await limiter(t, {}, "gateway");
+  const domain = createHttpApp(async () => [], { logger: () => {}, rateLimiter: false });
+  domain.get("/organizations/address", (req, res) => res.json({ address: clientAddress(req, secret), forwarded: req.get("x-forwarded-for") }));
+  const server = domain.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())));
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const gateway = createGateway({ core: url, conversations: url, documents: url, rag: url }, () => {}, () => false, edge);
+  const id = randomUUID();
+  const source = { socket: { remoteAddress: "203.0.113.9" } } as Request;
+  const signed = signedAddressHeaders(source, id, secret, "rate-frontend-v1");
+  const send = (headers: Record<string, string>, requestId = id) => request(gateway).get("/organizations/address")
+    .set(headers).set("X-Request-ID", requestId).set("X-Forwarded-For", "198.51.100.99");
+  delete process.env.RATE_LIMIT_TRUST_FRONTEND;
+  assert.equal((await send(signed).expect(200)).body.address, "127.0.0.1");
+  process.env.RATE_LIMIT_TRUST_FRONTEND = "true";
+  const accepted = await send(signed).expect(200);
+  assert.equal(accepted.body.address, "203.0.113.9");
+  assert.equal(accepted.body.forwarded, undefined);
+  assert.equal((await send(signedAddressHeaders(source, id, secret)).expect(200)).body.address, "127.0.0.1");
+  assert.equal((await send(signed, randomUUID()).expect(200)).body.address, "127.0.0.1");
+  assert.equal((await send({ ...signed, "x-rate-client-ip": "203.0.113.10" }).expect(200)).body.address, "127.0.0.1");
 });
 
 test("global limits precede body parsing and Redis outage closes traffic while preserving liveness", async t => {

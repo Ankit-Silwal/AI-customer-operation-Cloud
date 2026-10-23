@@ -20,18 +20,18 @@ Add `api_key=...` or `GEMINI_API_KEY=...` to `.env` when ready, then run `docker
 
 Open **Hearth** at [localhost:3030](http://localhost:3030) for the workspace and **Oak & Ember** at [localhost:3035](http://localhost:3035) for the fictional company demonstration. Both interfaces use warm cream, terracotta and olive colors. The workspace supports sign-in, workspaces, conversations/replies, knowledge uploads/indexing and source-backed search. The company site has a working policy assistant connected to the same services. See [web workflows and setup](docs/web-workflows.md).
 
-| Service | Public routes through the gateway |
-| --- | --- |
-| Core (auth + organizations) | `POST /register`, `POST /login`, `POST /organizations`, `GET /organizations/:id` |
-| Conversations | `POST /conversation`, `GET /conversation/:id` |
-| Documents | `POST /documents`, `POST /documents/upload`, `GET /documents/:id`, `GET /documents/:id/download` |
-| RAG | `POST /rag/documents/:id/index`, `POST /rag/search`, `POST /rag/query` |
-| Health | `GET /health/live`, `GET /health/ready`, `GET /rag/health/ready` |
+| Service                     | Public routes through the gateway                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Core (auth + organizations) | `POST /register`, `POST /login`, `GET /me`, `GET /organizations`, `POST /organizations`, `GET /organizations/:id`  |
+| Conversations               | `GET /conversation`, `POST /conversation`, `GET /conversation/:id`, `POST /conversation/:id/messages`              |
+| Documents                   | `GET /documents`, `POST /documents`, `POST /documents/upload`, `GET /documents/:id`, `GET /documents/:id/download` |
+| RAG                         | `POST /rag/documents/:id/index`, `POST /rag/search`, `POST /rag/query`                                             |
+| Health                      | `GET /health/live`, `GET /health/ready`, `GET /rag/health/ready`                                                   |
 
 Resources and RAG require the JWT returned by registration/login. Create an organization and document, index the document, then search or query with `{"organizationId":"<UUID>","question":"What is our refund policy?","topK":4}`. Queries retrieve only chunks belonging to both the caller and the selected organization.
 
 See [architecture, environment variables, RAG workflow and scaling](docs/microservices.md) and the [RAG OpenAPI contract](contracts/rag.openapi.yaml).
-Executed checks and their limits are recorded in [verification results](docs/microservices-validation.md).
+Executed checks and their limits are recorded in [service verification](docs/microservices-validation.md) and [web verification](docs/web-validation.md). The new account, list and reply endpoints are described in the [workspace contract](contracts/workspace.openapi.yaml).
 
 All servers enforce Redis-backed rate limits: global ceilings, IP burst and sustained budgets, verified-user quotas, login and registration protection, document limits, and tighter RAG budgets with distributed concurrency control. See [limits, headers, configuration and failure behavior](docs/rate-limiting.md). Redis runs inside Docker with persistent counters; application replicas remain stateless.
 
@@ -53,7 +53,7 @@ contracts/               # API contracts
 postman/                 # Local provider mocks and simulations
 ```
 
-Each Node app has its own `package.json`, `src/app.ts`, `src/routes.ts`, `src/server.ts`, Prisma schema and Dockerfile. Conversation and document controllers/repositories live in their own application folders, not in `apps/api`. Each app builds its own image and uses only its own database models. They share infrastructure through `packages/service-common`; neither processing app has a production dependency on the core API. Each app registers its own routes using `setupRoutes`, and the gateway uses `setupGatewayRoutes`. No requests need a sticky session.
+Each Node domain app has its own `package.json`, `src/app.ts`, `src/routes.ts`, `src/server.ts`, Prisma schema and Dockerfile. Conversation and document controllers/repositories live in their own application folders, not in `apps/api`. Each domain app builds its own image and uses only its own database models. They share infrastructure through `packages/service-common`; neither processing app has a production dependency on the core API. Each app registers its own routes using `setupRoutes`, and the gateway uses `setupGatewayRoutes`. The browser-facing apps keep the same app/routes/server separation in their `server/` folders and call the gateway instead of accessing databases. No requests need a sticky session.
 
 The app-specific READMEs explain standalone development: [conversation server](apps/conversation-server/README.md) and [document server](apps/document-server/README.md). Copy each Node app's `.env.example` to its local `.env` when running outside Docker; the root `.env` supplies the shared signing secret.
 
@@ -65,6 +65,8 @@ npm run check-types
 npm run lint
 npm test
 npm run build
+npx playwright install chromium
+npm run test:web
 node --import tsx apps/api/scripts/check-microservices.ts --rag
 node --import tsx apps/api/scripts/check-rate-limits.ts
 docker compose -p customer-operation-cloud-test -f compose.test.yaml up -d --wait

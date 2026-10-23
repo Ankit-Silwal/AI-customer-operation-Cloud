@@ -8,6 +8,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "test": "turbo run test",
+    "test:web": "playwright test",
+    "test:web:failures": "node --import tsx tests/web-failures.mts",
     "db:up": "docker compose up -d --wait postgres",
     "db:generate": "npm run db:generate --workspace @repo/api",
     "db:validate": "npm run db:validate --workspace @repo/api",

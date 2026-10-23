@@ -11,14 +11,17 @@ const root = fileURLToPath(
 );
 await startWeb(app, root, config.port);
 async function prepare() {
+  const wasReady = demo.state === "ready";
   try {
     await demo.prepare();
-    console.log(JSON.stringify({ event: "demo_ready" }));
+    if (!wasReady) console.log(JSON.stringify({ event: "demo_ready" }));
   } catch {
     console.error(JSON.stringify({ event: "demo_preparation_pending" }));
-    setTimeout(() => {
-      void prepare();
-    }, 60000).unref();
   }
 }
 void prepare();
+// Refresh the private owner session before its seven-day expiry and recover
+// after a dependency outage without requiring a container restart.
+setInterval(() => {
+  void prepare();
+}, 60000).unref();

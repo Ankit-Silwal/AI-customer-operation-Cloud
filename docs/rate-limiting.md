@@ -1,32 +1,34 @@
 # Rate limiting
 
-The gateway, core, conversation, document and RAG servers use shared Redis counters. No sticky sessions or in-process counter fallback is used. Each admission atomically checks and charges all its buckets using Redis time. A denied admission does not consume its other buckets. An earlier layer may already have charged the request: a login rejected by its account quota still counts as gateway traffic.
+The gateway, core, conversation, document, RAG, Hearth web and company demo servers use shared Redis counters. No sticky sessions or in-process counter fallback is used. Each admission atomically checks and charges all its buckets using Redis time. A denied admission does not consume its other buckets. An earlier layer may already have charged the request: a login rejected by its account quota still counts as gateway traffic.
 
 ## Default budgets
 
 These are token buckets: they start full and refill continuously at `limit / seconds`, allowing bounded bursts without fixed-window boundary spikes. The daily bucket is a long-term refill budget, not a calendar-day billing ceiling. All attempts count, including successful logins and downstream errors.
 
-| Layer / operation | Policy name | Default | Scope |
-| --- | --- | --- | --- |
-| Gateway ceiling | `gateway_global` | 1,000 / second | All gateway replicas |
-| Gateway burst | `gateway_burst` | 30 / second | Client IP or IPv6 /64 |
-| Gateway sustained traffic | `gateway_ip` | 600 / minute | Client IP or IPv6 /64 |
-| Each Node service ceiling | `service_global` | 200 / second | All replicas of that service |
-| Pre-auth service traffic | `service_ip` | 1,200 / minute | Client IP, separately per service |
-| Authenticated reads | `user_read` | 300 / minute | Verified user, separately per service |
-| Authenticated writes | `user_write` | 60 / minute | Verified user, separately per service |
-| Registration | `register_ip` | 20 / hour | Client IP |
-| Login | `login_ip` | 30 / 15 minutes | Client IP |
-| Login account attempts | `login_account_ip` | 5 / 15 minutes | Normalized email + client IP |
-| Document upload | `document_upload` | 10 / minute | Verified user |
-| Document download | `document_download` | 60 / minute | Verified user |
-| All RAG traffic | `rag_global` | 120 / minute | All RAG replicas |
-| Search | `rag_search` | 30 / minute | Verified user |
-| Answer generation | `rag_query` | 10 / minute | Verified user |
-| Long-term generation | `rag_query_daily` | 100 / day | Verified user |
-| Generation ceiling | `rag_query_global` | 60 / minute | All users and replicas |
-| Indexing | `rag_index` | 5 / minute | Verified user |
-| Long-term indexing | `rag_index_hourly` | 20 / hour | Verified user |
+| Layer / operation           | Policy name         | Default         | Scope                                 |
+| --------------------------- | ------------------- | --------------- | ------------------------------------- |
+| Gateway ceiling             | `gateway_global`    | 1,000 / second  | All gateway replicas                  |
+| Gateway burst               | `gateway_burst`     | 30 / second     | Client IP or IPv6 /64                 |
+| Gateway sustained traffic   | `gateway_ip`        | 600 / minute    | Client IP or IPv6 /64                 |
+| Each Node service ceiling   | `service_global`    | 200 / second    | All replicas of that service          |
+| Pre-auth service traffic    | `service_ip`        | 1,200 / minute  | Client IP, separately per service     |
+| Authenticated reads         | `user_read`         | 300 / minute    | Verified user, separately per service |
+| Authenticated writes        | `user_write`        | 60 / minute     | Verified user, separately per service |
+| Registration                | `register_ip`       | 20 / hour       | Client IP                             |
+| Login                       | `login_ip`          | 30 / 15 minutes | Client IP                             |
+| Login account attempts      | `login_account_ip`  | 5 / 15 minutes  | Normalized email + client IP          |
+| Document upload             | `document_upload`   | 10 / minute     | Verified user                         |
+| Document download           | `document_download` | 60 / minute     | Verified user                         |
+| All RAG traffic             | `rag_global`        | 120 / minute    | All RAG replicas                      |
+| Search                      | `rag_search`        | 30 / minute     | Verified user                         |
+| Answer generation           | `rag_query`         | 10 / minute     | Verified user                         |
+| Long-term generation        | `rag_query_daily`   | 100 / day       | Verified user                         |
+| Generation ceiling          | `rag_query_global`  | 60 / minute     | All users and replicas                |
+| Indexing                    | `rag_index`         | 5 / minute      | Verified user                         |
+| Long-term indexing          | `rag_index_hourly`  | 20 / hour       | Verified user                         |
+| Public company chat         | `demo_chat_ip`      | 10 / minute     | Client IP                             |
+| Public company chat ceiling | `demo_chat_global`  | 60 / minute     | All company demo requests             |
 
 RAG also allows two expensive operations simultaneously across all replicas, with one per verified user. This covers indexing, embedding, search and generation. `RAG_MAX_CONCURRENCY` changes the shared ceiling (1–32). Saturation returns immediately rather than creating an unbounded work queue. Unique Redis leases renew every 30 seconds and release on completion or error. Crashed workers' leases expire after five minutes. Work continuing through a Redis outage longer than the lease duration can outlive its lease; leases provide admission control rather than fencing external work.
 
@@ -42,9 +44,9 @@ Redis failure returns `503` with `Retry-After: 1` and a safe error. Protection f
 
 ## Proxy and identity boundaries
 
-The gateway uses the socket address, strips caller-supplied rate identity and forwarding headers, then HMAC-signs the normalized address, timestamp and request ID using the shared JWT secret with a separate purpose string. Services accept this address only with a valid signature within 30 seconds; otherwise they use the socket address. Uvicorn's automatic proxy-header trust is disabled. IPv4-mapped IPv6 is canonicalized; IPv6 clients share a /64 budget.
+The gateway normally uses the socket address. With `RATE_LIMIT_TRUST_FRONTEND=true` (enabled in Compose), it accepts a normalized address only from a valid `rate-frontend-v1` HMAC signature made by a browser-facing server. The signature covers the address, timestamp and request ID and expires after 30 seconds. The gateway strips incoming rate identity and forwarding headers, then signs the validated address with the distinct `rate-forward-v1` purpose for downstream services. A wrong purpose, modified address, missing/invalid signature or request-ID replay falls back to the socket address. Services accept only the downstream signature; Uvicorn's automatic proxy-header trust is disabled. IPv4-mapped IPv6 is canonicalized; IPv6 clients share a /64 budget.
 
-Redis identities are HMAC digests. Tokens, email addresses and IP addresses are not stored as bucket keys or logged by the limiter. Internal ownership lookups retain verified-user quotas and count against the calling service's socket-IP quota. Docker publishes only the application gateway. Keep internal service ports and Redis private, protect the signing secret, and synchronize host clocks. Rotating the secret or namespace creates new buckets and invalidates old forwarding signatures.
+Redis identities are HMAC digests. Tokens, email addresses and IP addresses are not stored as bucket keys or logged by the limiter. Internal ownership lookups retain verified-user quotas and count against the calling service's socket-IP quota. Docker publishes the gateway and two websites; domain HTTP ports and Redis stay private. PostgreSQL and Qdrant have loopback-only development ports. Protect the signing secret and synchronize host clocks. Rotating the secret or namespace creates new buckets and invalidates old forwarding signatures.
 
 An external ingress/CDN becomes the gateway's apparent client. Add narrowly scoped ingress trust before deploying behind one; unrestricted Express `trust proxy` or Uvicorn forwarding trust would undermine the design. Shared NATs may need adjusted IP limits. Application limits do not replace edge connection and bandwidth controls against network floods.
 

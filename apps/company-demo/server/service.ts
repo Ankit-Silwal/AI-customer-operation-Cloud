@@ -43,6 +43,7 @@ export class DemoService {
   constructor(private readonly config: WebConfig) {}
 
   async prepare(): Promise<void> {
+    if (this.pending) return this.pending;
     if (this.state === "ready" && Date.now() - this.preparedAt < 6 * 86400_000)
       return;
     if (this.preparedAt && Date.now() - this.preparedAt >= 6 * 86400_000)
@@ -129,6 +130,7 @@ export class DemoService {
   }
   async history(id: string | undefined): Promise<Conversation | undefined> {
     if (!id || !this.auth) return undefined;
+    await this.prepare();
     const saved = await apiJson<Conversation>(
       this.config,
       `/conversation/${id}`,
@@ -149,6 +151,7 @@ export class DemoService {
         503,
         "Our demo assistant is getting ready. Please try again shortly",
       );
+    await this.prepare();
     const previous = await this.history(conversationId);
     if (previous && previous.messages.length >= 98)
       throw new HttpError(

@@ -58,7 +58,7 @@ npm run dev --workspace @repo/company-demo
 
 The servers read root `.env` and optional app `.env.local`; default host connections use the gateway at localhost:3001 and authenticated Redis at localhost:6379. For local frontend processes publish Redis on loopback with `docker compose -f compose.yaml -f compose.dev.yaml up -d --wait redis` and set `RATE_LIMIT_REDIS_URL` to the matching authenticated URL. The ordinary Docker stack keeps Redis internal.
 
-Run `npm test`, `npm run build`, `npm run check-types`, and `npm run lint`. Browser workflow/security/accessibility checks are maintained separately from the database suite. These checks establish functional correctness for the implemented flows, not production load capacity. Real Gemini generation still requires the user's credentials and permitted model access.
+Run `npm test`, `npm run build`, `npm run check-types`, and `npm run lint` serially. Install Chromium with `npx playwright install chromium`, then run `npm run test:web` against the running stack. Browser workflow/security/accessibility checks are maintained separately from the database suite. Results and the repeatable dependency failure simulation are in [web verification](web-validation.md). These checks establish functional correctness for the implemented flows, not production load capacity. Real Gemini generation still requires the user's credentials and permitted model access.
 
 ## Visual asset
 

@@ -1,0 +1,5 @@
+simulation: web-dependency-failures
+routing: path
+mocks:
+  - routeKey: gateway
+    path: ../mocks/gateway-failures/config.yaml

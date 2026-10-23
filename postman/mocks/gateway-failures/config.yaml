@@ -1,0 +1,7 @@
+version: 1
+name: gateway-failures
+description: Local gateway contract failure responses for the actual browser-facing servers
+interceptRequests: true
+scenarios:
+  - name: default
+    path: default.js
