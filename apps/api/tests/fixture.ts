@@ -17,7 +17,7 @@ import type { Organization } from "../src/modules/organizations/organization.typ
 export const secret = "integration-test-secret-at-least-32-characters";
 
 // Prepare a fresh database and Express app for each test.
-export async function fixture(t: TestContext) {
+export async function fixture(t: TestContext, options: { removeIndex?: import("@repo/document-server").RemoveDocumentIndex } = {}) {
   const databaseUrl = process.env.TEST_DATABASE_URL;
   if (!databaseUrl)
     throw new Error(
@@ -63,7 +63,7 @@ export async function fixture(t: TestContext) {
   const app = createHttpApp(() => prisma.$queryRaw`SELECT 1`, { logger: () => undefined });
   setupRoutes(app, prisma, secret);
   setupConversationRoutes(app, conversationPrisma, secret, organizationAccess);
-  setupDocumentRoutes(app, documentPrisma, secret, organizationAccess);
+  setupDocumentRoutes(app, documentPrisma, secret, organizationAccess, options.removeIndex);
   finishHttpApp(app, () => undefined);
 
   // Helper: register a user and return { user, token }.

@@ -18,15 +18,15 @@ Add `api_key=...` or `GEMINI_API_KEY=...` to `.env` when ready, then run `docker
 
 ## Services and routes
 
-Open **Hearth** at [localhost:3030](http://localhost:3030) for the workspace and **Oak & Ember** at [localhost:3035](http://localhost:3035) for the fictional company demonstration. Both interfaces use warm cream, terracotta and olive colors. The workspace supports sign-in, workspaces, conversations/replies, knowledge uploads/indexing and source-backed search. The company site has a working policy assistant connected to the same services. See [web workflows and setup](docs/web-workflows.md).
+Open **Hearth** at [localhost:3030](http://localhost:3030) for the workspace and **Oak & Ember** at [localhost:3035](http://localhost:3035) for the fictional company demonstration. Both interfaces use warm cream, terracotta and olive colors. The workspace supports sign-in, workspaces, conversations/replies, knowledge uploads/indexing/deletion and follow-up chat grounded in your sources. The company site has a working policy assistant connected to the same services. See [web workflows and setup](docs/web-workflows.md).
 
-| Service                     | Public routes through the gateway                                                                                  |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Core (auth + organizations) | `POST /register`, `POST /login`, `GET /me`, `GET /organizations`, `POST /organizations`, `GET /organizations/:id`  |
-| Conversations               | `GET /conversation`, `POST /conversation`, `GET /conversation/:id`, `POST /conversation/:id/messages`              |
-| Documents                   | `GET /documents`, `POST /documents`, `POST /documents/upload`, `GET /documents/:id`, `GET /documents/:id/download` |
-| RAG                         | `POST /rag/documents/:id/index`, `POST /rag/search`, `POST /rag/query`                                             |
-| Health                      | `GET /health/live`, `GET /health/ready`, `GET /rag/health/ready`                                                   |
+| Service                     | Public routes through the gateway                                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core (auth + organizations) | `POST /register`, `POST /login`, `GET /me`, `GET /organizations`, `POST /organizations`, `GET /organizations/:id`                           |
+| Conversations               | `GET /conversation`, `POST /conversation`, `GET /conversation/:id`, `POST /conversation/:id/messages`                                       |
+| Documents                   | `GET /documents`, `POST /documents`, `POST /documents/upload`, `DELETE /documents/:id`, `GET /documents/:id`, `GET /documents/:id/download` |
+| RAG                         | `POST /rag/documents/:id/index`, `POST /rag/search`, `POST /rag/query`, `POST /rag/chat`                                                    |
+| Health                      | `GET /health/live`, `GET /health/ready`, `GET /rag/health/ready`                                                                            |
 
 Resources and RAG require the JWT returned by registration/login. Create an organization and document, index the document, then search or query with `{"organizationId":"<UUID>","question":"What is our refund policy?","topK":4}`. Queries retrieve only chunks belonging to both the caller and the selected organization.
 
@@ -66,7 +66,9 @@ npm run lint
 npm test
 npm run build
 npx playwright install chromium
+docker compose -f compose.yaml -f compose.browser-test.yaml up -d --wait --wait-timeout 600
 npm run test:web
+docker compose up -d --wait --wait-timeout 600
 node --import tsx apps/api/scripts/check-microservices.ts --rag
 node --import tsx apps/api/scripts/check-rate-limits.ts
 docker compose -p customer-operation-cloud-test -f compose.test.yaml up -d --wait

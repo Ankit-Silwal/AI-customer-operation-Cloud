@@ -10,7 +10,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from openai import APIError
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, model_validator
+from typing import Literal
 from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
 
 from .config import Settings
@@ -26,6 +27,23 @@ class Query(BaseModel):
     organizationId: UUID
     question: str = Field(min_length=1, max_length=2000)
     topK: int = Field(default=4, ge=1, le=8)
+
+
+class ChatMessage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class ChatQuery(Query):
+    history: list[ChatMessage] = Field(default_factory=list, max_length=10)
+
+    @model_validator(mode="after")
+    def paired_turns(self):
+        if len(self.history) % 2 or any(message.role != ("user" if i % 2 == 0 else "assistant") or not message.content.strip()
+                                        for i, message in enumerate(self.history)):
+            raise ValueError("History must contain alternating user/assistant pairs")
+        return self
 
 
 def create_app(settings: Settings | None = None, runtime_factory=Runtime, limiter_factory=RateLimiter):
@@ -113,11 +131,23 @@ def create_app(settings: Settings | None = None, runtime_factory=Runtime, limite
             await run_in_threadpool(request.app.state.runtime.qdrant.get_collection, settings.collection)
         except Exception as error:
             raise HTTPException(503, "RAG dependency unavailable") from error
-        return {"status": "ready", "service": "rag", "generationConfigured": bool(settings.api_key)}
+        return {"status": "ready", "service": "rag", "generationConfigured": bool(settings.api_key),
+                "embeddingConfigured": True, "embeddingModel": settings.embedding_model}
 
     @app.post("/rag/documents/{document_id}/index")
     def index(document_id: UUID, request: Request, identity=Depends(protected)):
         return request.app.state.runtime.index_document(str(document_id), *identity)
+
+    @app.delete("/rag/documents/{document_id}/index")
+    def remove_index(document_id: UUID, request: Request, identity=Depends(protected)):
+        return request.app.state.runtime.remove_document_index(str(document_id), *identity)
+
+    @app.post("/rag/chat")
+    def chat(query: ChatQuery, request: Request, identity=Depends(protected)):
+        if not query.question.strip():
+            raise HTTPException(422, "Question must not be blank")
+        return request.app.state.runtime.chat(query.question, str(query.organizationId), *identity,
+                                              query.topK, [message.model_dump() for message in query.history])
 
     @app.post("/rag/search")
     def search(query: Query, request: Request, identity=Depends(protected)):

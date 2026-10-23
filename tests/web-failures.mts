@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createIndexRemoval } from "@repo/document-server";
 import { once } from "node:events";
 import type { Server } from "node:http";
 import { createApp } from "../apps/web/server/app.js";
@@ -119,4 +120,20 @@ await withWeb(`http://127.0.0.1:${address.port}`, async (base) => {
   assert.match((await response.json()).error, /temporarily unavailable/);
   checks++;
 });
+const removeIndex = createIndexRemoval(config.apiUrl);
+for (const [id, expected] of [
+  ["00000000-0000-4000-8000-000000000001", 429],
+  ["00000000-0000-4000-8000-000000000002", 503],
+] as const) {
+  await assert.rejects(
+    removeIndex(id, "diagnostic-token"),
+    (error: unknown) => {
+      assert.ok(error instanceof Error && "status" in error);
+      assert.equal(error.status, expected);
+      assert.match(error.message, /document was kept/);
+      return true;
+    },
+  );
+  checks++;
+}
 console.log(`Web dependency failure checks passed: ${checks}`);

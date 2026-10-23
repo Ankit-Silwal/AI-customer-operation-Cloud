@@ -15,6 +15,7 @@ export function documentRoutes(
   router.post("/", authenticate, controller.create);
   router.post("/upload", authenticate, routeLimit("document_upload"), parseUpload, controller.upload);
   router.get("/:id", authenticate, controller.get);
+  router.delete("/:id", authenticate, controller.delete);
   router.get("/:id/download", authenticate, routeLimit("document_download"), controller.download);
   return router;
 }

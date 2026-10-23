@@ -2,9 +2,17 @@ import type { PageQuery } from "@repo/service-common/pagination";
 import { HttpError } from "@repo/service-common/http";
 import type { DocumentRepository } from "./document.repository.js";
 import type { CreateDocumentInput, Document, UploadDocumentInput } from "./document.types.js";
+import type { RemoveDocumentIndex } from "./document.index.js";
 
 export class DocumentService {
-  constructor(private readonly repository: DocumentRepository) {}
+  constructor(private readonly repository: DocumentRepository, private readonly removeIndex: RemoveDocumentIndex) {}
+
+  async delete(id: string, ownerId: string, token: string) {
+    await this.get(id, ownerId);
+    await this.removeIndex(id, token);
+    if (!await this.repository.deleteForOwner(id, ownerId)) throw new HttpError(404, "Document not found");
+    return { deleted: true, documentId: id };
+  }
 
   list(organizationId: string, ownerId: string, query: PageQuery) { return this.repository.list(organizationId, ownerId, query); }
 

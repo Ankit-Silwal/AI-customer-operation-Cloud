@@ -93,13 +93,15 @@ export function setupRoutes(app: Express, config: WebConfig): void {
         ? /^\/(organizations|documents|conversation)(\/[a-f\d-]{36})?(\/download)?$/i.test(
             pathname,
           )
-        : req.method === "POST" &&
-          (/^\/(organizations|documents|conversation)$/.test(pathname) ||
-            pathname === "/documents/upload" ||
-            /^\/conversation\/[a-f\d-]{36}\/messages$/i.test(pathname) ||
-            /^\/rag\/(search|query|documents\/[a-f\d-]{36}\/index)$/i.test(
-              pathname,
-            ));
+        : req.method === "DELETE"
+          ? /^\/documents\/[a-f\d-]{36}$/i.test(pathname)
+          : req.method === "POST" &&
+            (/^\/(organizations|documents|conversation)$/.test(pathname) ||
+              pathname === "/documents/upload" ||
+              /^\/conversation\/[a-f\d-]{36}\/messages$/i.test(pathname) ||
+              /^\/rag\/(search|query|chat|documents\/[a-f\d-]{36}\/index)$/i.test(
+                pathname,
+              ));
     if (!allowed) throw new HttpError(404, "Endpoint not found");
     const response = await upstream(config, path, {
       req,

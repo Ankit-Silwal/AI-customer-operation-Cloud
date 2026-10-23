@@ -47,7 +47,7 @@ class Runtime:
             collection_name=settings.collection,
             embedding=self.embedding_model,
         )
-        for key in ("metadata.ownerId", "metadata.organizationId"):
+        for key in ("metadata.ownerId", "metadata.organizationId", "metadata.documentId"):
             self.qdrant.create_payload_index(settings.collection, key, models.PayloadSchemaType.KEYWORD, wait=True)
 
     def close(self):
@@ -80,7 +80,7 @@ class Runtime:
                 raise HTTPException(422, "PDF must contain extractable text and at most 100 pages") from error
         if not text.strip() or len(text) > 200000:
             raise HTTPException(422, "Document must contain 1 to 200000 text characters")
-        # BGE has a 512-token context; keep chunks under that limit with overlap.
+        # BGE has a 512-token context; keep chunks below that limit.
         tokens = self.tokenizer.encode(text, add_special_tokens=False)
         chunks = [self.tokenizer.decode(tokens[start:start + 400], skip_special_tokens=True) for start in range(0, len(tokens), 350)]
         if len(chunks) > 1000:
@@ -97,14 +97,55 @@ class Runtime:
             ids.append(str(uuid5(NAMESPACE_URL, f"{owner_id}:{document_id}:{digest}:{index}")))
         # Documents are immutable. Stable IDs make retrying an index request idempotent.
         self.vector_db.add_documents(documents, ids=ids, batch_size=32)
+        try:
+            self.authorized_get(self.settings.documents_url, f"/documents/{document_id}", token)
+        except HTTPException as error:
+            if error.status_code == 404:
+                self._remove_vectors(document_id, owner_id, document["organizationId"])
+            raise
         return {"documentId": document_id, "organizationId": document["organizationId"], "chunks": len(chunks), "status": "indexed"}
 
     def search(self, question: str, organization_id: str, owner_id: str, token: str, top_k: int):
         self.authorize_organization(organization_id, token)
         matches = self.vector_db.similarity_search_with_score(question, k=top_k, filter=tenant_filter(owner_id, organization_id))
+        # A concurrent/partial delete must never make stale vector content retrievable.
+        live = {}
+        for doc, _score in matches:
+            document_id = doc.metadata["documentId"]
+            if document_id in live:
+                continue
+            try:
+                current = self.authorized_get(self.settings.documents_url, f"/documents/{document_id}", token).json()
+                live[document_id] = current["organizationId"] == organization_id
+            except HTTPException as error:
+                if error.status_code != 404:
+                    raise
+                live[document_id] = False
         return [{"documentId": doc.metadata["documentId"], "title": doc.metadata.get("title", ""),
                  "chunkIndex": doc.metadata.get("chunkIndex", 0), "text": doc.page_content, "score": float(score)}
-                for doc, score in matches]
+                for doc, score in matches if live.get(doc.metadata["documentId"])
+                and doc.metadata.get("embeddingModel") == self.settings.embedding_model]
+
+    def _remove_vectors(self, document_id: str, owner_id: str, organization_id: str):
+        filters = tenant_filter(owner_id, organization_id)
+        filters.must.append(models.FieldCondition(key="metadata.documentId", match=models.MatchValue(value=document_id)))
+        self.qdrant.delete(self.settings.collection, models.FilterSelector(filter=filters), wait=True)
+
+    def remove_document_index(self, document_id: str, owner_id: str, token: str):
+        document = self.authorized_get(self.settings.documents_url, f"/documents/{document_id}", token).json()
+        self._remove_vectors(document_id, owner_id, document["organizationId"])
+        return {"documentId": document_id, "status": "removed"}
+
+    def chat(self, question: str, organization_id: str, owner_id: str, token: str, top_k: int, history: list):
+        previous_questions = [message["content"][:200] for message in history if message["role"] == "user"][-3:]
+        retrieval_question = question if not previous_questions else f"{question[:1200]}\nEarlier questions: {'; '.join(previous_questions)}"
+        sources = self.search(retrieval_question, organization_id, owner_id, token, top_k)
+        if self.settings.api_key:
+            return {**generate_answer(self.settings, question, sources, history), "mode": "generation"}
+        # Honest fallback: one relevant passage, not a fabricated generated answer.
+        sources = [source for source in sources if source["score"] >= 0.35][:1]
+        answer = sources[0]["text"] if sources else "I could not find supporting information in your current sources. Try a more specific question or add and index a source."
+        return {"answer": answer, "sources": sources, "mode": "retrieval"}
 
     def answer(self, question: str, organization_id: str, owner_id: str, token: str, top_k: int):
         if not self.settings.api_key:

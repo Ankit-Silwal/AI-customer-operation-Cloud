@@ -92,6 +92,28 @@ class RedisTests(unittest.IsolatedAsyncioTestCase):
 
 
 class HttpTests(unittest.TestCase):
+    def test_chat_shares_the_existing_generation_or_search_budget(self):
+        from dataclasses import replace
+        class RuntimeWithoutExternalCalls:
+            def __init__(self, _settings): self.chat_calls = 0
+            def close(self): pass
+            def search(self, *_args): return []
+            def answer(self, *_args): return {"answer": "One reply", "sources": []}
+            def chat(self, *_args): self.chat_calls += 1; return {"answer": "One reply", "sources": []}
+        for generated in (False, True):
+            config = replace(settings(), api_key="diagnostic-only" if generated else "")
+            with patch.dict(os.environ, {"RATE_LIMIT_NAMESPACE": f"test-{uuid4().hex}", "RATE_LIMIT_POLICY_OVERRIDES": '{"rag_search":{"limit":1,"seconds":60},"rag_query":{"limit":1,"seconds":60}}'}):
+                app = create_app(config, RuntimeWithoutExternalCalls)
+                with TestClient(app) as client:
+                    token = jwt.encode({"sub": str(uuid4()), "iss": "customer-operation-api", "exp": datetime.now(timezone.utc) + timedelta(minutes=1)}, SECRET, algorithm="HS256")
+                    headers = {"Authorization": f"Bearer {token}"}
+                    body = {"organizationId": str(uuid4()), "question": "refunds"}
+                    self.assertEqual(client.post("/rag/query" if generated else "/rag/search", json=body, headers=headers).status_code, 200)
+                    denied = client.post("/rag/chat", json=body, headers=headers)
+                    self.assertEqual(denied.status_code, 429)
+                    self.assertGreaterEqual(int(denied.headers["retry-after"]), 1)
+                    self.assertEqual(app.state.runtime.chat_calls, 0)
+
     def test_user_quota_headers_health_and_redis_outage(self):
         class RuntimeWithoutExternalCalls:
             def __init__(self, _settings):

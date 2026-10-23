@@ -116,6 +116,7 @@ services:
     environment:
       <<: *domain-env
       SERVICE_ROLE: documents
+      RAG_URL: http://rag:8000
       DATABASE_URL: postgresql://documents_app:${DOCUMENTS_DB_PASSWORD:-documents_local}@postgres:5432/documents
     depends_on:
       redis: { condition: service_healthy }
@@ -171,6 +172,8 @@ services:
       postgres: { condition: service_healthy }
 
   rag:
+    ports:
+      - "127.0.0.1:${RAG_PORT:-4102}:8000"
     image: customer-ops-rag:local
     build:
       context: .
@@ -183,7 +186,7 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-${api_key:-}}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai/}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
-      EMBEDDING_MODEL: BAAI/bge-small-en-v1.5
+      AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
       QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
       QDRANT_COLLECTION: ${QDRANT_COLLECTION:-learning_rag}
       QDRANT_CREATE_COLLECTION: ${QDRANT_CREATE_COLLECTION:-true}

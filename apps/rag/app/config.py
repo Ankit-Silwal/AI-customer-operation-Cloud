@@ -21,13 +21,16 @@ class Settings:
         secret = os.getenv("JWT_SECRET", "")
         if len(secret) < 32:
             raise ValueError("JWT_SECRET must contain at least 32 characters")
+        embedding_model = os.getenv("AI_EMBEDDING_MODEL") or os.getenv("EMBEDDING_MODEL", cls.embedding_model)
+        if embedding_model != "BAAI/bge-small-en-v1.5":
+            raise ValueError("AI_EMBEDDING_MODEL must be BAAI/bge-small-en-v1.5 for local embeddings")
         return cls(
             jwt_secret=secret,
             organizations_url=os.getenv("ORGANIZATIONS_URL", cls.organizations_url),
             documents_url=os.getenv("DOCUMENTS_URL", cls.documents_url),
             qdrant_url=os.getenv("QDRANT_URL", cls.qdrant_url),
-            collection=os.getenv("QDRANT_COLLECTION", cls.collection),
-            embedding_model=os.getenv("EMBEDDING_MODEL", cls.embedding_model),
+            collection=os.getenv("QDRANT_COLLECTION") or cls.collection,
+            embedding_model=embedding_model,
             model=os.getenv("GEMINI_MODEL", cls.model),
             api_key=os.getenv("GEMINI_API_KEY") or os.getenv("api_key", ""),
             base_url=os.getenv("OPENAI_BASE_URL", cls.base_url),

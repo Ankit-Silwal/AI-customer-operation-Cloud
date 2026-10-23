@@ -1,0 +1,6 @@
+# Local browser verification: real BAAI/Qdrant retrieval without paid generation.
+# Omit this override when running the application normally.
+services:
+  rag:
+    environment:
+      GEMINI_API_KEY: ""

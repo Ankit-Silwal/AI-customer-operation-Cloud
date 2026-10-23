@@ -12,9 +12,17 @@ Run `docker compose up --build -d --wait --wait-timeout 600` from the repository
 
 Ports 3030/3035 avoid another local project already listening on port 3000. Set `WEB_PORT`/`DEMO_PORT` and matching `WEB_ORIGIN`/`DEMO_ORIGIN` to use different addresses. For HTTPS set the origins to the actual public URLs; secure cookies are enabled automatically for HTTPS origins. `WEB_COOKIE_SECURE=true` can explicitly require secure cookies.
 
-The workspace supports account registration/sign-in/sign-out, multiple workspaces, paginated and searchable conversations, safe message replies, text/Markdown/PDF uploads, source inspection/download, indexing, and a source-backed AI playground. Counts come from the owning services. Empty states stay empty until records exist. Written answers are disabled until the Gemini key is configured; passage search works without it. Documents are immutable: upload a new version when a policy changes, then index it.
+The workspace supports account registration/sign-in/sign-out, multiple workspaces, paginated and searchable conversations, safe message replies, text/Markdown/PDF uploads, source inspection/download, indexing, and a source-backed AI playground. Counts come from the owning services. Empty states stay empty until records exist. The AI playground is a conversation: send a question, then ask follow-ups in the same thread. It returns one reply per message, with supporting sources collapsed underneath. Gemini writes answers when its key is configured; otherwise each reply is one clearly labeled policy passage retrieved using local BAAI embeddings. Source content cannot be edited in place: add and index a new version, then delete the old source if it is no longer needed.
 
 The UI uses self-hosted fonts, cream surfaces, terracotta accents, olive status colors and serif headings. It supports narrow screens, keyboard navigation, native modal focus trapping, reduced motion, request errors and retry guidance. Browser credentials live in HTTP-only, SameSite=Strict cookies; bearer tokens are never placed in browser storage or returned by the web auth endpoints. Workspace IDs and saved demo products are the only local-storage values.
+
+## Delete a source or continue chatting
+
+In **Knowledge library**, click the trash button beside a source (or **Delete source** in its preview), review the confirmation, then choose **Delete source**. The document service checks ownership, asks RAG to remove that owner/workspace/document's Qdrant points, then deletes the document row and cascades its original upload bytes. A cleanup error returns a retryable failure and keeps the document. A missing or unowned source returns `404` without attempting cleanup. Search also checks that retrieved documents still exist, so stale vectors from an interrupted or concurrent operation cannot be returned as current knowledge. Existing chat messages and answers already in progress are not erased by source deletion.
+
+In **AI playground**, send a message with Enter (Shift+Enter inserts a new line). Previous replies remain visible, and each new question receives one reply. Expand **View sources** only when you want the supporting excerpts. **New chat** clears the thread. The most recent five complete turns are sent as context, trimmed further when needed to fit the 16 KiB API body limit. History accepts only alternating user/assistant pairs, never system instructions. It helps resolve follow-ups but is not evidence: factual answers must use the current retrieved sources. The thread is kept in the current page's memory and resets when leaving the page or changing workspace; it is not a saved inbox conversation.
+
+The model setup is **Gemini text generation + local `BAAI/bge-small-en-v1.5` embeddings + Qdrant**. `AI_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5` selects the local model (the older `EMBEDDING_MODEL` alias still works). No OpenAI embedding API or key is used. RAG is available on host loopback at `http://localhost:4102`; host Node processes use `RAG_URL=http://localhost:4102`, while Docker services use `http://rag:8000`. `NODE_ENV=development` is for host development; the built Docker Node images retain production mode. The existing 384-dimensional Qdrant collection and model cache are preserved.
 
 ## Customer-facing demonstration
 
@@ -36,13 +44,15 @@ All gateway endpoints below use the existing Bearer JWT and its user quota.
 | --------------------------------------- | ----------------------------------------------------------------------------- |
 | `GET /me`                               | Signed-in user without password fields; `401` if the account no longer exists |
 | `GET /organizations`                    | Organizations belonging to the verified user                                  |
+| `DELETE /documents/:id`                 | Permanently remove an owned source, its upload and its current vector index   |
+| `POST /rag/chat`                        | One reply with bounded recent history and optional supporting sources         |
 | `GET /documents?organizationId=UUID`    | Owned workspace document metadata, excluding document content and file bytes  |
 | `GET /conversation?organizationId=UUID` | Owned workspace conversations                                                 |
 | `POST /conversation/:id/messages`       | Append 1–10 validated messages using `expectedCount` as the concurrency token |
 
 Lists accept `page` (1–10000), `pageSize` (1–100, default 20), and `search` (up to 100 characters). Responses are `{ items, total, page, pageSize }` with stable newest-first ordering. Invalid parameters return `400`; unowned organizations return `404`. Message appends reject an unowned conversation with `404`, stale counts with `409`, and invalid/overlong histories with `400`. A single conditional SQL update through Prisma prevents two simultaneous replies from overwriting each other. A client that receives `409` reloads the conversation before retrying.
 
-The web server exposes only an allowlisted `/api` bridge and same-origin auth/session endpoints; it is not an arbitrary HTTP proxy. API responses preserve rate-limit and retry headers. Full contracts and verification results live alongside the implementation. Existing root `.env` values are not rewritten.
+The web server exposes only an allowlisted `/api` bridge and same-origin auth/session endpoints; it is not an arbitrary HTTP proxy. API responses preserve rate-limit and retry headers. Full contracts and verification results live alongside the implementation. Secrets stay in the ignored root `.env`. Local service addresses and embedding configuration are documented in `.env.example`.
 
 ## Development and validation
 

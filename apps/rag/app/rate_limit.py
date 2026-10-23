@@ -65,6 +65,7 @@ def load_policies(overrides):
 class RateLimiter:
     def __init__(self, settings):
         self.secret = settings.jwt_secret
+        self.generation_configured = bool(settings.api_key)
         namespace = os.getenv("RATE_LIMIT_NAMESPACE", "customer-ops")
         if not re.fullmatch(r"[a-z0-9_-]{1,40}", namespace):
             raise ValueError("Invalid rate limit namespace")
@@ -108,11 +109,11 @@ class RateLimiter:
     async def user_limit(self, request, owner):
         buckets = [("user_write", owner)]
         path = request.scope["route"].path
-        if path == "/rag/query":
+        if path == "/rag/query" or (path == "/rag/chat" and self.generation_configured):
             buckets.extend([("rag_query", owner), ("rag_query_daily", owner), ("rag_query_global", "global")])
-        elif path == "/rag/search":
+        elif path in {"/rag/search", "/rag/chat"}:
             buckets.append(("rag_search", owner))
-        elif path == "/rag/documents/{document_id}/index":
+        elif path == "/rag/documents/{document_id}/index" and request.method == "POST":
             buckets.extend([("rag_index", owner), ("rag_index_hourly", owner)])
         await self.consume(request, buckets)
 

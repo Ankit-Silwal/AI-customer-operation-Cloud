@@ -87,6 +87,31 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "429": { $ref: "#/components/responses/RateLimited" }
         "503": { $ref: "#/components/responses/Unavailable" }
+  /documents/{id}:
+    delete:
+      operationId: deleteSource
+      description: Owner-only permanent deletion of a source and its original upload. Removes the tenant-scoped Qdrant index first. Cleanup failure leaves the document available for retry; successful deletion removes it from future retrieval. Existing chat messages are not erased.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Source, upload bytes and indexed passages removed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted, documentId]
+                properties:
+                  deleted: { type: boolean, const: true }
+                  documentId: { type: string, format: uuid }
+        "400": { $ref: "#/components/responses/Invalid" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
   /conversation:
     get:
       operationId: listConversations

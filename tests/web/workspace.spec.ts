@@ -53,7 +53,13 @@ test("workspace onboarding, real indexing/search, replies, upload/download and w
     .fill(
       "Quiet Goods accepts unused products in original packaging within 30 days of delivery. Email care@quietgoods.example before returning an item. Refunds take 5 business days after inspection. We cover postage for damaged items reported within 48 hours.",
     );
+  const sourceSaved = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/documents" &&
+      response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Save source", exact: true }).click();
+  const sourceId = (await (await sourceSaved).json()).id;
   await page
     .getByRole("button", { name: "Index this source", exact: true })
     .click();
@@ -66,13 +72,70 @@ test("workspace onboarding, real indexing/search, replies, upload/download and w
     .getByLabel("Ask your company knowledge")
     .fill("Can I return an unused product?");
   await page.getByRole("button", { name: "Ask question", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: /Found in your knowledge/ }),
-  ).toBeVisible({ timeout: 60000 });
-  await expect(
-    page.getByText("Returns & customer care", { exact: true }),
-  ).toBeVisible();
-  await expect(page.locator(".source-result")).toContainText("30 days");
+  await expect(page.locator(".playground-message.assistant")).toHaveCount(1, {
+    timeout: 60000,
+  });
+  await expect(page.locator(".playground-message.assistant > p")).toContainText(
+    "30 days",
+  );
+  await expect(page.locator(".chat-sources").first()).not.toHaveAttribute(
+    "open",
+    "",
+  );
+  await page.locator(".chat-sources summary").first().click();
+  await expect(page.locator(".chat-source").first()).toContainText(
+    "Returns & customer care",
+  );
+  for (const [question, count] of [
+    ["What about damaged items?", 2],
+    ["What should I do next?", 3],
+  ] as const) {
+    await page.getByLabel("Ask your company knowledge").fill(question);
+    const sent = page.waitForRequest(
+      (request) =>
+        request.url().endsWith("/api/rag/chat") && request.method() === "POST",
+    );
+    await page
+      .getByRole("button", { name: "Ask question", exact: true })
+      .click();
+    const body = (await sent).postDataJSON();
+    expect(body.history).toHaveLength((count - 1) * 2);
+    expect(body.history[0].content).toBe("Can I return an unused product?");
+    await expect(page.locator(".playground-message.assistant")).toHaveCount(
+      count,
+      { timeout: 60000 },
+    );
+    await expect(page.locator(".playground-message.user")).toHaveCount(count);
+  }
+  const chatAccessibility = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+    .analyze();
+  expect(chatAccessibility.violations.map((v) => v.id)).toEqual([]);
+  await page.screenshot({
+    path: ".local-validation/screenshots/hearth-chat.png",
+    fullPage: true,
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".sidebar")).toHaveCSS(
+    "transform",
+    "matrix(1, 0, 0, 1, -240, 0)",
+  );
+  await page.getByLabel("Ask your company knowledge").focus();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.getByLabel("Ask your company knowledge").scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: ".local-validation/screenshots/hearth-chat-mobile.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+  await page.setViewportSize({ width: 1440, height: 1050 });
+  await page.getByRole("button", { name: "New chat", exact: true }).click();
+  await expect(page.locator(".playground-message")).toHaveCount(0);
 
   await page.getByRole("link", { name: "Conversations", exact: true }).click();
   await page
@@ -128,14 +191,18 @@ test("workspace onboarding, real indexing/search, replies, upload/download and w
     .getByRole("button", { name: "Upload a file", exact: true })
     .click();
   await page.getByLabel("Source title").fill("Care guide");
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: "care-guide.md",
-      mimeType: "text/markdown",
-      buffer: Buffer.from("Hand wash ceramics. Air dry linen."),
-    });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "care-guide.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("Hand wash ceramics. Air dry linen."),
+  });
+  const uploadSaved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/documents/upload") &&
+      response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Save source", exact: true }).click();
+  const uploadId = (await (await uploadSaved).json()).id;
   await expect(
     page.getByRole("heading", { name: "Care guide", exact: true }),
   ).toBeVisible();
@@ -183,6 +250,76 @@ test("workspace onboarding, real indexing/search, replies, upload/download and w
       name: /Returns & customer care Written knowledge/,
     }),
   ).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: "Delete Returns & customer care",
+      exact: true,
+    })
+    .click();
+  await page.getByRole("button", { name: "Keep source", exact: true }).click();
+  await expect(
+    page.getByRole("button", {
+      name: /Returns & customer care Written knowledge/,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: "Delete Returns & customer care",
+      exact: true,
+    })
+    .click();
+  const deleteResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/api/documents/${sourceId}`) &&
+      response.request().method() === "DELETE",
+  );
+  await page
+    .getByRole("button", { name: "Delete source", exact: true })
+    .click();
+  expect((await deleteResponse).status()).toBe(200);
+  await expect(
+    page.getByRole("button", {
+      name: /Returns & customer care Written knowledge/,
+    }),
+  ).toHaveCount(0);
+  const origin = new URL(page.url()).origin;
+  const organizationId = await page
+    .getByRole("combobox", { name: "Select workspace" })
+    .inputValue();
+  const afterDelete = await page.request.post("/api/rag/search", {
+    headers: { Origin: origin },
+    data: { organizationId, question: "returns policy", topK: 4 },
+  });
+  expect(afterDelete.status()).toBe(200);
+  expect((await afterDelete.json()).sources).toEqual([]);
+  const points = await page.request.post(
+    `${process.env.QDRANT_TEST_URL ?? "http://127.0.0.1:6335"}/collections/${process.env.QDRANT_TEST_COLLECTION ?? "learning_rag"}/points/count`,
+    {
+      data: {
+        exact: true,
+        filter: {
+          must: [{ key: "metadata.documentId", match: { value: sourceId } }],
+        },
+      },
+    },
+  );
+  expect(points.status()).toBe(200);
+  expect((await points.json()).result.count).toBe(0);
+  await page
+    .getByRole("button", { name: "Care guide care-guide.md", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Delete source", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Delete source", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Every good answer has a beginning." }),
+  ).toBeVisible();
+  expect(
+    (await page.request.get(`/api/documents/${uploadId}/download`)).status(),
+  ).toBe(404);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Welcome back.", exact: true }),

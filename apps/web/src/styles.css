@@ -2673,3 +2673,116 @@ small {
     scroll-behavior: auto !important;
   }
 }
+
+/* Source deletion and a conversation-first knowledge playground. */
+.source-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.danger-text {
+  color: #9a352d;
+}
+.danger-button {
+  background: #9a352d;
+  border-color: #9a352d;
+  color: #fff;
+}
+.danger-button:hover {
+  background: #7b2923;
+  border-color: #7b2923;
+}
+.playground-chat {
+  min-height: 390px;
+  height: min(56vh, 650px);
+  scroll-behavior: smooth;
+}
+.playground-turn + .playground-turn {
+  margin-top: 24px;
+}
+.playground-message {
+  padding: 16px 18px;
+  border-radius: 10px;
+  margin-bottom: 13px;
+  overflow-wrap: anywhere;
+}
+.playground-message > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 650;
+  font-size: 11px;
+}
+.playground-message > p {
+  margin: 9px 0 0;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.playground-message > small {
+  display: block;
+  margin-top: 12px;
+  color: #525a43;
+  font-size: 10px;
+}
+.playground-message.user {
+  background: #f0e7db;
+  margin-left: 40px;
+  color: #4c392b;
+}
+.playground-message.assistant {
+  background: #edf0e5;
+  border: 1px solid #dce3ce;
+  color: #3f4938;
+  margin-right: 15px;
+}
+.chat-sources {
+  border-top: 1px solid #d1d8c7;
+  margin-top: 14px;
+  padding-top: 12px;
+}
+.chat-sources summary {
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chat-sources summary svg {
+  vertical-align: middle;
+  margin-right: 5px;
+}
+.chat-source {
+  margin-top: 14px;
+}
+.chat-source strong {
+  font-size: 11px;
+}
+.chat-source p {
+  font-size: 11px;
+  white-space: pre-wrap;
+  margin: 7px 0 0;
+}
+.chat-thinking {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 10px;
+}
+@media (max-width: 600px) {
+  .playground-message.user {
+    margin-left: 15px;
+  }
+  .playground-message.assistant {
+    margin-right: 0;
+  }
+  .playground-chat {
+    height: 52vh;
+    min-height: 300px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .playground-chat {
+    scroll-behavior: auto;
+  }
+}

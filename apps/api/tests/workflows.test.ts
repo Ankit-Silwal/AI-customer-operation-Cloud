@@ -2,6 +2,40 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import request from "supertest";
 import { fixture } from "./fixture.js";
+import { HttpError } from "@repo/service-common/http";
+
+test("source deletion checks ownership, retains data on cleanup failure, and cascades upload removal", async t => {
+  let unavailable = true;
+  let cleanups = 0;
+  const { app, db, register, organization } = await fixture(t, { removeIndex: async () => {
+    cleanups++;
+    if (unavailable) throw new HttpError(503, "Cleanup unavailable; source kept");
+  } });
+  const owner = await register();
+  const outsider = await register("other-owner@example.com");
+  const workspace = await organization(owner.token);
+  const created = await request(app).post("/documents/upload").auth(owner.token, { type: "bearer" })
+    .field("organizationId", workspace.id).field("title", "Temporary policy")
+    .attach("file", Buffer.from("A private policy"), "policy.txt").expect(201);
+  const path = `/documents/${created.body.id}`;
+  await request(app).delete(path).expect(401);
+  await request(app).delete(path).auth(outsider.token, { type: "bearer" }).expect(404);
+  await request(app).delete("/documents/invalid").auth(owner.token, { type: "bearer" }).expect(400);
+  assert.equal(cleanups, 0);
+  await request(app).delete(path).auth(owner.token, { type: "bearer" }).expect(503);
+  await request(app).get(`${path}/download`).auth(owner.token, { type: "bearer" }).expect(200);
+  assert.equal((await db.query("SELECT * FROM document_uploads")).rowCount, 1);
+  unavailable = false;
+  const result = await request(app).delete(path).auth(owner.token, { type: "bearer" }).expect(200);
+  assert.deepEqual(result.body, { deleted: true, documentId: created.body.id });
+  assert.equal(cleanups, 2);
+  assert.equal((await db.query("SELECT * FROM documents")).rowCount, 0);
+  assert.equal((await db.query("SELECT * FROM document_uploads")).rowCount, 0);
+  await request(app).get(path).auth(owner.token, { type: "bearer" }).expect(404);
+  await request(app).get(`${path}/download`).auth(owner.token, { type: "bearer" }).expect(404);
+  await request(app).delete(path).auth(owner.token, { type: "bearer" }).expect(404);
+  assert.equal(cleanups, 2);
+});
 
 test("signed-in identity and paginated lists never cross account or organization boundaries", async t => {
   const { app, register, organization } = await fixture(t);

@@ -13,3 +13,11 @@ assert result["answer"] == "Refunds are available within 30 days. [1]"
 assert result["sources"] == sources
 assert result["model"] == "gemini-3.1-flash-lite"
 print("Generation client passed 3 assertions against the local Postman simulation")
+
+history = [{"role": "user", "content": "Can I return a product?"}, {"role": "assistant", "content": result["answer"]}]
+follow_up = generate_answer(settings, "What is that deadline again?", sources, history)
+assert follow_up["answer"] == "Refunds are available within 30 days. [1]"
+history.extend([{"role": "user", "content": "What is that deadline again?"}, {"role": "assistant", "content": follow_up["answer"]}])
+third = generate_answer(settings, "Please confirm it once more.", sources, history)
+assert third["answer"] == follow_up["answer"]
+print("Three-turn Gemini-compatible client conversation passed against the local Postman simulation")

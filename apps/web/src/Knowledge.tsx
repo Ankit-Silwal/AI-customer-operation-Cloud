@@ -8,6 +8,7 @@ import {
   Plus,
   Search,
   Sparkles,
+  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -39,12 +40,38 @@ export function Knowledge({ organization }: { organization: Organization }) {
   const [indexed, setIndexed] = useState<Set<string>>(new Set());
   const [error, setError] = useState<unknown>();
   const [notice, setNotice] = useState("");
+  const [deleting, setDeleting] = useState<Document>();
+  const [removing, setRemoving] = useState(false);
   const list = useResource<Page<Document>>(
     `/documents?organizationId=${organization.id}&page=${page}&pageSize=12&search=${encodeURIComponent(delayedSearch)}`,
   );
   const detail = useResource<Document>(
     selected ? `/documents/${selected}` : null,
   );
+  async function remove() {
+    if (!deleting || removing) return;
+    setRemoving(true);
+    setError(undefined);
+    try {
+      await api(`/documents/${deleting.id}`, { method: "DELETE" });
+      setIndexed((current) => {
+        const next = new Set(current);
+        next.delete(deleting.id);
+        return next;
+      });
+      setDeleting(undefined);
+      setSelected("");
+      setNotice(
+        "Source deleted. Its original file and indexed passages were removed.",
+      );
+      if (page > 1 && list.data?.items.length === 1) setPage(page - 1);
+      else list.refresh();
+    } catch (failure) {
+      setError(failure);
+    } finally {
+      setRemoving(false);
+    }
+  }
   async function index(id: string) {
     if (indexing) return;
     setIndexing(id);
@@ -133,7 +160,10 @@ export function Knowledge({ organization }: { organization: Organization }) {
         </div>
         <span className="badge neutral">PDF · Text · Markdown</span>
       </div>
-      <ErrorNotice error={!adding && error} clear={() => setError(undefined)} />
+      <ErrorNotice
+        error={!adding && !deleting && error}
+        clear={() => setError(undefined)}
+      />
       {notice && !adding && (
         <div className="success-notice" role="status">
           <Check size={18} />
@@ -209,23 +239,38 @@ export function Knowledge({ organization }: { organization: Organization }) {
                 {list.data.items.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      <button
-                        className="source-name"
-                        onClick={() => {
-                          setSelected(item.id);
-                          setError(undefined);
-                        }}
-                      >
-                        <span className="file-icon">
-                          <FileText size={20} />
-                        </span>
-                        <span>
-                          <strong>{item.title}</strong>
-                          <small>
-                            {item.upload?.fileName ?? "Written knowledge"}
-                          </small>
-                        </span>
-                      </button>
+                      <div className="source-actions">
+                        <button
+                          className="source-name"
+                          onClick={() => {
+                            setSelected(item.id);
+                            setError(undefined);
+                          }}
+                        >
+                          <span className="file-icon">
+                            <FileText size={20} />
+                          </span>
+                          <span>
+                            <strong>{item.title}</strong>
+                            <small>
+                              {item.upload?.fileName ?? "Written knowledge"}
+                            </small>
+                          </span>
+                        </button>
+                        <button
+                          className="icon-button danger-text"
+                          aria-label={`Delete ${item.title}`}
+                          title="Delete source"
+                          disabled={Boolean(indexing) || removing}
+                          onClick={() => {
+                            setError(undefined);
+                            setNotice("");
+                            setDeleting(item);
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                     <td>
                       <span className="badge neutral">
@@ -272,9 +317,44 @@ export function Knowledge({ organization }: { organization: Organization }) {
         />
       </section>
       <p className="quiet-help">
-        Indexing can be repeated safely. Documents are immutable; add an updated
-        version as a new source.
+        Indexing can be repeated safely. Add updated versions as new sources,
+        and delete sources you no longer need.
       </p>
+      {deleting && (
+        <Modal
+          title="Delete this source?"
+          subtitle={deleting.title}
+          close={() => !removing && setDeleting(undefined)}
+        >
+          <ErrorNotice error={error} />
+          <p>
+            This permanently removes the document, its original file and its
+            indexed passages. Future replies will no longer use this source.
+            Earlier chat messages are kept.
+          </p>
+          <div className="modal-actions">
+            <button
+              className="button secondary"
+              disabled={removing}
+              onClick={() => {
+                setDeleting(undefined);
+                setError(undefined);
+              }}
+            >
+              Keep source
+            </button>
+            <button
+              className="button danger-button"
+              disabled={removing}
+              onClick={() => {
+                void remove();
+              }}
+            >
+              {removing ? <Spinner /> : <Trash2 size={16} />} Delete source
+            </button>
+          </div>
+        </Modal>
+      )}
       {adding && (
         <Modal
           title={saved ? "A little more knowledge." : "Add something helpful."}
@@ -436,6 +516,17 @@ export function Knowledge({ organization }: { organization: Organization }) {
                 </div>
                 <pre className="document-content">{detail.data.content}</pre>
                 <div className="modal-actions">
+                  <button
+                    className="button secondary danger-text"
+                    disabled={Boolean(indexing)}
+                    onClick={() => {
+                      setError(undefined);
+                      setDeleting(detail.data);
+                      setSelected("");
+                    }}
+                  >
+                    <Trash2 size={16} /> Delete source
+                  </button>
                   <button
                     className="button primary"
                     disabled={Boolean(indexing)}

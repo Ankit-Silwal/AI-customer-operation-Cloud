@@ -3,9 +3,18 @@ import { authenticatedUserId, type HttpHandler } from "@repo/service-common/http
 import { id, object, text } from "@repo/service-common/validation";
 import type { DocumentService } from "./document.service.js";
 import { validateFile } from "./document.upload.js";
+import { IndexCleanupError } from "./document.index.js";
 
 export class DocumentController {
   constructor(private readonly service: DocumentService) {}
+  delete: HttpHandler = async (req, res) => {
+    try {
+      res.json(await this.service.delete(id(req.params.id, "id"), authenticatedUserId(res.locals), req.get("authorization")!.slice(7)));
+    } catch (error) {
+      if (error instanceof IndexCleanupError) res.set("Retry-After", String(error.retryAfter));
+      throw error;
+    }
+  };
 
   upload: HttpHandler = async (req, res) => {
     const body = object(req.body);

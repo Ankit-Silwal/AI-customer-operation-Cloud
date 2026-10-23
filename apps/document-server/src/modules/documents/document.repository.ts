@@ -5,6 +5,7 @@ import type { OrganizationAccess } from "@repo/service-common/organizations";
 import type { CreateDocumentInput, Document, DocumentFile, UploadDocumentInput } from "./document.types.js";
 
 export interface DocumentRepository {
+  deleteForOwner(id: string, ownerId: string): Promise<boolean>;
   list(organizationId: string, ownerId: string, query: PageQuery): Promise<Page<Omit<Document, "content">>>;
   createUploadForOwner(input: UploadDocumentInput, ownerId: string): Promise<Document | undefined>;
   findForOwner(id: string, ownerId: string): Promise<Document | undefined>;
@@ -14,6 +15,11 @@ export interface DocumentRepository {
 
 export class PrismaDocumentRepository implements DocumentRepository {
   constructor(private readonly db: PrismaClient, private readonly organizationAccess: OrganizationAccess) {}
+  async deleteForOwner(id: string, ownerId: string): Promise<boolean> {
+    if (!await this.findForOwner(id, ownerId)) return false;
+    const result = await this.db.document.deleteMany({ where: { id } });
+    return result.count === 1;
+  }
   async list(organizationId: string, ownerId: string, query: PageQuery): Promise<Page<Omit<Document, "content">>> {
     if (!await this.organizationAccess(organizationId, ownerId)) throw new HttpError(404, "Organization not found");
     const where = { organizationId, ...(query.search ? { title: { contains: query.search, mode: "insensitive" as const } } : {}) };

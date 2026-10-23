@@ -9,6 +9,17 @@ http
       setTimeout(() => res.end(JSON.stringify({ status: "ready" })), 2000);
       return;
     }
+    if (
+      req.method === "DELETE" &&
+      /^\/rag\/documents\/[a-f\d-]{36}\/index$/.test(req.url)
+    ) {
+      res.setHeader("Retry-After", "23");
+      res.writeHead(
+        req.url.includes("00000000-0000-4000-8000-000000000001") ? 429 : 503,
+      );
+      res.end(JSON.stringify({ error: "Simulated vector cleanup failure" }));
+      return;
+    }
     if (req.method === "POST" && req.url === "/login") {
       res.setHeader("Retry-After", "17");
       res.setHeader("RateLimit-Limit", "5");

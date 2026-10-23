@@ -1,15 +1,8 @@
-import { useState, type FormEvent } from "react";
-import {
-  ArrowRight,
-  BookOpen,
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Send,
-  Sparkles,
-} from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { ArrowRight, BookOpen, RotateCcw, Send, Sparkles } from "lucide-react";
 import {
   post,
+  type Message,
   type Organization,
   type ServiceStatus,
   type Source,
@@ -17,12 +10,35 @@ import {
 import { ErrorNotice, Spinner } from "./components";
 import { PageHeading } from "./App";
 
-interface Answer {
-  question: string;
-  answer?: string;
+interface Reply {
+  answer: string;
   sources: Source[];
-  mode: "search" | "answer";
+  mode: "generation" | "retrieval";
 }
+interface Turn extends Reply {
+  question: string;
+}
+
+function recentHistory(
+  turns: Turn[],
+  organizationId: string,
+  question: string,
+): Message[] {
+  const history: Message[] = turns.slice(-5).flatMap((turn) => [
+    { role: "user" as const, content: turn.question.slice(0, 4000) },
+    { role: "assistant" as const, content: turn.answer.slice(0, 4000) },
+  ]);
+  // Keep Unicode and JSON overhead within the API's 16 KiB request limit.
+  while (
+    history.length &&
+    new TextEncoder().encode(
+      JSON.stringify({ organizationId, question, history, topK: 4 }),
+    ).length > 14000
+  )
+    history.splice(0, 2);
+  return history;
+}
+
 export function Playground({
   organization,
   status,
@@ -31,35 +47,58 @@ export function Playground({
   status?: ServiceStatus;
 }) {
   const [question, setQuestion] = useState("");
-  const [mode, setMode] = useState<"search" | "answer">("search");
-  const [pending, setPending] = useState(false);
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [pendingQuestion, setPendingQuestion] = useState("");
   const [error, setError] = useState<unknown>();
-  const [answer, setAnswer] = useState<Answer>();
-  const [expanded, setExpanded] = useState<number>();
-  async function ask(event: FormEvent) {
-    event.preventDefault();
+  const log = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const pending = Boolean(pendingQuestion);
+  useEffect(() => {
+    if (log.current) log.current.scrollTop = log.current.scrollHeight;
+  }, [turns, pendingQuestion]);
+  async function ask(event?: FormEvent) {
+    event?.preventDefault();
     if (pending || !question.trim()) return;
-    setPending(true);
+    const sent = question.trim();
+    setPendingQuestion(sent);
+    setQuestion("");
     setError(undefined);
-    setExpanded(undefined);
     try {
-      const result = await post<{ answer?: string; sources: Source[] }>(
-        mode === "search" ? "/rag/search" : "/rag/query",
-        { organizationId: organization.id, question: question.trim(), topK: 4 },
-      );
-      setAnswer({ ...result, question: question.trim(), mode });
+      const result = await post<Reply>("/rag/chat", {
+        organizationId: organization.id,
+        question: sent,
+        topK: 4,
+        history: recentHistory(turns, organization.id, sent),
+      });
+      setTurns((current) => [...current, { ...result, question: sent }]);
     } catch (failure) {
       setError(failure);
+      setQuestion(sent);
     } finally {
-      setPending(false);
+      setPendingQuestion("");
+      input.current?.focus();
     }
   }
   return (
     <section>
       <PageHeading
         label="A space to get curious"
-        title="Ask a better question."
-        description="See what your assistant knows, follow its sources, and find the gaps before your customers do."
+        title="Let's talk it through."
+        description="Ask about your company knowledge, then keep the conversation going."
+        action={
+          <button
+            className="button secondary"
+            disabled={pending || !turns.length}
+            onClick={() => {
+              setTurns([]);
+              setError(undefined);
+              setQuestion("");
+              input.current?.focus();
+            }}
+          >
+            <RotateCcw size={16} /> New chat
+          </button>
+        }
       />
       <div className="playground-layout">
         <div className="playground-main panel">
@@ -68,84 +107,33 @@ export function Playground({
               <Sparkles size={21} />
             </span>
             <div>
-              <h2>{organization.name}’s knowledge</h2>
-              <p>A thoughtful answer starts with the right context.</p>
+              <h2>{organization.name}'s assistant</h2>
+              <p>One reply at a time. Your context stays in this workspace.</p>
             </div>
-            <span className="badge sage">Private workspace</span>
+            <span className="badge sage">Private chat</span>
           </div>
-          <div className="playground-result" aria-live="polite">
-            {answer ? (
-              <>
-                <div className="asked-question">
-                  <span>You asked</span>
-                  <h3>{answer.question}</h3>
-                </div>
-                {answer.mode === "answer" && (
-                  <div className="generated-answer">
-                    <span className="answer-label">
-                      <Sparkles size={15} /> Assistant’s answer
-                    </span>
-                    <p>{answer.answer}</p>
-                  </div>
-                )}
-                <div className="result-heading">
-                  <BookOpen size={17} />
-                  <h3>
-                    {answer.sources.length
-                      ? `Found in your knowledge · ${answer.sources.length} sources`
-                      : "No matching sources yet"}
-                  </h3>
-                </div>
-                {answer.sources.map((source, index) => (
-                  <article
-                    className="source-result"
-                    key={`${source.documentId}-${source.chunkIndex}`}
-                  >
-                    <button
-                      aria-expanded={expanded === index}
-                      onClick={() =>
-                        setExpanded(expanded === index ? undefined : index)
-                      }
-                    >
-                      <span className="source-number">{index + 1}</span>
-                      <span>
-                        <strong>{source.title}</strong>
-                        <small>
-                          Supporting passage {source.chunkIndex + 1}
-                        </small>
-                      </span>
-                      {expanded === index ? (
-                        <ChevronUp size={17} />
-                      ) : (
-                        <ChevronDown size={17} />
-                      )}
-                    </button>
-                    <p className={expanded === index ? "expanded" : ""}>
-                      {source.text}
-                    </p>
-                  </article>
-                ))}
-                {!answer.sources.length && (
-                  <p className="muted">
-                    Try a more specific question, or add and index a source in
-                    your knowledge library.
-                  </p>
-                )}
-              </>
-            ) : (
+          <div
+            className="playground-result playground-chat"
+            ref={log}
+            role="log"
+            aria-label="Knowledge conversation"
+            aria-live="polite"
+            aria-busy={pending}
+          >
+            {!turns.length && !pending ? (
               <div className="playground-welcome">
                 <span className="large-sun" aria-hidden="true">
                   ✳
                 </span>
                 <h2>
-                  What would your
+                  What would you
                   <br />
-                  customers like to know?
+                  like to know?
                 </h2>
                 <p>
-                  Try a real question about your policies or products.
+                  Start with a question about your policies or products.
                   <br />
-                  Every result belongs to this workspace.
+                  Then ask a follow-up, just like a conversation.
                 </p>
                 <div className="suggestions">
                   {[
@@ -155,7 +143,10 @@ export function Playground({
                   ].map((suggestion) => (
                     <button
                       key={suggestion}
-                      onClick={() => setQuestion(suggestion)}
+                      onClick={() => {
+                        setQuestion(suggestion);
+                        input.current?.focus();
+                      }}
                     >
                       {suggestion}
                       <ArrowRight size={15} />
@@ -163,49 +154,91 @@ export function Playground({
                   ))}
                 </div>
               </div>
+            ) : (
+              turns.map((turn, index) => (
+                <div className="playground-turn" key={index}>
+                  <article className="playground-message user">
+                    <span>You</span>
+                    <p>{turn.question}</p>
+                  </article>
+                  <article className="playground-message assistant">
+                    <span>
+                      <Sparkles size={14} />{" "}
+                      {turn.mode === "generation"
+                        ? "Assistant"
+                        : "Policy lookup"}
+                    </span>
+                    <p>{turn.answer}</p>
+                    {turn.mode === "retrieval" && (
+                      <small>
+                        Retrieved from your source. Connect Gemini for a written
+                        answer.
+                      </small>
+                    )}
+                    {turn.sources.length > 0 && (
+                      <details className="chat-sources">
+                        <summary>
+                          <BookOpen size={14} /> View sources (
+                          {turn.sources.length})
+                        </summary>
+                        {turn.sources.map((source, sourceIndex) => (
+                          <article
+                            className="chat-source"
+                            key={`${source.documentId}-${source.chunkIndex}`}
+                          >
+                            <strong>
+                              [{sourceIndex + 1}] {source.title}
+                            </strong>
+                            <p>{source.text}</p>
+                          </article>
+                        ))}
+                      </details>
+                    )}
+                  </article>
+                </div>
+              ))
+            )}
+            {pending && (
+              <div className="playground-turn">
+                <article className="playground-message user">
+                  <span>You</span>
+                  <p>{pendingQuestion}</p>
+                </article>
+                <div className="chat-thinking" role="status">
+                  <Spinner /> Reading your knowledge...
+                </div>
+              </div>
             )}
           </div>
           <div className="question-area">
             <ErrorNotice error={error} />
-            <div
-              className="query-modes"
-              role="group"
-              aria-label="Question mode"
-            >
-              <button
-                className={mode === "search" ? "active" : ""}
-                aria-pressed={mode === "search"}
-                onClick={() => setMode("search")}
-              >
-                <Search size={14} /> Find passages
-              </button>
-              <button
-                className={mode === "answer" ? "active" : ""}
-                aria-pressed={mode === "answer"}
-                disabled={!status?.generationConfigured}
-                onClick={() => setMode("answer")}
-                title={
-                  !status?.generationConfigured
-                    ? "Configure the Gemini key to enable written answers"
-                    : "Generate an answer with citations"
-                }
-              >
-                <Sparkles size={14} /> Write an answer
-                {!status?.generationConfigured && <span>Setup needed</span>}
-              </button>
-            </div>
             <form onSubmit={ask}>
               <label htmlFor="question" className="sr-only">
                 Ask your company knowledge
               </label>
               <textarea
                 id="question"
+                ref={input}
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
                 maxLength={2000}
-                placeholder="Ask a question about your company…"
+                placeholder={
+                  turns.length
+                    ? "Ask a follow-up..."
+                    : "Ask about your company..."
+                }
                 required
                 rows={2}
+                onKeyDown={(event) => {
+                  if (
+                    event.key === "Enter" &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault();
+                    void ask();
+                  }
+                }}
               />
               <button
                 className="button primary"
@@ -216,9 +249,8 @@ export function Playground({
               </button>
             </form>
             <small>
-              {pending
-                ? "Reading your knowledge…"
-                : "Answers are grounded in your indexed sources. Always review before sharing."}
+              Enter to send. Shift + Enter for a new line. Recent turns provide
+              context; New chat clears this thread.
             </small>
           </div>
         </div>
@@ -234,25 +266,26 @@ export function Playground({
               <span>01</span>
               <div>
                 <strong>Start with your sources</strong>
-                <p>Add and index a document before asking a question.</p>
+                <p>Add and index a document in the knowledge library.</p>
               </div>
             </li>
             <li>
               <span>02</span>
               <div>
-                <strong>Ask something specific</strong>
+                <strong>Keep the conversation going</strong>
                 <p>
-                  “Can I return a used item?” works better than “Tell me
-                  everything.”
+                  Ask a question, then follow up with details. Recent messages
+                  help your assistant understand what you mean.
                 </p>
               </div>
             </li>
             <li>
               <span>03</span>
               <div>
-                <strong>Follow the paper trail</strong>
+                <strong>Check the original wording</strong>
                 <p>
-                  Open the supporting passages and check the original wording.
+                  Each reply has optional sources. Open them when you want to
+                  verify a detail.
                 </p>
               </div>
             </li>
@@ -260,8 +293,9 @@ export function Playground({
           <div className="guide-note">
             <BookOpen size={20} />
             <p>
-              Passage search works today. AI-written answers are available when
-              your Gemini key is connected.
+              {status?.generationConfigured
+                ? "AI answers are grounded in your current indexed sources."
+                : "Without a Gemini key, each reply shows one relevant policy passage. Written answers need Gemini; indexing and search use local BAAI embeddings."}
             </p>
           </div>
         </aside>

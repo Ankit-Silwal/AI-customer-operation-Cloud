@@ -13,10 +13,24 @@ paths:
       operationId: ragReadiness
       security: []
       responses:
-        '200':
+        "200":
           description: Embeddings and collection ready; generationConfigured may be false.
-        '503': { $ref: '#/components/responses/Unavailable' }
+        "503": { $ref: "#/components/responses/Unavailable" }
   /rag/documents/{documentId}/index:
+    delete:
+      operationId: removeDocumentIndex
+      description: Verify current document ownership and remove only this owner/organization/document's vector points, waiting for Qdrant acknowledgement. Used by document deletion before removing the database row; also supports explicit de-indexing.
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Index removed, including when no points existed. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
     post:
       operationId: indexDocument
       description: Fetch an owned document through the documents service and upsert immutable, deterministic vector chunks. Repeating the request does not duplicate points.
@@ -26,7 +40,7 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        '200':
+        "200":
           description: Indexed document.
           content:
             application/json:
@@ -38,18 +52,18 @@ paths:
                   organizationId: { type: string, format: uuid }
                   chunks: { type: integer, minimum: 1 }
                   status: { type: string, const: indexed }
-        '429': { $ref: '#/components/responses/RateLimited' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '422': { $ref: '#/components/responses/Invalid' }
-        '503': { $ref: '#/components/responses/Unavailable' }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+        "503": { $ref: "#/components/responses/Unavailable" }
   /rag/search:
     post:
       operationId: searchDocuments
       description: Verify ownership through organizations and apply owner AND organization metadata filters. Does not require a Gemini key.
-      requestBody: { $ref: '#/components/requestBodies/Query' }
+      requestBody: { $ref: "#/components/requestBodies/Query" }
       responses:
-        '200':
+        "200":
           description: Matching owned source chunks, or an empty list.
           content:
             application/json:
@@ -57,19 +71,23 @@ paths:
                 type: object
                 required: [sources]
                 properties:
-                  sources: { type: array, items: { $ref: '#/components/schemas/Source' } }
-        '429': { $ref: '#/components/responses/RateLimited' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '422': { $ref: '#/components/responses/Invalid' }
-        '503': { $ref: '#/components/responses/Unavailable' }
+                  sources:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/Source" },
+                    }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+        "503": { $ref: "#/components/responses/Unavailable" }
   /rag/query:
     post:
       operationId: answerQuestion
       description: Retrieve owned sources and pass excerpts to Gemini using the OpenAI-compatible API. Returns 503 until a key is configured; no results yields an explicit unknown answer without a model call.
-      requestBody: { $ref: '#/components/requestBodies/Query' }
+      requestBody: { $ref: "#/components/requestBodies/Query" }
       responses:
-        '200':
+        "200":
           description: Answer and supporting source chunks.
           content:
             application/json:
@@ -78,18 +96,69 @@ paths:
                 required: [answer, sources, model]
                 properties:
                   answer: { type: string }
-                  sources: { type: array, items: { $ref: '#/components/schemas/Source' } }
+                  sources:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/Source" },
+                    }
                   model: { type: string }
-        '429': { $ref: '#/components/responses/RateLimited' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '422': { $ref: '#/components/responses/Invalid' }
-        '502':
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+        "502":
           description: The model returned no answer.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-        '503': { $ref: '#/components/responses/Unavailable' }
+              schema: { $ref: "#/components/schemas/Error" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /rag/chat:
+    post:
+      operationId: chatWithKnowledge
+      description: One grounded reply per message, with recent conversation history used as context for follow-ups. Uses Gemini when configured; otherwise returns one explicitly labeled policy passage. Stateless; callers resend recent turns. Source excerpts are returned for optional citation inspection, never used as trusted instructions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - { $ref: "#/components/schemas/Query" }
+                - type: object
+                  properties:
+                    history:
+                      type: array
+                      maxItems: 10
+                      description: Alternating user/assistant pairs, beginning with user. Whole request must fit the 16 KiB body limit.
+                      items:
+                        type: object
+                        required: [role, content]
+                        additionalProperties: false
+                        properties:
+                          role: { type: string, enum: [user, assistant] }
+                          content:
+                            { type: string, minLength: 1, maxLength: 4000 }
+      responses:
+        "200":
+          description: One reply with mode and supporting excerpts. Missing sources produces an explicit unknown answer.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [answer, sources, mode]
+                properties:
+                  answer: { type: string }
+                  sources:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/Source" },
+                    }
+                  mode: { type: string, enum: [generation, retrieval] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "413": { description: Request exceeds 16 KiB. }
+        "422": { $ref: "#/components/responses/Invalid" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
@@ -98,7 +167,7 @@ components:
       required: true
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Query' }
+          schema: { $ref: "#/components/schemas/Query" }
   schemas:
     Query:
       type: object
@@ -126,24 +195,43 @@ components:
     RateLimited:
       description: User, global or expensive-operation concurrency budget exhausted. Honor Retry-After and add jitter. RateLimit headers report the last evaluated admission's constrained bucket.
       headers:
-        Retry-After: { description: Seconds until retry is permitted, schema: { type: integer, minimum: 1 } }
-        RateLimit-Limit: { description: Reported bucket capacity, schema: { type: integer } }
-        RateLimit-Remaining: { description: Whole tokens remaining, schema: { type: integer } }
-        RateLimit-Reset: { description: Seconds until the reported bucket refills fully, schema: { type: integer } }
-        RateLimit-Policy: { description: Bucket capacity and refill interval, schema: { type: string, example: '10;w=60' } }
+        Retry-After:
+          {
+            description: Seconds until retry is permitted,
+            schema: { type: integer, minimum: 1 },
+          }
+        RateLimit-Limit:
+          { description: Reported bucket capacity, schema: { type: integer } }
+        RateLimit-Remaining:
+          { description: Whole tokens remaining, schema: { type: integer } }
+        RateLimit-Reset:
+          {
+            description: Seconds until the reported bucket refills fully,
+            schema: { type: integer },
+          }
+        RateLimit-Policy:
+          {
+            description: Bucket capacity and refill interval,
+            schema: { type: string, example: "10;w=60" },
+          }
         X-Request-ID: { schema: { type: string } }
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
     Unauthorized:
       description: Missing, invalid or expired JWT.
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
     NotFound:
       description: Resource missing or owned by another account.
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
     Invalid:
       description: Invalid query, UUID, empty text, unsupported PDF or document limit.
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
     Unavailable:
       description: Missing Gemini key, unavailable dependency or dependency timeout. Redis rate-protection failure is fail-closed and includes Retry-After 1.
       headers:
         Retry-After: { schema: { type: integer, minimum: 1 } }
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
