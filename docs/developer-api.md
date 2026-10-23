@@ -4,19 +4,19 @@ The API is free for now. Create a workspace at http://localhost:3030, open Setti
 
 External requests use `Authorization: Bearer <API_KEY>` and base URL `http://localhost:3001/v1`. Keys belong to one workspace, expire after 90 days, are displayed once, and can be revoked in Settings. At most five active keys are allowed per workspace. Store keys on your server. The service stores SHA-256 hashes, never recoverable raw keys. Password changes invalidate browser sessions; API keys are revoked independently.
 
-| Method | Path | Scope | Behavior |
-| --- | --- | --- | --- |
-| POST | /chat | chat:write | `{question, history?, topK?}`; one answer with sources and mode. History is at most five complete user/assistant turns, 4,000 characters per message. |
-| GET, POST | /documents | documents:read / documents:write | List with page/pageSize, or create `{title, content}` in the key's workspace. |
-| POST | /documents/upload | documents:write | Multipart `title` and `file`; PDF, text or Markdown, maximum 1 MiB. |
-| GET, DELETE | /documents/{id} | documents:read / documents:write | Read or delete a source, including indexed vectors. |
-| GET | /documents/{id}/download | documents:read | Download the uploaded file. |
-| POST | /documents/{id}/index | documents:write | Index using local BAAI/bge-small-en-v1.5 into Qdrant. |
-| GET, POST | /conversations | chat:write | List or create `{customerEmail, subject, messages}`. |
-| GET | /conversations/{id} | chat:write | Read a saved conversation. |
-| POST | /conversations/{id}/messages | chat:write | Append `{expectedCount, messages}`; stale counts return 409. |
-| POST | /otp/challenges | otp:write | `{email, purpose}`; email a six-digit code using Nodemailer. Returns challengeId and expiry, never the code. |
-| POST | /otp/verify | otp:write | `{challengeId, email, purpose, code}`; single-use verification. |
+| Method      | Path                         | Scope                            | Behavior                                                                                                                                              |
+| ----------- | ---------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST        | /chat                        | chat:write                       | `{question, history?, topK?}`; one answer with sources and mode. History is at most five complete user/assistant turns, 4,000 characters per message. |
+| GET, POST   | /documents                   | documents:read / documents:write | List with page/pageSize, or create `{title, content}` in the key's workspace.                                                                         |
+| POST        | /documents/upload            | documents:write                  | Multipart `title` and `file`; PDF, text or Markdown, maximum 1 MiB.                                                                                   |
+| GET, DELETE | /documents/{id}              | documents:read / documents:write | Read or delete a source, including indexed vectors.                                                                                                   |
+| GET         | /documents/{id}/download     | documents:read                   | Download the uploaded file.                                                                                                                           |
+| POST        | /documents/{id}/index        | documents:write                  | Index using local BAAI/bge-small-en-v1.5 into Qdrant.                                                                                                 |
+| GET, POST   | /conversations               | chat:write                       | List or create `{customerEmail, subject, messages}`.                                                                                                  |
+| GET         | /conversations/{id}          | chat:write                       | Read a saved conversation.                                                                                                                            |
+| POST        | /conversations/{id}/messages | chat:write                       | Append `{expectedCount, messages}`; stale counts return 409.                                                                                          |
+| POST        | /otp/challenges              | otp:write                        | `{email, purpose}`; email a six-digit code using Nodemailer. Returns challengeId and expiry, never the code.                                          |
+| POST        | /otp/verify                  | otp:write                        | `{challengeId, email, purpose, code}`; single-use verification.                                                                                       |
 
 Workspace identity is derived from the key. Do not send organizationId. Resources from other workspaces return 404. OTP purpose is a 1–64 character application identifier (letters, digits, underscore, dash). Codes expire in five minutes, allow five failed attempts, and a new challenge replaces the previous challenge for that recipient and purpose in the same workspace. Successful verification consumes the code; your server must then perform the authorized action. Delivery and verification are separate operations. SMTP delivery is required for real OTPs; missing configuration returns 503.
 

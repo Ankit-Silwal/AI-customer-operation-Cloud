@@ -242,11 +242,28 @@ services:
     mem_limit: 256m
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-rate_limits_local}
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-rate_limits_local}", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    command:
+      [
+        "redis-server",
+        "--requirepass",
+        "${REDIS_PASSWORD:-rate_limits_local}",
+        "--appendonly",
+        "yes",
+        "--appendfsync",
+        "everysec",
+        "--maxmemory",
+        "128mb",
+        "--maxmemory-policy",
+        "noeviction",
+      ]
     volumes:
       - rate_limit_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      test:
+        [
+          "CMD-SHELL",
+          'redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping | grep -q PONG',
+        ]
       interval: 5s
       timeout: 2s
       retries: 10
