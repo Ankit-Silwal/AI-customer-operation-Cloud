@@ -1,0 +1,11 @@
+fastapi==0.161.1
+uvicorn==0.54.0
+langchain-huggingface==1.2.3
+langchain-qdrant==1.1.0
+qdrant-client==1.20.0
+openai==3.37.0
+PyJWT==2.15.1
+httpx==0.28.1
+pypdf==6.21.2
+sentence-transformers==6.2.0
+transformers==5.20.2

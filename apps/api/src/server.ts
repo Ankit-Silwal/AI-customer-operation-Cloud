@@ -3,8 +3,16 @@ import { readEnvironment } from "./config/env.js";
 import { createDatabase, initializeDatabase } from "./database/database.js";
 import { errorCode, jsonLogger } from "./common/logger.js";
 import { createPrisma } from "./database/prisma.js";
+import { readServiceRole } from "./services.js";
+import { createOrganizationAccess } from "./clients/organizations.js";
 
 const env = readEnvironment();
+const serviceRole = readServiceRole(process.env.SERVICE_ROLE);
+const needsOrganizations = serviceRole === "conversations" || serviceRole === "documents";
+if (needsOrganizations && !process.env.ORGANIZATIONS_URL) throw new Error("ORGANIZATIONS_URL is required");
+const organizationOptions = needsOrganizations
+  ? { organizationAccess: createOrganizationAccess(process.env.ORGANIZATIONS_URL!, env.jwtSecret) }
+  : {};
 const db = createDatabase(env.databaseUrl, env);
 const prisma = createPrisma(db);
 async function closeDatabase(): Promise<void> {
@@ -13,7 +21,8 @@ async function closeDatabase(): Promise<void> {
 let shuttingDown = false;
 
 try {
-  await initializeDatabase(db);
+  // Compose runs migrations once before starting the domain services.
+  if (serviceRole === "all") await initializeDatabase(db);
   await prisma.$connect();
   await prisma.$queryRaw`SELECT 1`;
 } catch (error) {
@@ -22,7 +31,7 @@ try {
   process.exit(1);
 }
 
-const server = createApp(prisma, env.jwtSecret, { isDraining: () => shuttingDown }).listen(env.port, "0.0.0.0", () => {
+const server = createApp(prisma, env.jwtSecret, { ...organizationOptions, serviceRole, isDraining: () => shuttingDown }).listen(env.port, "0.0.0.0", () => {
   jsonLogger({ level: "info", event: "server_started" });
 });
 server.headersTimeout = 10000;

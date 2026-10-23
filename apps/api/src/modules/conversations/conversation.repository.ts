@@ -1,4 +1,5 @@
 import type { PrismaClient } from "../../database/prisma.js";
+import type { OrganizationAccess } from "../../clients/organizations.js";
 import type {
   Conversation,
   CreateConversationInput,
@@ -13,12 +14,19 @@ export interface ConversationRepository {
 }
 
 export class PrismaConversationRepository implements ConversationRepository {
-  constructor(private readonly db: PrismaClient) {}
+  constructor(private readonly db: PrismaClient, private readonly organizationAccess?: OrganizationAccess) {}
 
   async createForOwner(
     input: CreateConversationInput,
     ownerId: string,
   ): Promise<Conversation | undefined> {
+    if (this.organizationAccess) {
+      if (!await this.organizationAccess(input.organizationId, ownerId)) return undefined;
+      const saved = await this.db.conversation.create({
+        data: { ...input, messages: input.messages.map(message => ({ ...message })) },
+      });
+      return { ...saved, messages: input.messages };
+    }
     // Keep ownership verification and insertion in a single SQL statement.
     const rows = await this.db.$queryRaw<Conversation[]>`
       INSERT INTO conversations (organization_id, customer_email, subject, messages)
@@ -33,6 +41,11 @@ export class PrismaConversationRepository implements ConversationRepository {
     id: string,
     ownerId: string,
   ): Promise<Conversation | undefined> {
+    if (this.organizationAccess) {
+      const saved = await this.db.conversation.findUnique({ where: { id } });
+      if (!saved || !await this.organizationAccess(saved.organizationId, ownerId)) return undefined;
+      return { ...saved, messages: saved.messages as unknown as Conversation["messages"] };
+    }
     const conversation = await this.db.conversation.findFirst({
       where: { id, organization: { ownerId } },
     });

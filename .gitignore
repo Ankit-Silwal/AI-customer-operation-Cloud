@@ -27,6 +27,11 @@ out/
 build
 dist
 apps/api/src/generated/prisma/
+__pycache__/
+.pytest_cache/
+.venv/
+.local-validation/
+postman/.dependencies/
 
 
 # Debug

@@ -16,12 +16,16 @@ import { healthRoutes } from "./modules/health/health.routes.js";
 import { PrismaOrganizationRepository } from "./modules/organizations/organization.repository.js";
 import { organizationRoutes } from "./modules/organizations/organization.routes.js";
 import { OrganizationService } from "./modules/organizations/organization.service.js";
+import type { ServiceRole } from "./services.js";
+import type { OrganizationAccess } from "./clients/organizations.js";
 
 export function setupRoutes(
   app: Express,
   db: PrismaClient,
   jwtSecret: string,
   isDraining: () => boolean = () => false,
+  serviceRole: ServiceRole = "all",
+  organizationAccess?: OrganizationAccess,
 ): void {
   const tokens = new TokenService(jwtSecret);
   const auth = authenticate(tokens);
@@ -29,8 +33,10 @@ export function setupRoutes(
   // Health probes must remain independent of request body parsing.
   app.use("/health", rememberRoutePrefix, healthRoutes(db, isDraining));
   app.use(express.json({ limit: "1mb" }));
-  app.use(authRoutes(new AuthService(new PrismaAuthRepository(db), tokens)));
-  app.use(
+  if (serviceRole === "all" || serviceRole === "identity") {
+    app.use(authRoutes(new AuthService(new PrismaAuthRepository(db), tokens)));
+  }
+  if (serviceRole === "all" || serviceRole === "organizations") app.use(
     "/organizations",
     rememberRoutePrefix,
     organizationRoutes(
@@ -38,19 +44,19 @@ export function setupRoutes(
       auth,
     ),
   );
-  app.use(
+  if (serviceRole === "all" || serviceRole === "conversations") app.use(
     "/conversation",
     rememberRoutePrefix,
     conversationRoutes(
-      new ConversationService(new PrismaConversationRepository(db)),
+      new ConversationService(new PrismaConversationRepository(db, organizationAccess)),
       auth,
     ),
   );
-  app.use(
+  if (serviceRole === "all" || serviceRole === "documents") app.use(
     "/documents",
     rememberRoutePrefix,
     documentRoutes(
-      new DocumentService(new PrismaDocumentRepository(db)),
+      new DocumentService(new PrismaDocumentRepository(db, organizationAccess)),
       auth,
     ),
   );

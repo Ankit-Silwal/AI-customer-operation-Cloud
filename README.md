@@ -1,161 +1,69 @@
 # AI Customer Operation Cloud
 
-TypeScript monorepo with an Express 5 API, Prisma ORM 7, PostgreSQL persistence in Docker, and project documentation. The API implements registration, login, organizations, conversations, and documents.
+Stateless customer operations services with an Express gateway, Prisma/PostgreSQL persistence, and Python RAG using BAAI BGE embeddings, Qdrant and Gemini.
 
-**Current version: 1.0.0.** See [Version 1](docs/Version1/README.md) for health/readiness, security headers, validation, request IDs, structured logs, database constraints/pooling, Text/Markdown/PDF uploads, and k6 traffic with one distinct account per VU. Start with the [study guide](docs/Version1/study-guide.md). Version 1 load campaigns/results are deferred; recorded Version 0 performance numbers describe the older read-only workload.
+## Run
 
-## Structure
+Requires Docker Desktop with Linux containers. Node 24.11+ and npm 11 are needed for local TypeScript checks.
+
+For a new checkout, copy `.env.example` to `.env` and set a random `JWT_SECRET` of at least 32 characters. Keep an existing `.env` and add missing variables from the example. Real secrets stay out of Git.
+
+```sh
+docker compose up --build -d --wait --wait-timeout 600
+```
+
+The gateway is at `http://localhost:3001`. The first build installs CPU PyTorch and downloads `BAAI/bge-small-en-v1.5` into a persistent model cache. Identity, organizations, conversations and documents each use a separate PostgreSQL database and role. This stack creates fresh data; it does not migrate or delete the earlier application's volume.
+
+Add `api_key=...` or `GEMINI_API_KEY=...` to `.env` when ready, then run `docker compose up -d --force-recreate rag`. Indexing and search already work without that key; answer generation returns `503` until it is configured. The generation defaults are `gemini-3.1-flash-lite` and `https://generativelanguage.googleapis.com/v1beta/openai/`.
+
+## Services and routes
+
+| Service | Public routes through the gateway |
+| --- | --- |
+| Identity | `POST /register`, `POST /login` |
+| Organizations | `POST /organizations`, `GET /organizations/:id` |
+| Conversations | `POST /conversation`, `GET /conversation/:id` |
+| Documents | `POST /documents`, `POST /documents/upload`, `GET /documents/:id`, `GET /documents/:id/download` |
+| RAG | `POST /rag/documents/:id/index`, `POST /rag/search`, `POST /rag/query` |
+| Health | `GET /health/live`, `GET /health/ready`, `GET /rag/health/ready` |
+
+Resources and RAG require the JWT returned by registration/login. Create an organization and document, index the document, then search or query with `{"organizationId":"<UUID>","question":"What is our refund policy?","topK":4}`. Queries retrieve only chunks belonging to both the caller and the selected organization.
+
+See [architecture, environment variables, RAG workflow and scaling](docs/microservices.md) and the [RAG OpenAPI contract](contracts/rag.openapi.yaml).
+
+## Code layout
 
 ```text
-apps/
-  api/
-    prisma/schema.prisma       # Prisma models mapped to existing PostgreSQL tables
-    prisma.config.ts           # Prisma CLI configuration; loads the root .env
-    src/
-      app.ts                   # Express app, shared middleware and error handling
-      routes.ts                # setupRoutes: route registration and module wiring
-      server.ts                # Startup and graceful shutdown
-      config/                  # Validated environment configuration
-      database/                # Shared pool, Prisma client, SQL schema and migrations
-      common/                  # HTTP types, errors, and input validation
-      middleware/              # Authentication and error handling
-      modules/
-        auth/
-        organizations/
-        conversations/
-        documents/
-    tests/                     # HTTP, persistence, ownership, and security tests
-    scripts/                   # Build asset copying
-  docs/                        # Existing endpoint notes
-packages/
-  ui/                          # Shared React components
-  typescript-config/           # Shared strict compiler settings
-  eslint-config/               # Shared frontend lint configuration
+apps/api/src/
+  app.ts                 # Domain Express app and middleware
+  routes.ts              # setupRoutes; registers the selected service's routes
+  services.ts            # Validated domain roles
+  server.ts              # Domain process startup and shutdown
+  gateway/               # Stateless streaming gateway; setupGatewayRoutes
+  clients/               # HTTP organization ownership checks
+  modules/               # Domain controllers, services and Prisma repositories
+  database/services/     # SQL initialization per domain database
+apps/api/prisma/         # Prisma models and generated-client configuration
+apps/rag/app/            # FastAPI, BGE embeddings, tenant retrieval and Gemini client
+infra/postgres/          # Separate database/role bootstrap
+contracts/              # API contracts
+postman/                # Local provider mocks and simulations
 ```
 
-Each API module contains its own `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, and `*.types.ts`. Routes select handlers; controllers validate HTTP input; services apply application rules; repositories use Prisma Client. Conditional inserts use Prisma's parameterized SQL templates to verify ownership and insert in one statement. Upload metadata and file bytes are saved in a Prisma transaction. Dependencies are passed through constructors and composed in `setupRoutes` in `src/routes.ts`. `app.ts` configures shared middleware, calls `setupRoutes`, then installs the 404 and error handlers.
+Each domain registers its routes using `setupRoutes`. The gateway uses `setupGatewayRoutes`. Apps configure middleware and final error handling separately from route composition. The Node services share a build image, but each container exposes only its own domain routes. No requests need a sticky session.
 
-The API uses strict TypeScript, unknown request bodies, typed database results, checked array access, and checked optional properties. Compiled ESM and the SQL schema are emitted into `apps/api/dist`; production runs the compiled JavaScript.
+## Validate
 
-## Local development
-
-Requires Node.js 24.11+ (within Node 24), npm 11.6.1 or later within npm 11, and Docker Desktop running Linux containers. Docker Compose supplies PostgreSQL 17.
-
-```powershell
-Copy-Item .env.example .env
+```sh
 npm install
-```
-
-Set `JWT_SECRET` in the root `.env` to a random secret of at least 32 characters, then start PostgreSQL and the apps:
-
-```sh
-npm run db:up
-npm run db:check
-npm run dev
-```
-
-API: `http://localhost:3001`. Architecture and performance notes: [docs/Version0](docs/Version0/README.md).
-
-To run only the API, use `npm run dev --workspace @repo/api`. If you change PostgreSQL credentials in `.env`, update `DATABASE_URL` for local development too. Environment configuration is checked on startup. The schema is initialized automatically and existing tables/data are preserved.
-
-The connection path is API → Prisma Client → PostgreSQL adapter/shared `pg` pool → Docker PostgreSQL. `POSTGRES_PORT` controls the host port (default `5432`); keep the port in `DATABASE_URL` in sync. For example, to use host port `5433`:
-
-```dotenv
-POSTGRES_PORT=5433
-DATABASE_URL=postgresql://customer_ops:customer_ops_local@localhost:5433/customer_ops
-```
-
-Inside Docker, Compose uses `postgres:5432` regardless of the host port. Database storage remains in the existing `postgres_data` named volume. Changing `.env` credentials does not change credentials already initialized in that volume.
-
-`npm run db:check` generates Prisma Client, initializes the schema with the same migrations as API startup, then checks the connection and a Prisma model query. `npm run db:studio` opens Prisma Studio. Client generation also runs before development, build, type checking and tests.
-
-The existing SQL schema and versioned migrations in `apps/api/src/database` remain authoritative, preserving database CHECK constraints and migration history. Update `apps/api/prisma/schema.prisma` alongside SQL changes, then run `npm run db:generate`. Prisma Migrate is not enabled; do not use `prisma db push` to bypass the SQL migration process. The generated client is ignored by Git and compiled into the production image.
-
-## Production
-
-```sh
-docker compose up --build -d
-```
-
-The Docker build compiles TypeScript in a build stage. The runtime stage contains production dependencies and compiled API files, runs as the `node` user, and serves port 3001. PostgreSQL data is stored in the `postgres_data` Docker volume.
-
-For a local compiled run:
-
-```sh
-npm run build --workspace @repo/api
-npm run start --workspace @repo/api
-```
-
-## Checks
-
-```sh
 npm run check-types
 npm run lint
 npm test
 npm run build
+node --import tsx apps/api/scripts/check-microservices.ts --rag
+docker compose run --rm --no-deps rag python -m unittest discover -s tests -p "test_*.py"
 ```
 
-Both `npm test` and `npm run test:postgres` run Prisma integration tests against a disposable PostgreSQL 17 container on port `55433`, then remove it. Docker Desktop must be running. The test database uses temporary storage separate from development data.
+`npm test` uses a disposable PostgreSQL container on port `55433`; set `TEST_DATABASE_URL` to use another test database. The smoke check uses the running multi-service stack and real embeddings/Qdrant. Gemini generation is additionally exercised against a local Postman simulation; the real provider requires your key and permitted model access.
 
-The API tests exercise routes through the actual controllers, services, Prisma repositories and PostgreSQL. Set `TEST_DATABASE_URL` to use an existing test database instead of starting a container; each test creates and drops its own random schema. The database role must be allowed to create schemas. Tests verify migration preservation and transaction rollback against real PostgreSQL.
-
-Tests cover password hashing, registration/login, JWT rejection, duplicate emails, input validation, malformed/oversized JSON, persistence, camelCase responses, missing resources, and ownership isolation.
-
-## k6 load testing
-
-The commands below describe the original **Version 0 shared-account organization-read test**. For Version 1 mixed traffic and distinct accounts, use `npm run test:load:v1 -- -e USERS=100 -e DURATION=30s`; see [Version 1 instructions](docs/Version1/README.md).
-
-Install [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) and make sure `k6 version` works in your terminal. k6 is a separate executable, not an npm dependency. Start PostgreSQL and the API using the local development commands above, then run this from the repository root:
-
-```sh
-npm run test:load -- --vus 50 --duration 1m
-```
-
-Change `50` to the number of concurrent virtual users you want to simulate, and `1m` to the run length (`30s`, `5m`, etc.). Each user repeatedly performs one authenticated `GET /organizations/:id`, then waits one second. Virtual users are concurrent users, not a fixed requests-per-second target; achieved throughput depends on response time. Without CLI flags, the defaults are 10 users for 30 seconds. k6 prints request rate, latency, failed requests, and check results at the end. See the [k6 CLI examples](https://grafana.com/docs/k6/latest/get-started/running-k6/) for the underlying flags.
-
-The default API URL is `http://localhost:3001`. To use another test environment:
-
-```sh
-npm run test:load -- --vus 100 --duration 2m -e BASE_URL=http://localhost:3001
-```
-
-Before generating traffic, the test registers one unique account and creates one organization. These records remain in the database because the API has no delete endpoints. To reuse an existing organization without creating data, supply its owner's JWT and its ID. In PowerShell, environment variables avoid putting the token in the command itself:
-
-```powershell
-$env:TOKEN = "<owner-jwt>"
-$env:ORGANIZATION_ID = "<organization-uuid>"
-npm run test:load -- --vus 50 --duration 1m
-Remove-Item Env:TOKEN, Env:ORGANIZATION_ID
-```
-
-Supply both `TOKEN` and `ORGANIZATION_ID`, or neither. Setup verifies access before the load starts. The test requires at least one organization read and exits with a failure if organization reads have a failure rate of 1% or more, a 95th percentile latency of 500 ms or more, or a check pass rate of 99% or less. Setup requests are excluded from those thresholds.
-
-To save metrics safely, add `-e SUMMARY_PATH=load.summary.json`. The custom export includes numerical metrics and threshold failure flags, and prints metrics to the console. Avoid `--summary-export`: it also saves the real API JWT returned by setup. Test tokens grant access to the test account's data and must stay out of Git.
-
-For the recorded Docker experiment with 1 CPU and 1 GiB per container, including a reusable multi-user matrix runner, see [Version 0 architecture and test notes](docs/Version0/README.md).
-
-If you prefer Docker instead of installing k6, run this PowerShell command from the repository root with the API already running on the host:
-
-```powershell
-docker run --rm --mount "type=bind,source=${PWD}/apps/api/tests/k6,target=/scripts,readonly" grafana/k6:2.3.0 run --vus 50 --duration 1m -e BASE_URL=http://host.docker.internal:3001 /scripts/organization-read.k6.js
-```
-
-## Endpoints
-
-JSON request bodies use `Content-Type: application/json`; `POST /documents/upload` uses multipart fields `organizationId`, `title`, and `file`. Register and login return `{ user, token }`. Use `Authorization: Bearer <token>` for resource endpoints. Users can only access organizations they own and their conversations/documents. Public health endpoints and the complete Version 1 route list are documented in [the architecture](docs/Version1/architecture.md).
-
-| Method | Path                 | JSON body                                                                                                                                                                 |
-| ------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/register`          | `{ "name": "Ankit", "email": "ankit@example.com", "password": "password123" }`                                                                                            |
-| POST   | `/login`             | `{ "email": "ankit@example.com", "password": "password123" }`                                                                                                             |
-| POST   | `/organizations`     | `{ "name": "Acme Support" }`                                                                                                                                              |
-| GET    | `/organizations/:id` | None                                                                                                                                                                      |
-| POST   | `/conversation`      | `{ "organizationId": "<UUID>", "customerEmail": "customer@example.com", "subject": "Order question", "messages": [{ "role": "user", "content": "Where is my order?" }] }` |
-| GET    | `/conversation/:id`  | None                                                                                                                                                                      |
-| POST   | `/documents`         | `{ "organizationId": "<UUID>", "title": "Refund policy", "content": "Refunds are available within 30 days." }`                                                            |
-
-Create routes return `201` and the saved object, including its `id`. GET routes return the saved object. Response fields use camelCase. `messages` is optional and defaults to `[]`; supported roles are `user` and `assistant`. Tokens expire after seven days. Passwords must have 8-128 characters and are hashed with scrypt.
-
-Errors return `{ "error": "..." }`: `400` for invalid input, `401` for authentication failures, `404` for missing/inaccessible resources, `409` for an already registered email, and `413` for oversized request bodies.
-
-Conversations and documents are stored as submitted JSON/text; AI replies and document parsing are outside this MVP.
+The former `SERVICE_ROLE=all` Node runtime remains available for regression tests and the older benchmark configuration. It is not the default Docker architecture. Its `.env` `DATABASE_URL`, `db:check` and `db:studio` commands refer to that compatibility database; use explicit service connection URLs when inspecting the new databases. Do not use Prisma `db push` on an individual domain database.

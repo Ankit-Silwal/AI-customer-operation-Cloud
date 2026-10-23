@@ -6,3 +6,6 @@ node_modules
 .turbo
 **/dist
 **/.next
+**/__pycache__
+.local-validation
+apps/api/src/generated

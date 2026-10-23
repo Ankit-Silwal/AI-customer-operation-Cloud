@@ -1,0 +1,134 @@
+openapi: 3.1.0
+info:
+  title: Customer Operations RAG API
+  version: 1.0.0
+  description: Tenant-scoped document indexing, retrieval and Gemini generation behind the gateway.
+servers:
+  - url: http://localhost:3001
+security:
+  - bearerAuth: []
+paths:
+  /rag/health/ready:
+    get:
+      operationId: ragReadiness
+      security: []
+      responses:
+        '200':
+          description: Embeddings and collection ready; generationConfigured may be false.
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /rag/documents/{documentId}/index:
+    post:
+      operationId: indexDocument
+      description: Fetch an owned document through the documents service and upsert immutable, deterministic vector chunks. Repeating the request does not duplicate points.
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Indexed document.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [documentId, organizationId, chunks, status]
+                properties:
+                  documentId: { type: string, format: uuid }
+                  organizationId: { type: string, format: uuid }
+                  chunks: { type: integer, minimum: 1 }
+                  status: { type: string, const: indexed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /rag/search:
+    post:
+      operationId: searchDocuments
+      description: Verify ownership through organizations and apply owner AND organization metadata filters. Does not require a Gemini key.
+      requestBody: { $ref: '#/components/requestBodies/Query' }
+      responses:
+        '200':
+          description: Matching owned source chunks, or an empty list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sources]
+                properties:
+                  sources: { type: array, items: { $ref: '#/components/schemas/Source' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /rag/query:
+    post:
+      operationId: answerQuestion
+      description: Retrieve owned sources and pass excerpts to Gemini using the OpenAI-compatible API. Returns 503 until a key is configured; no results yields an explicit unknown answer without a model call.
+      requestBody: { $ref: '#/components/requestBodies/Query' }
+      responses:
+        '200':
+          description: Answer and supporting source chunks.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [answer, sources, model]
+                properties:
+                  answer: { type: string }
+                  sources: { type: array, items: { $ref: '#/components/schemas/Source' } }
+                  model: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '502':
+          description: The model returned no answer.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  requestBodies:
+    Query:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Query' }
+  schemas:
+    Query:
+      type: object
+      required: [organizationId, question]
+      properties:
+        organizationId: { type: string, format: uuid }
+        question: { type: string, minLength: 1, maxLength: 2000, pattern: '\S' }
+        topK: { type: integer, minimum: 1, maximum: 8, default: 4 }
+    Source:
+      type: object
+      required: [documentId, title, chunkIndex, text, score]
+      properties:
+        documentId: { type: string, format: uuid }
+        title: { type: string }
+        chunkIndex: { type: integer, minimum: 0 }
+        text: { type: string }
+        score: { type: number }
+    Error:
+      type: object
+      required: [error, requestId]
+      properties:
+        error: { type: string }
+        requestId: { type: string }
+  responses:
+    Unauthorized:
+      description: Missing, invalid or expired JWT.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: Resource missing or owned by another account.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Invalid:
+      description: Invalid query, UUID, empty text, unsupported PDF or document limit.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unavailable:
+      description: Missing Gemini key, unavailable dependency or dependency timeout.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }

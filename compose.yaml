@@ -1,19 +1,150 @@
+x-node: &node
+  image: customer-ops-node:local
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+  cpus: "1.0"
+  mem_limit: 512m
+  restart: unless-stopped
+
+x-domain-env: &domain-env
+  PORT: 3001
+  JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env file}
+  DB_POOL_MAX: ${DB_POOL_MAX:-10}
+  ORGANIZATIONS_URL: http://organizations:3001
+
 services:
   api:
-    cpus: "1.0"
-    mem_limit: 1g
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    <<: *node
+    command: ["node", "apps/api/dist/gateway/server.js"]
     ports:
       - "${PORT:-3001}:3001"
     environment:
       PORT: 3001
-      DATABASE_URL: postgresql://${POSTGRES_USER:-customer_ops}:${POSTGRES_PASSWORD:-customer_ops_local}@postgres:5432/${POSTGRES_DB:-customer_ops}
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env file}
+      IDENTITY_URL: http://identity:3001
+      ORGANIZATIONS_URL: http://organizations:3001
+      CONVERSATIONS_URL: http://conversations:3001
+      DOCUMENTS_URL: http://documents:3001
+      RAG_URL: http://rag:8000
     depends_on:
-      postgres:
-        condition: service_healthy
+      identity: { condition: service_healthy }
+      organizations: { condition: service_healthy }
+      conversations: { condition: service_healthy }
+      documents: { condition: service_healthy }
+      rag: { condition: service_started }
+
+  identity:
+    <<: *node
+    environment:
+      <<: *domain-env
+      SERVICE_ROLE: identity
+      DATABASE_URL: postgresql://identity_app:${IDENTITY_DB_PASSWORD:-identity_local}@postgres:5432/identity
+    depends_on:
+      migrate-identity: { condition: service_completed_successfully }
+
+  organizations:
+    <<: *node
+    environment:
+      <<: *domain-env
+      SERVICE_ROLE: organizations
+      DATABASE_URL: postgresql://organizations_app:${ORGANIZATIONS_DB_PASSWORD:-organizations_local}@postgres:5432/organizations
+    depends_on:
+      migrate-organizations: { condition: service_completed_successfully }
+
+  conversations:
+    <<: *node
+    environment:
+      <<: *domain-env
+      SERVICE_ROLE: conversations
+      DATABASE_URL: postgresql://conversations_app:${CONVERSATIONS_DB_PASSWORD:-conversations_local}@postgres:5432/conversations
+    depends_on:
+      organizations: { condition: service_healthy }
+      migrate-conversations: { condition: service_completed_successfully }
+
+  documents:
+    <<: *node
+    environment:
+      <<: *domain-env
+      SERVICE_ROLE: documents
+      DATABASE_URL: postgresql://documents_app:${DOCUMENTS_DB_PASSWORD:-documents_local}@postgres:5432/documents
+    depends_on:
+      organizations: { condition: service_healthy }
+      migrate-documents: { condition: service_completed_successfully }
+
+  migrate-identity:
+    <<: *node
+    restart: "no"
+    command: ["node", "apps/api/dist/database/migrate.js"]
+    environment:
+      SERVICE_ROLE: identity
+      DATABASE_URL: postgresql://identity_app:${IDENTITY_DB_PASSWORD:-identity_local}@postgres:5432/identity
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  migrate-organizations:
+    <<: *node
+    restart: "no"
+    command: ["node", "apps/api/dist/database/migrate.js"]
+    environment:
+      SERVICE_ROLE: organizations
+      DATABASE_URL: postgresql://organizations_app:${ORGANIZATIONS_DB_PASSWORD:-organizations_local}@postgres:5432/organizations
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  migrate-conversations:
+    <<: *node
+    restart: "no"
+    command: ["node", "apps/api/dist/database/migrate.js"]
+    environment:
+      SERVICE_ROLE: conversations
+      DATABASE_URL: postgresql://conversations_app:${CONVERSATIONS_DB_PASSWORD:-conversations_local}@postgres:5432/conversations
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  migrate-documents:
+    <<: *node
+    restart: "no"
+    command: ["node", "apps/api/dist/database/migrate.js"]
+    environment:
+      SERVICE_ROLE: documents
+      DATABASE_URL: postgresql://documents_app:${DOCUMENTS_DB_PASSWORD:-documents_local}@postgres:5432/documents
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  rag:
+    image: customer-ops-rag:local
+    build:
+      context: .
+      dockerfile: apps/rag/Dockerfile
+    cpus: "2.0"
+    mem_limit: 3g
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env file}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-${api_key:-}}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai/}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      EMBEDDING_MODEL: BAAI/bge-small-en-v1.5
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-learning_rag}
+      QDRANT_CREATE_COLLECTION: ${QDRANT_CREATE_COLLECTION:-true}
+      ORGANIZATIONS_URL: http://organizations:3001
+      DOCUMENTS_URL: http://documents:3001
+    volumes:
+      - embedding_models:/models
+    depends_on:
+      qdrant: { condition: service_started }
+      organizations: { condition: service_healthy }
+      documents: { condition: service_healthy }
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.0
+    cpus: "1.0"
+    mem_limit: 1g
+    ports:
+      - "127.0.0.1:${QDRANT_PORT:-6335}:6333"
+    volumes:
+      - rag_qdrant_data:/qdrant/storage
     restart: unless-stopped
 
   postgres:
@@ -24,10 +155,15 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-customer_ops}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-customer_ops_local}
       POSTGRES_DB: ${POSTGRES_DB:-customer_ops}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:-identity_local}
+      ORGANIZATIONS_DB_PASSWORD: ${ORGANIZATIONS_DB_PASSWORD:-organizations_local}
+      CONVERSATIONS_DB_PASSWORD: ${CONVERSATIONS_DB_PASSWORD:-conversations_local}
+      DOCUMENTS_DB_PASSWORD: ${DOCUMENTS_DB_PASSWORD:-documents_local}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - microservices_postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -36,4 +172,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  microservices_postgres_data:
+  rag_qdrant_data:
+  embedding_models:

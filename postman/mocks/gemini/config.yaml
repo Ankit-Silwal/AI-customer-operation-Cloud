@@ -1,0 +1,7 @@
+version: 1
+name: gemini
+description: OpenAI-compatible Gemini chat completion contract for local RAG verification
+interceptRequests: true
+scenarios:
+  - name: default
+    path: default.js

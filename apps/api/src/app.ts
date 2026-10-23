@@ -5,8 +5,12 @@ import { jsonLogger, type Logger } from "./common/logger.js";
 import { requestContext } from "./middleware/request-context.js";
 import { createErrorHandler } from "./middleware/error-handler.js";
 import { setupRoutes } from "./routes.js";
+import type { ServiceRole } from "./services.js";
+import type { OrganizationAccess } from "./clients/organizations.js";
 
 export interface AppOptions {
+  serviceRole?: ServiceRole;
+  organizationAccess?: OrganizationAccess;
   logger?: Logger;
   isDraining?: () => boolean;
 }
@@ -17,7 +21,7 @@ export function createApp(db: PrismaClient, jwtSecret: string, options: AppOptio
   const logger = options.logger ?? jsonLogger;
   app.use(requestContext(logger));
   app.use(helmet());
-  setupRoutes(app, db, jwtSecret, options.isDraining);
+  setupRoutes(app, db, jwtSecret, options.isDraining, options.serviceRole, options.organizationAccess);
   app.use((_req, res) => {
     res.status(404).json({ error: "Endpoint not found", requestId: res.locals.requestId });
   });
