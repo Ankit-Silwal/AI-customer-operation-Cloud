@@ -1,6 +1,6 @@
 # Hearth and the Oak & Ember demo
 
-This pass completes the product workflows and the two web interfaces. It does not add load balancers, database replicas, extra database servers or horizontal scaling.
+This pass completes the product workflows and the web interfaces. It does not add load balancers, database replicas, extra database servers or horizontal scaling.
 
 ## Open the project
 
@@ -8,6 +8,7 @@ Run `docker compose up --build -d --wait --wait-timeout 600` from the repository
 
 - **Hearth workspace:** http://localhost:3030
 - **Oak & Ember demo company:** http://localhost:3035
+- **Developer documentation and free sandbox:** http://localhost:3040
 - **Existing API gateway:** http://localhost:3001
 
 Ports 3030/3035 avoid another local project already listening on port 3000. Set `WEB_PORT`/`DEMO_PORT` and matching `WEB_ORIGIN`/`DEMO_ORIGIN` to use different addresses. For HTTPS set the origins to the actual public URLs; secure cookies are enabled automatically for HTTPS origins. `WEB_COOKIE_SECURE=true` can explicitly require secure cookies.
@@ -28,9 +29,9 @@ The model setup is **Gemini text generation + local `BAAI/bge-small-en-v1.5` emb
 
 Oak & Ember is explicitly fictional. Its collection has illustrative products/prices, product details, saved pieces, care FAQs, and a working support assistant. It accepts no purchases, payments, or real orders.
 
-The company server provisions a separate demo owner, workspace and customer care document, then indexes that document through the real RAG service. Existing matching demo records are reused on restart. The website serves while preparation runs; chat remains unavailable until preparation succeeds. Preparation retries at one-minute intervals when a dependency is unavailable. Default demo credentials are derived privately from the shared secret. Set `DEMO_OWNER_EMAIL` and a strong `DEMO_OWNER_PASSWORD` to manage this fictional company through Hearth yourself. Rotating the signing secret changes the default derived password; use an explicit demo password when preserving the demo account across rotations.
+The company server uses a scoped API key from its own ignored `apps/company-demo/.env`. Create a free key in Hearth Settings with chat:write, documents:read and documents:write, then set HEARTH_API_KEY and restart the company-demo container. HEARTH_API_BASE_URL is http://localhost:3001/v1 for host development; Compose supplies http://api:3001/v1. It creates/reuses and indexes a fictional care handbook in the key's workspace. The storefront stays available without a key, while the support assistant waits for configuration. Preparation retries once per minute. No private owner password is used by the company integration.
 
-Public chat accepts only a question. The browser cannot supply an organization, owner token or conversation ID. A separately scoped, signed HTTP-only visitor cookie binds it to its own conversation; the company server keeps its owner credentials private. Replies and customer questions are persisted in the dedicated conversation service. Chat uses company-scoped indexed sources. Without a Gemini key, it shows direct policy passages and labels that mode clearly; it does not pretend that retrieved text is generated advice. It cannot look up real orders or issue refunds.
+Public chat accepts only a question. The browser cannot supply an organization, owner token or conversation ID. A separately scoped, signed HTTP-only visitor cookie binds it to its own conversation; the company server keeps its API key private. Replies and customer questions are persisted in the dedicated conversation service. Chat uses company-scoped indexed sources. Without a Gemini key, it shows direct policy passages and labels that mode clearly; it does not pretend that retrieved text is generated advice. It cannot look up real orders or issue refunds.
 
 Public chat has shared global and per-IP limits, while downstream owner and RAG limits still apply. Conversations are capped at 100 messages. Resetting chat clears that browser's association; the conversation remains in the company owner's inbox. Requests contain customer text, so production operators should define their own retention and privacy policy before accepting real customers.
 
@@ -73,3 +74,11 @@ Run `npm test`, `npm run build`, `npm run check-types`, and `npm run lint` seria
 ## Visual asset
 
 `apps/company-demo/public/oak-and-ember-hero.png` was generated using the built-in image-generation tool. Prompt: “Photorealistic editorial interior product photograph for a fictional premium homewares shop. No text or logos. Wide landscape composition, warm plaster room, terracotta and beige handmade ceramic vases on a walnut sideboard, an olive branch, folded linen, afternoon sunlight and soft geometric shadows. Cream, rust, olive and walnut palette; tactile craftsmanship, high-end interiors magazine, subtle film grain.” Product card illustrations and interface marks are original SVG/CSS. No real customer logos, endorsements or testimonials are claimed.
+
+## Public developer docs and account recovery
+
+The separate `apps/developer-portal` server on port 3040 hosts the guides, downloadable OpenAPI contract, and no-key sandbox. Its fictional Northstar Gear fixture is isolated from customer API keys and data. A signed, HTTP-only 30-minute visitor cookie plus exact-Origin checks protects sandbox writes. Chat returns one answer per request and accepts recent turns. Demo OTPs are generated/verified in Redis but displayed on screen without sending mail.
+
+Real external OTPs require otp:write and configured SMTP, send email with Nodemailer, and never return a code. Codes are bound to workspace/recipient/purpose, expire after five minutes, allow five incorrect attempts, and are consumed atomically. Browser password reset and change use the same verification engine with separate account purposes. The users table has an additive auth_version column; completing a password update increments it. Core validates sessions against PostgreSQL, and domain servers validate original sessions with core before business work. Internal, short-lived delegations and API keys have separate authorization. No old data is moved or deleted.
+
+See [developer API details](developer-api.md) for free API-key setup, scopes, limits, SMTP configuration, errors, and complete endpoint behavior.

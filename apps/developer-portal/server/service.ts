@@ -127,8 +127,20 @@ export class DemoService {
       company: "Hearth sandbox",
     };
   }
-  async chat(question: unknown, history: unknown, req: import("express").Request) {
-    if (this.state !== "ready" || !this.auth) throw new HttpError(503, "The sandbox is getting ready. Try again shortly");
-    return apiJson(this.config, "/rag/chat", { req, token: this.auth.token, body: { organizationId: this.organizationId, question, history, topK: 3 } });
+  async chat(
+    question: unknown,
+    history: unknown,
+    req: import("express").Request,
+  ) {
+    if (this.state !== "ready" || !this.auth)
+      throw new HttpError(
+        503,
+        "The sandbox is getting ready. Try again shortly",
+      );
+    return apiJson(this.config, "/rag/chat", {
+      req,
+      token: this.auth.token,
+      body: { organizationId: this.organizationId, question, history, topK: 3 },
+    });
   }
 }

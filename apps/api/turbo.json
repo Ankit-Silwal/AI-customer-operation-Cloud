@@ -1,12 +1,8 @@
 {
-  "extends": [
-    "//"
-  ],
+  "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": [
-        "dist/**"
-      ]
+      "outputs": ["dist/**"]
     },
     "dev": {
       "passThroughEnv": [
@@ -20,21 +16,14 @@
         "SMTP_*",
         "AUTH_SESSION_URL"
       ],
-      "dependsOn": [
-        "^build"
-      ]
+      "dependsOn": ["^build"]
     },
     "test": {
       "cache": false,
-      "passThroughEnv": [
-        "TEST_DATABASE_URL",
-        "TEST_REDIS_URL"
-      ]
+      "passThroughEnv": ["TEST_DATABASE_URL", "TEST_REDIS_URL"]
     },
     "check-types": {
-      "dependsOn": [
-        "build"
-      ]
+      "dependsOn": ["build"]
     }
   }
 }

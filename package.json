@@ -18,7 +18,11 @@
     "test:postgres": "npm test --workspace @repo/api",
     "test:load": "k6 run apps/api/tests/k6/organization-read.k6.js",
     "test:load:matrix": "node apps/api/scripts/run-k6-matrix.ts",
-    "test:load:v1": "k6 run apps/api/tests/k6/version1-mixed.k6.js"
+    "test:load:v1": "k6 run apps/api/tests/k6/version1-mixed.k6.js",
+    "test:developer:api": "node --import tsx tests/developer-api.mts",
+    "test:developer:failures": "node --import tsx tests/developer-failures.mts",
+    "test:web:company:prepare": "node --import tsx tests/company-key-fixture.mts prepare",
+    "test:web:company:cleanup": "node --import tsx tests/company-key-fixture.mts cleanup"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

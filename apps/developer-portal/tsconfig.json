@@ -5,16 +5,9 @@
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
     "noEmit": true,
-    "types": [
-      "vite/client",
-      "node"
-    ],
+    "types": ["vite/client", "node"],
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": [
-    "src",
-    "server",
-    "vite.config.ts"
-  ]
+  "include": ["src", "server", "vite.config.ts"]
 }

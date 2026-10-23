@@ -250,17 +250,20 @@ export async function startWeb(
     deadline.unref();
     server.close(() => {
       void closePreview?.().finally(() => {
-        closeRateLimiters(); closeOtpServices();
+        closeRateLimiters();
+        closeOtpServices();
         clearTimeout(deadline);
       });
       if (!closePreview) {
-        closeRateLimiters(); closeOtpServices();
+        closeRateLimiters();
+        closeOtpServices();
         clearTimeout(deadline);
       }
     });
   }
   server.on("error", () => {
-    closeRateLimiters(); closeOtpServices();
+    closeRateLimiters();
+    closeOtpServices();
     process.exitCode = 1;
   });
   process.on("SIGTERM", shutdown);

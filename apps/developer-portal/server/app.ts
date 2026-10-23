@@ -7,7 +7,12 @@ import { DemoService } from "./service.js";
 
 export function createApp(config: WebConfig, demo = new DemoService(config)) {
   const otp = environmentOtp();
-  const app = createHttpApp(async () => { await otp?.ready(); }, { rateService: "developer-portal" });
+  const app = createHttpApp(
+    async () => {
+      await otp?.ready();
+    },
+    { rateService: "developer-portal" },
+  );
   setupRoutes(app, config, demo, otp);
   app.use(createErrorHandler());
   return { app, demo };

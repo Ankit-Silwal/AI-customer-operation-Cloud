@@ -23,23 +23,66 @@ export interface RouteOptions extends HttpOptions {
   otp?: OtpService;
 }
 
-export function setupRoutes(app: Express, db: PrismaClient, jwtSecret: string, options: RouteOptions = {}): void {
+export function setupRoutes(
+  app: Express,
+  db: PrismaClient,
+  jwtSecret: string,
+  options: RouteOptions = {},
+): void {
   const { serviceRole = "core", organizationDb = db } = options;
-  const tokens = new TokenService(jwtSecret, serviceRole === "organizations" ? undefined : async (id, version) => {
-    const user = await db.user.findUnique({ where: { id }, select: { authVersion: true } });
-    return Boolean(user && user.authVersion === version);
-  });
+  const tokens = new TokenService(
+    jwtSecret,
+    serviceRole === "organizations"
+      ? undefined
+      : async (id, version) => {
+          const user = await db.user.findUnique({
+            where: { id },
+            select: { authVersion: true },
+          });
+          return Boolean(user && user.authVersion === version);
+        },
+  );
   const auth = authenticate(tokens);
-  if (serviceRole !== "organizations") app.get("/me", auth, async (_req, res) => {
-    const user = await db.user.findUnique({ where: { id: String(res.locals.userId) }, select: { id: true, name: true, email: true, createdAt: true } });
-    if (!user) throw new HttpError(401, "Account no longer available");
-    res.json(user);
-  });
-  if (serviceRole !== "organizations") app.use(authRoutes(new AuthService(new PrismaAuthRepository(db), tokens)));
+  if (serviceRole !== "organizations")
+    app.get("/me", auth, async (_req, res) => {
+      const user = await db.user.findUnique({
+        where: { id: String(res.locals.userId) },
+        select: { id: true, name: true, email: true, createdAt: true },
+      });
+      if (!user) throw new HttpError(401, "Account no longer available");
+      res.json(user);
+    });
+  if (serviceRole !== "organizations")
+    app.use(authRoutes(new AuthService(new PrismaAuthRepository(db), tokens)));
   if (serviceRole !== "organizations") {
-    app.get("/auth/session", auth, (_req, res) => res.json({ id: res.locals.userId }));
-    app.use("/auth/password", rememberRoutePrefix, passwordRoutes(db, tokens, auth, options.otp ?? environmentOtp()));
+    app.get("/auth/session", auth, (_req, res) =>
+      res.json({ id: res.locals.userId }),
+    );
+    app.use(
+      "/auth/password",
+      rememberRoutePrefix,
+      passwordRoutes(db, tokens, auth, options.otp ?? environmentOtp()),
+    );
   }
-  if (serviceRole !== "identity") app.use("/organizations", rememberRoutePrefix, organizationRoutes(new OrganizationService(new PrismaOrganizationRepository(organizationDb)), auth));
-  if (serviceRole !== "identity") app.use("/developer", rememberRoutePrefix, developerRoutes(new DeveloperService(organizationDb, db, tokens), auth, jwtSecret));
+  if (serviceRole !== "identity")
+    app.use(
+      "/organizations",
+      rememberRoutePrefix,
+      organizationRoutes(
+        new OrganizationService(
+          new PrismaOrganizationRepository(organizationDb),
+        ),
+        auth,
+      ),
+    );
+  if (serviceRole !== "identity")
+    app.use(
+      "/developer",
+      rememberRoutePrefix,
+      developerRoutes(
+        new DeveloperService(organizationDb, db, tokens),
+        auth,
+        jwtSecret,
+      ),
+    );
 }

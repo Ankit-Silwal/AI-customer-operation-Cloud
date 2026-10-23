@@ -70,16 +70,40 @@ export class DemoService {
   }
   private key(): string {
     const key = process.env.HEARTH_API_KEY?.trim();
-    if (!key || !/^hrt_live_[A-Za-z0-9_-]{43}$/.test(key)) throw new HttpError(503, "Set HEARTH_API_KEY in apps/company-demo/.env to connect this demo");
+    if (!key || !/^hrt_live_[A-Za-z0-9_-]{43}$/.test(key))
+      throw new HttpError(
+        503,
+        "Set HEARTH_API_KEY in apps/company-demo/.env to connect this demo",
+      );
     return key;
   }
   private apiConfig(): WebConfig {
-    const url = new URL(process.env.HEARTH_API_BASE_URL ?? `${this.config.apiUrl}/v1`);
-    if (!/^https?:$/.test(url.protocol) || url.username || url.password || url.search || url.hash || ! /\/v1\/?$/.test(url.pathname)) throw new Error("HEARTH_API_BASE_URL must be an HTTP(S) URL ending in /v1");
-    return { ...this.config, apiUrl: `${url.origin}${url.pathname.replace(/\/$/, "")}` };
+    const url = new URL(
+      process.env.HEARTH_API_BASE_URL ?? `${this.config.apiUrl}/v1`,
+    );
+    if (
+      !/^https?:$/.test(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      !/\/v1\/?$/.test(url.pathname)
+    )
+      throw new Error(
+        "HEARTH_API_BASE_URL must be an HTTP(S) URL ending in /v1",
+      );
+    return {
+      ...this.config,
+      apiUrl: `${url.origin}${url.pathname.replace(/\/$/, "")}`,
+    };
   }
   async status() {
-    return { ready: this.state === "ready", mode: "chat", company: "Oak & Ember", configured: Boolean(process.env.HEARTH_API_KEY?.trim()) };
+    return {
+      ready: this.state === "ready",
+      mode: "chat",
+      company: "Oak & Ember",
+      configured: Boolean(process.env.HEARTH_API_KEY?.trim()),
+    };
   }
   async history(id: string | undefined): Promise<Conversation | undefined> {
     if (!id) return undefined;
@@ -110,8 +134,14 @@ export class DemoService {
         "This conversation is full. Start a new chat to continue",
       );
     const token = this.key();
-    const result = await apiJson<{ answer: string; sources: Source[]; mode: string }>(this.apiConfig(), "/chat", {
-      req, token, body: { question, history: previous?.messages.slice(-10) ?? [], topK: 3 },
+    const result = await apiJson<{
+      answer: string;
+      sources: Source[];
+      mode: string;
+    }>(this.apiConfig(), "/chat", {
+      req,
+      token,
+      body: { question, history: previous?.messages.slice(-10) ?? [], topK: 3 },
     });
     const { answer, sources } = result;
     const messages = [

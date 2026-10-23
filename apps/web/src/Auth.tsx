@@ -102,89 +102,106 @@ export function Auth({ signedIn }: { signedIn: (user: User) => void }) {
           <span className="pill">
             <ShieldCheck size={14} /> Your private workspace
           </span>
-          {forgot ? <PasswordReset back={() => setForgot(false)}/> : <>
-          <h2>{register ? "Make yourself at home." : "Welcome back."}</h2>
-          <p>
-            {register
-              ? "Create an account and give your customer support a little more heart."
-              : "A clear head. A calmer inbox. Let’s get you signed in."}
-          </p>
-          <div className="auth-tabs" role="group" aria-label="Account access">
-            <button
-              aria-pressed={!register}
-              className={!register ? "active" : ""}
-              onClick={() => {
-                setRegister(false);
-                setError(undefined);
-              }}
-            >
-              Sign in
-            </button>
-            <button
-              aria-pressed={register}
-              className={register ? "active" : ""}
-              onClick={() => {
-                setRegister(true);
-                setError(undefined);
-              }}
-            >
-              Create account
-            </button>
-          </div>
-          <ErrorNotice error={error} />
-          <form onSubmit={submit}>
-            {register && (
-              <label>
-                Your name
-                <input
-                  name="name"
-                  autoComplete="name"
-                  maxLength={255}
-                  required
-                  placeholder="Alex Morgan"
-                />
-              </label>
-            )}
-            <label>
-              Email address
-              <input
-                name="email"
-                type="email"
-                autoComplete="email"
-                maxLength={254}
-                required
-                placeholder="you@company.com"
-              />
-            </label>
-            <label>
-              Password
-              <input
-                name="password"
-                type="password"
-                autoComplete={register ? "new-password" : "current-password"}
-                minLength={8}
-                maxLength={128}
-                required
-                placeholder={
-                  register ? "At least 8 characters" : "Your password"
-                }
-              />
-            </label>
-            <button className="button primary full" disabled={pending}>
-              {pending ? (
-                <Spinner />
-              ) : (
-                <>
-                  {register
-                    ? "Create your workspace"
-                    : "Step into your workspace"}
-                  <ArrowRight size={18} />
-                </>
+          {forgot ? (
+            <PasswordReset back={() => setForgot(false)} />
+          ) : (
+            <>
+              <h2>{register ? "Make yourself at home." : "Welcome back."}</h2>
+              <p>
+                {register
+                  ? "Create an account and give your customer support a little more heart."
+                  : "A clear head. A calmer inbox. Let’s get you signed in."}
+              </p>
+              <div
+                className="auth-tabs"
+                role="group"
+                aria-label="Account access"
+              >
+                <button
+                  aria-pressed={!register}
+                  className={!register ? "active" : ""}
+                  onClick={() => {
+                    setRegister(false);
+                    setError(undefined);
+                  }}
+                >
+                  Sign in
+                </button>
+                <button
+                  aria-pressed={register}
+                  className={register ? "active" : ""}
+                  onClick={() => {
+                    setRegister(true);
+                    setError(undefined);
+                  }}
+                >
+                  Create account
+                </button>
+              </div>
+              <ErrorNotice error={error} />
+              <form onSubmit={submit}>
+                {register && (
+                  <label>
+                    Your name
+                    <input
+                      name="name"
+                      autoComplete="name"
+                      maxLength={255}
+                      required
+                      placeholder="Alex Morgan"
+                    />
+                  </label>
+                )}
+                <label>
+                  Email address
+                  <input
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    maxLength={254}
+                    required
+                    placeholder="you@company.com"
+                  />
+                </label>
+                <label>
+                  Password
+                  <input
+                    name="password"
+                    type="password"
+                    autoComplete={
+                      register ? "new-password" : "current-password"
+                    }
+                    minLength={8}
+                    maxLength={128}
+                    required
+                    placeholder={
+                      register ? "At least 8 characters" : "Your password"
+                    }
+                  />
+                </label>
+                <button className="button primary full" disabled={pending}>
+                  {pending ? (
+                    <Spinner />
+                  ) : (
+                    <>
+                      {register
+                        ? "Create your workspace"
+                        : "Step into your workspace"}
+                      <ArrowRight size={18} />
+                    </>
+                  )}
+                </button>
+              </form>
+              {!register && (
+                <button
+                  className="button ghost"
+                  onClick={() => setForgot(true)}
+                >
+                  Forgot password?
+                </button>
               )}
-            </button>
-          </form>
-          {!register && <button className="button ghost" onClick={() => setForgot(true)}>Forgot password?</button>}
-          </>}
+            </>
+          )}
           <p className="auth-note">
             Your company’s knowledge stays in your account.
             <br />

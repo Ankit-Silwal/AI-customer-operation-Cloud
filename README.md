@@ -16,6 +16,23 @@ The gateway is at `http://localhost:3001`. The first build installs CPU PyTorch 
 
 Add `api_key=...` or `GEMINI_API_KEY=...` to `.env` when ready, then run `docker compose up -d --force-recreate rag`. Indexing and search already work without that key; answer generation returns `503` until it is configured. The generation defaults are `gemini-3.1-flash-lite` and `https://generativelanguage.googleapis.com/v1beta/openai/`.
 
+## Developer API, docs and email verification
+
+Open [Hearth Developers](http://localhost:3040) for guides, the API reference, and free chat/OTP playgrounds. The public sandbox needs no key and uses fictional knowledge. External applications call `http://localhost:3001/v1` with a scoped API key. **API access is free for now**: create a workspace, open Hearth Settings, and create a free key. There is no checkout. Keys are shown once, expire after 90 days, and can be revoked.
+
+The separate company demo reads its server-only key from `apps/company-demo/.env`:
+
+```dotenv
+HEARTH_API_KEY=your_workspace_key_here
+HEARTH_API_BASE_URL=http://localhost:3001/v1
+```
+
+Choose chat:write, documents:read and documents:write for the company demo. It adds and indexes its fictional handbook in that key's workspace. Docker supplies the internal API base URL; restart with `docker compose up -d --force-recreate company-demo` after changing the key. The storefront is available without a key; its assistant becomes available after a valid key is configured. The docs playground is independently available without setup.
+
+Real email OTPs use **Nodemailer**. Add SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and SMTP_FROM to the root `.env`; set SMTP_SECURE=true for port 465, or require STARTTLS on port 587 (the default). Then recreate core and developer-portal. Forgot password is on the sign-in page; email-verified password changes are in Settings. Both invalidate previous sign-in sessions. Public sandbox OTPs display a code without sending email.
+
+See [developer API setup and behavior](docs/developer-api.md) and the [downloadable OpenAPI contract](apps/developer-portal/public/openapi.json). API requests have per-key/workspace/global limits; free access is bounded. Keep API keys and SMTP credentials out of browser code and Git.
+
 ## Services and routes
 
 Open **Hearth** at [localhost:3030](http://localhost:3030) for the workspace and **Oak & Ember** at [localhost:3035](http://localhost:3035) for the fictional company demonstration. Both interfaces use warm cream, terracotta and olive colors. The workspace supports sign-in, workspaces, conversations/replies, knowledge uploads/indexing/deletion and follow-up chat grounded in your sources. The company site has a working policy assistant connected to the same services. See [web workflows and setup](docs/web-workflows.md).
@@ -39,6 +56,7 @@ All servers enforce Redis-backed rate limits: global ceilings, IP burst and sust
 
 ```text
 apps/
+  developer-portal/       # Public docs, free sandbox, scoped /v1 API and email OTP
   api/                    # Core: auth + organizations; gateway entrypoint
   conversation-server/    # Own app, routes, server, controllers, Prisma schema and Dockerfile
   document-server/        # Own app, routes, server, upload processing, Prisma schema and Dockerfile

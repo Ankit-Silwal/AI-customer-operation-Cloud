@@ -1,29 +1,22 @@
 {
-  "extends": [
-    "//"
-  ],
+  "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": [
-        "dist/**"
-      ]
+      "outputs": ["dist/**"]
     },
     "check-types": {
-      "dependsOn": [
-        "build"
-      ]
+      "dependsOn": ["build"]
     },
     "dev": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "passThroughEnv": [
         "DATABASE_URL",
         "JWT_SECRET",
         "PORT",
         "ORGANIZATIONS_URL",
         "DB_POOL_*",
-        "RATE_LIMIT_*"
+        "RATE_LIMIT_*",
+        "AUTH_SESSION_URL"
       ]
     }
   }

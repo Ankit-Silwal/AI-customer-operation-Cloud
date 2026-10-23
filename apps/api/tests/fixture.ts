@@ -5,8 +5,14 @@ import request from "supertest";
 
 import { createHttpApp, finishHttpApp } from "@repo/service-common/app";
 import { setupRoutes } from "../src/routes.js";
-import { createPrisma as createConversationPrisma, setupRoutes as setupConversationRoutes } from "@repo/conversation-server";
-import { createPrisma as createDocumentPrisma, setupRoutes as setupDocumentRoutes } from "@repo/document-server";
+import {
+  createPrisma as createConversationPrisma,
+  setupRoutes as setupConversationRoutes,
+} from "@repo/conversation-server";
+import {
+  createPrisma as createDocumentPrisma,
+  setupRoutes as setupDocumentRoutes,
+} from "@repo/document-server";
 import { initializeDatabase } from "../src/database/database.js";
 import { createPrisma } from "../src/database/prisma.js";
 
@@ -17,7 +23,13 @@ import type { Organization } from "../src/modules/organizations/organization.typ
 export const secret = "integration-test-secret-at-least-32-characters";
 
 // Prepare a fresh database and Express app for each test.
-export async function fixture(t: TestContext, options: { removeIndex?: import("@repo/document-server").RemoveDocumentIndex; otp?: import("@repo/service-common/otp").OtpService } = {}) {
+export async function fixture(
+  t: TestContext,
+  options: {
+    removeIndex?: import("@repo/document-server").RemoveDocumentIndex;
+    otp?: import("@repo/service-common/otp").OtpService;
+  } = {},
+) {
   const databaseUrl = process.env.TEST_DATABASE_URL;
   if (!databaseUrl)
     throw new Error(
@@ -41,7 +53,11 @@ export async function fixture(t: TestContext, options: { removeIndex?: import("@
   t.after(async () => {
     try {
       try {
-        await Promise.all([prisma.$disconnect(), conversationPrisma.$disconnect(), documentPrisma.$disconnect()]);
+        await Promise.all([
+          prisma.$disconnect(),
+          conversationPrisma.$disconnect(),
+          documentPrisma.$disconnect(),
+        ]);
       } finally {
         await db.end();
       }
@@ -56,14 +72,28 @@ export async function fixture(t: TestContext, options: { removeIndex?: import("@
 
   await initializeDatabase(db);
   // Integration-only composition: production apps mount only their own routes.
-  const organizationAccess = async (organizationId: string, ownerId: string) => {
-    const result = await db.query("SELECT id FROM organizations WHERE id = $1 AND owner_id = $2", [organizationId, ownerId]);
+  const organizationAccess = async (
+    organizationId: string,
+    ownerId: string,
+  ) => {
+    const result = await db.query(
+      "SELECT id FROM organizations WHERE id = $1 AND owner_id = $2",
+      [organizationId, ownerId],
+    );
     return result.rows.length > 0;
   };
-  const app = createHttpApp(() => prisma.$queryRaw`SELECT 1`, { logger: () => undefined });
+  const app = createHttpApp(() => prisma.$queryRaw`SELECT 1`, {
+    logger: () => undefined,
+  });
   setupRoutes(app, prisma, secret, options.otp ? { otp: options.otp } : {});
   setupConversationRoutes(app, conversationPrisma, secret, organizationAccess);
-  setupDocumentRoutes(app, documentPrisma, secret, organizationAccess, options.removeIndex);
+  setupDocumentRoutes(
+    app,
+    documentPrisma,
+    secret,
+    organizationAccess,
+    options.removeIndex,
+  );
   finishHttpApp(app, () => undefined);
 
   // Helper: register a user and return { user, token }.
@@ -91,5 +121,14 @@ export async function fixture(t: TestContext, options: { removeIndex?: import("@
     return response.body as Organization;
   }
 
-  return { app, db, prisma, conversationPrisma, documentPrisma, organizationAccess, register, organization };
+  return {
+    app,
+    db,
+    prisma,
+    conversationPrisma,
+    documentPrisma,
+    organizationAccess,
+    register,
+    organization,
+  };
 }

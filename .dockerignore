@@ -6,6 +6,7 @@ node_modules
 **/.env
 **/.env.*
 .turbo
+**/.turbo
 **/dist
 **/.next
 **/__pycache__
