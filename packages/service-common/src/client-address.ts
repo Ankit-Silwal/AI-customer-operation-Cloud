@@ -14,24 +14,24 @@ export function normalizeAddress(address: string): string {
   } catch { return "unknown"; }
 }
 
-function signature(secret: string, ip: string, time: string, requestId: string): string {
-  return createHmac("sha256", secret).update(`rate-forward-v1\n${ip}\n${time}\n${requestId}`).digest("hex");
+function signature(secret: string, ip: string, time: string, requestId: string, purpose: string): string {
+  return createHmac("sha256", secret).update(`${purpose}\n${ip}\n${time}\n${requestId}`).digest("hex");
 }
 
-export function signedAddressHeaders(req: Request, requestId: string, secret: string): Record<string, string> {
-  const ip = normalizeAddress(req.socket.remoteAddress ?? "unknown");
+export function signedAddressHeaders(req: Request, requestId: string, secret: string, purpose = "rate-forward-v1", address?: string): Record<string, string> {
+  const ip = normalizeAddress(address ?? req.socket.remoteAddress ?? "unknown");
   const time = String(Math.floor(Date.now() / 1000));
-  return { "x-rate-client-ip": ip, "x-rate-timestamp": time, "x-rate-signature": signature(secret, ip, time, requestId) };
+  return { "x-rate-client-ip": ip, "x-rate-timestamp": time, "x-rate-signature": signature(secret, ip, time, requestId, purpose) };
 }
 
-export function clientAddress(req: Request, secret: string, allowGateway = true): string {
+export function clientAddress(req: Request, secret: string, allowGateway = true, purpose = "rate-forward-v1"): string {
   const ip = req.get("x-rate-client-ip");
   const time = req.get("x-rate-timestamp");
   const supplied = req.get("x-rate-signature");
   const requestId = req.get("x-request-id") ?? "";
   if (allowGateway && ip && ip.length <= 64 && time && /^\d{10}$/.test(time) && supplied && /^[a-f0-9]{64}$/.test(supplied)
     && Math.abs(Date.now() / 1000 - Number(time)) <= 30) {
-    const expected = signature(secret, ip, time, requestId);
+    const expected = signature(secret, ip, time, requestId, purpose);
     if (timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))) return normalizeAddress(ip);
   }
   // Forwarded / X-Forwarded-For are deliberately never used for admission.

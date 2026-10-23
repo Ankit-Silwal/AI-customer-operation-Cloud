@@ -13,6 +13,16 @@ from app.runtime import tenant_filter
 
 
 class ContractTests(unittest.TestCase):
+    def test_chunked_payloads_are_bounded_before_json_parsing(self):
+        class RuntimeWithoutExternalCalls:
+            def __init__(self, _settings): pass
+            def close(self): pass
+        with TestClient(create_app(Settings(jwt_secret=os.environ["JWT_SECRET"]), RuntimeWithoutExternalCalls, limiter_factory=None)) as client:
+            response = client.post("/rag/search", content=iter([b"x" * 10000, b"x" * 10000]), headers={"Content-Type": "application/json"})
+            self.assertEqual(response.status_code, 413)
+            self.assertEqual(response.json()["requestId"], response.headers["x-request-id"])
+            self.assertEqual(client.post("/rag/search", content=b"{}", headers={"Content-Type": "application/json", "Content-Length": "9" * 100}).status_code, 413)
+
     def test_tenant_filter_requires_both_owner_and_organization(self):
         filters = tenant_filter("owner-a", "organization-a").model_dump()
         self.assertEqual(len(filters["must"]), 2)

@@ -1,9 +1,12 @@
+import type { PageQuery } from "@repo/service-common/pagination";
 import { HttpError } from "@repo/service-common/http";
 import type { DocumentRepository } from "./document.repository.js";
 import type { CreateDocumentInput, Document, UploadDocumentInput } from "./document.types.js";
 
 export class DocumentService {
   constructor(private readonly repository: DocumentRepository) {}
+
+  list(organizationId: string, ownerId: string, query: PageQuery) { return this.repository.list(organizationId, ownerId, query); }
 
   async upload(input: UploadDocumentInput, ownerId: string) {
     const document = await this.repository.createUploadForOwner(input, ownerId);

@@ -1,3 +1,4 @@
+import { pagination } from "@repo/service-common/pagination";
 import { authenticatedUserId, type HttpHandler } from "@repo/service-common/http";
 import { id, object, text } from "@repo/service-common/validation";
 import type { DocumentService } from "./document.service.js";
@@ -20,6 +21,8 @@ export class DocumentController {
     const file = await this.service.download(id(req.params.id, "id"), authenticatedUserId(res.locals));
     res.attachment(file.fileName).type(file.mediaType).send(file.bytes);
   };
+
+  list: HttpHandler = async (req, res) => { res.json(await this.service.list(id(req.query.organizationId, "organizationId"), authenticatedUserId(res.locals), pagination(req.query))); };
 
   create: HttpHandler = async (req, res) => {
     const body = object(req.body);

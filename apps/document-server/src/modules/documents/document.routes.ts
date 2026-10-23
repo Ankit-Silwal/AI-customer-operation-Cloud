@@ -11,6 +11,7 @@ export function documentRoutes(
 ): Router {
   const router = Router();
   const controller = new DocumentController(service);
+  router.get("/", authenticate, controller.list);
   router.post("/", authenticate, controller.create);
   router.post("/upload", authenticate, routeLimit("document_upload"), parseUpload, controller.upload);
   router.get("/:id", authenticate, controller.get);

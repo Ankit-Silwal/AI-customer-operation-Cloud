@@ -1,0 +1,282 @@
+openapi: 3.1.0
+info:
+  title: Hearth workspace workflow additions
+  version: 1.1.0
+  description: Tenant-scoped identity, lists, and atomic message append. Existing creation, resource lookup, upload/download and RAG routes remain supported. The browser-facing server stores the Bearer JWT in an HTTP-only cookie and exposes an allowlisted same-origin /api bridge; its auth endpoints return only user metadata.
+servers:
+  - url: http://localhost:3001
+security:
+  - bearerAuth: []
+paths:
+  /me:
+    get:
+      operationId: currentUser
+      responses:
+        "200":
+          description: Current user without any password fields.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/User" } },
+            }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /organizations:
+    get:
+      operationId: listOrganizations
+      description: Only the verified user's organizations. Sorted by createdAt descending, then ID descending.
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize" }
+        - { $ref: "#/components/parameters/Search" }
+      responses:
+        "200":
+          description: Matching organizations and filtered total.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Page" }
+                  - {
+                      type: object,
+                      properties:
+                        {
+                          items:
+                            {
+                              type: array,
+                              items:
+                                { $ref: "#/components/schemas/Organization" },
+                            },
+                        },
+                    }
+        "400": { $ref: "#/components/responses/Invalid" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /documents:
+    get:
+      operationId: listDocuments
+      description: Verify workspace ownership before returning metadata. Content and upload bytes are excluded.
+      parameters:
+        - { $ref: "#/components/parameters/OrganizationId" }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize" }
+        - { $ref: "#/components/parameters/Search" }
+      responses:
+        "200":
+          description: Document metadata, newest first.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Page" }
+                  - {
+                      type: object,
+                      properties:
+                        {
+                          items:
+                            {
+                              type: array,
+                              items: { $ref: "#/components/schemas/Document" },
+                            },
+                        },
+                    }
+        "400": { $ref: "#/components/responses/Invalid" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /conversation:
+    get:
+      operationId: listConversations
+      description: Verify workspace ownership before returning conversations. Search matches subjects, case-insensitively.
+      parameters:
+        - { $ref: "#/components/parameters/OrganizationId" }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize" }
+        - { $ref: "#/components/parameters/Search" }
+      responses:
+        "200":
+          description: Conversations, newest first.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Page" }
+                  - {
+                      type: object,
+                      properties:
+                        {
+                          items:
+                            {
+                              type: array,
+                              items:
+                                { $ref: "#/components/schemas/Conversation" },
+                            },
+                        },
+                    }
+        "400": { $ref: "#/components/responses/Invalid" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /conversation/{id}/messages:
+    post:
+      operationId: appendConversationMessages
+      description: Append atomically if expectedCount matches the stored history length. At most 100 total messages; 1–10 per append. A stale retry returns 409 so it cannot silently duplicate or overwrite a reply.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedCount, messages]
+              properties:
+                expectedCount: { type: integer, minimum: 0, maximum: 99 }
+                messages:
+                  {
+                    type: array,
+                    minItems: 1,
+                    maxItems: 10,
+                    items: { $ref: "#/components/schemas/Message" },
+                  }
+      responses:
+        "200":
+          description: Updated conversation.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/Conversation" } },
+            }
+        "400": { $ref: "#/components/responses/Invalid" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: History changed. Reload before retrying.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/Error" } },
+            }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Page:
+      {
+        name: page,
+        in: query,
+        schema: { type: integer, minimum: 1, maximum: 10000, default: 1 },
+      }
+    PageSize:
+      {
+        name: pageSize,
+        in: query,
+        schema: { type: integer, minimum: 1, maximum: 100, default: 20 },
+      }
+    Search:
+      { name: search, in: query, schema: { type: string, maxLength: 100 } }
+    OrganizationId:
+      {
+        name: organizationId,
+        in: query,
+        required: true,
+        schema: { type: string, format: uuid },
+      }
+  schemas:
+    Page:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1, maximum: 100 }
+    User:
+      type: object
+      required: [id, name, email, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        createdAt: { type: string, format: date-time }
+    Organization:
+      type: object
+      required: [id, name, ownerId, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        ownerId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+    Document:
+      type: object
+      required: [id, organizationId, title, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        title: { type: string }
+        createdAt: { type: string, format: date-time }
+        upload:
+          type: [object, "null"]
+          properties:
+            fileName: { type: string }
+            mediaType: { type: string }
+            byteLength: { type: integer, minimum: 1 }
+    Message:
+      type: object
+      required: [role, content]
+      properties:
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string, minLength: 1, maxLength: 10000 }
+    Conversation:
+      type: object
+      required:
+        [id, organizationId, customerEmail, subject, messages, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        customerEmail: { type: string, format: email }
+        subject: { type: string }
+        messages:
+          {
+            type: array,
+            maxItems: 100,
+            items: { $ref: "#/components/schemas/Message" },
+          }
+        createdAt: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [error, requestId]
+      properties:
+        error: { type: string }
+        requestId: { type: string }
+  responses:
+    Invalid:
+      description: Invalid input or pagination; no write applied.
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Unauthorized:
+      description: Missing, expired or invalid identity.
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    NotFound:
+      description: Missing resource or resource owned by another account.
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    RateLimited:
+      description: Quota exhausted. Honor Retry-After. RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset and RateLimit-Policy report the last admission's constrained bucket.
+      headers:
+        Retry-After: { schema: { type: integer, minimum: 1 } }
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Unavailable:
+      description: A dependency or the Redis-backed rate protection is unavailable.
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }

@@ -20,6 +20,43 @@ x-domain-env: &domain-env
   ORGANIZATIONS_URL: http://core:3001
 
 services:
+  web:
+    image: customer-ops-web:local
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "${WEB_PORT:-3030}:3000"
+    environment:
+      <<: *rate-env
+      WEB_PORT: 3000
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3030}
+      WEB_COOKIE_SECURE: ${WEB_COOKIE_SECURE:-false}
+      API_URL: http://api:3001
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+
+  company-demo:
+    image: customer-ops-demo:local
+    build:
+      context: .
+      dockerfile: apps/company-demo/Dockerfile
+    ports:
+      - "${DEMO_PORT:-3035}:3005"
+    environment:
+      <<: *rate-env
+      DEMO_PORT: 3005
+      DEMO_ORIGIN: ${DEMO_ORIGIN:-http://localhost:3035}
+      WEB_COOKIE_SECURE: ${WEB_COOKIE_SECURE:-false}
+      API_URL: http://api:3001
+      DEMO_OWNER_EMAIL: ${DEMO_OWNER_EMAIL:-care@oakandember.example}
+      DEMO_OWNER_PASSWORD: ${DEMO_OWNER_PASSWORD:-}
+    depends_on:
+      api: { condition: service_healthy }
+      rag: { condition: service_healthy }
+    restart: unless-stopped
+
   api:
     <<: *node
     command: ["node", "apps/api/dist/gateway/server.js"]
@@ -32,6 +69,7 @@ services:
       CONVERSATIONS_URL: http://conversations:3001
       DOCUMENTS_URL: http://documents:3001
       RAG_URL: http://rag:8000
+      RATE_LIMIT_TRUST_FRONTEND: "true"
     depends_on:
       redis: { condition: service_healthy }
       core: { condition: service_healthy }

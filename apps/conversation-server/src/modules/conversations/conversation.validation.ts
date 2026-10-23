@@ -14,7 +14,13 @@ export function parseConversation(value: unknown): CreateConversationInput {
       "messages must be an array of at most 100 messages",
     );
   }
-  const normalized: Message[] = messages.map((value: unknown) => {
+  const normalized = parseMessages(messages);
+  return { organizationId, customerEmail, subject, messages: normalized };
+}
+
+export function parseMessages(messages: unknown): Message[] {
+  if (!Array.isArray(messages) || messages.length > 100) throw new HttpError(400, "messages must be an array of at most 100 messages");
+  return messages.map((value: unknown) => {
     const message = object(value);
     if (message.role !== "user" && message.role !== "assistant") {
       throw new HttpError(400, "Each message role must be user or assistant");
@@ -24,5 +30,4 @@ export function parseConversation(value: unknown): CreateConversationInput {
       content: text(message.content, "message content", 10000),
     };
   });
-  return { organizationId, customerEmail, subject, messages: normalized };
 }

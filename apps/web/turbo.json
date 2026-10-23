@@ -1,0 +1,32 @@
+{
+  "extends": [
+    "//"
+  ],
+  "tasks": {
+    "build": {
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "check-types": {
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "^build"
+      ],
+      "passThroughEnv": [
+        "JWT_SECRET",
+        "RATE_LIMIT_*",
+        "API_URL",
+        "WEB_ORIGIN",
+        "WEB_COOKIE_SECURE",
+        "DEMO_*",
+        "PORT",
+        "NODE_ENV"
+      ]
+    }
+  }
+}

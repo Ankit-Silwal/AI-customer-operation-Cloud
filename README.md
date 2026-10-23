@@ -18,6 +18,8 @@ Add `api_key=...` or `GEMINI_API_KEY=...` to `.env` when ready, then run `docker
 
 ## Services and routes
 
+Open **Hearth** at [localhost:3030](http://localhost:3030) for the workspace and **Oak & Ember** at [localhost:3035](http://localhost:3035) for the fictional company demonstration. Both interfaces use warm cream, terracotta and olive colors. The workspace supports sign-in, workspaces, conversations/replies, knowledge uploads/indexing and source-backed search. The company site has a working policy assistant connected to the same services. See [web workflows and setup](docs/web-workflows.md).
+
 | Service | Public routes through the gateway |
 | --- | --- |
 | Core (auth + organizations) | `POST /register`, `POST /login`, `POST /organizations`, `GET /organizations/:id` |
@@ -41,8 +43,11 @@ apps/
   conversation-server/    # Own app, routes, server, controllers, Prisma schema and Dockerfile
   document-server/        # Own app, routes, server, upload processing, Prisma schema and Dockerfile
   rag/                    # Python FastAPI, BGE embeddings, Qdrant retrieval and Gemini
+  web/                    # Hearth customer operations workspace and secure browser API bridge
+  company-demo/           # Oak & Ember storefront and private company-side support integration
 packages/
   service-common/         # Shared HTTP/auth infrastructure, validation, logging and lifecycle
+  web-runtime/            # Shared browser-server security, upstream requests and web serving
 infra/postgres/           # Separate database/role bootstrap
 contracts/               # API contracts
 postman/                 # Local provider mocks and simulations

@@ -41,7 +41,10 @@ export class RateLimiter {
     await this.client.withCommandOptions({ timeout: 500 }).ping();
   }
   close(): void { if (this.client.isOpen) this.client.destroy(); }
-  address(req: Request): string { return clientAddress(req, this.secret, this.service !== "gateway"); }
+  address(req: Request): string {
+    if (this.service === "gateway") return clientAddress(req, this.secret, process.env.RATE_LIMIT_TRUST_FRONTEND === "true", "rate-frontend-v1");
+    return clientAddress(req, this.secret);
+  }
   async consume(buckets: Bucket[]): Promise<Admission> {
     if (!this.client.isReady) throw new Error("Rate limiter unavailable");
     const keys: string[] = [];

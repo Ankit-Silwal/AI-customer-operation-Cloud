@@ -9,7 +9,9 @@ export function conversationRoutes(
 ): Router {
   const router = Router();
   const controller = new ConversationController(service);
+  router.get("/", authenticate, controller.list);
   router.post("/", authenticate, controller.create);
+  router.post("/:id/messages", authenticate, controller.append);
   router.get("/:id", authenticate, controller.getById);
   return router;
 }

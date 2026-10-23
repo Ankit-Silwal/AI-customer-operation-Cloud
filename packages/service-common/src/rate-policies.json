@@ -17,5 +17,7 @@
   "rag_query_daily": { "limit": 100, "seconds": 86400 },
   "rag_query_global": { "limit": 60, "seconds": 60 },
   "rag_index": { "limit": 5, "seconds": 60 },
-  "rag_index_hourly": { "limit": 20, "seconds": 3600 }
+  "rag_index_hourly": { "limit": 20, "seconds": 3600 },
+  "demo_chat_ip": { "limit": 10, "seconds": 60 },
+  "demo_chat_global": { "limit": 60, "seconds": 60 }
 }

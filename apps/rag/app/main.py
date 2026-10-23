@@ -16,6 +16,7 @@ from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedR
 from .config import Settings
 from .runtime import Runtime
 from .rate_limit import RateLimiter
+from .body_limit import BodyLimit
 from starlette.concurrency import run_in_threadpool
 
 security = HTTPBearer(auto_error=False)
@@ -44,6 +45,7 @@ def create_app(settings: Settings | None = None, runtime_factory=Runtime, limite
                 await app.state.limiter.close()
 
     app = FastAPI(title="Customer Operations RAG", lifespan=lifespan, docs_url=None, redoc_url=None)
+    app.add_middleware(BodyLimit)
 
     @app.middleware("http")
     async def context(request: Request, call_next):
@@ -54,7 +56,7 @@ def create_app(settings: Settings | None = None, runtime_factory=Runtime, limite
         try:
             if request.app.state.limiter and request.url.path not in {"/health/live", "/health/ready", "/rag/health/live", "/rag/health/ready"}:
                 await request.app.state.limiter.global_limit(request)
-            if not content_length.isdigit() or int(content_length) > 16384:
+            if len(content_length) > 10 or not content_length.isdigit() or int(content_length) > 16384:
                 raise HTTPException(413, "Request too large")
             response = await call_next(request)
         except HTTPException as error:

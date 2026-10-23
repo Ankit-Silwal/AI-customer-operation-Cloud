@@ -19,6 +19,8 @@
     "test:load:v1": "k6 run apps/api/tests/k6/version1-mixed.k6.js"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
     "prettier": "3.9.6",
     "turbo": "^2.11.7",
     "typescript": "7.0.2"

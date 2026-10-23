@@ -1,3 +1,4 @@
+import { HttpError } from "@repo/service-common/http";
 import type { Express } from "express";
 import { authenticate } from "@repo/service-common/authenticate";
 import { rememberRoutePrefix } from "@repo/service-common/request-context";
@@ -21,6 +22,11 @@ export function setupRoutes(app: Express, db: PrismaClient, jwtSecret: string, o
   const { serviceRole = "core", organizationDb = db } = options;
   const tokens = new TokenService(jwtSecret);
   const auth = authenticate(tokens);
+  if (serviceRole !== "organizations") app.get("/me", auth, async (_req, res) => {
+    const user = await db.user.findUnique({ where: { id: String(res.locals.userId) }, select: { id: true, name: true, email: true, createdAt: true } });
+    if (!user) throw new HttpError(401, "Account no longer available");
+    res.json(user);
+  });
   if (serviceRole !== "organizations") app.use(authRoutes(new AuthService(new PrismaAuthRepository(db), tokens)));
   if (serviceRole !== "identity") app.use("/organizations", rememberRoutePrefix, organizationRoutes(new OrganizationService(new PrismaOrganizationRepository(organizationDb)), auth));
 }

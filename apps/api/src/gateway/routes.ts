@@ -1,6 +1,6 @@
 import { request as httpRequest, type OutgoingHttpHeaders } from "node:http";
 import type { Express, RequestHandler } from "express";
-import { addressHeaders, signedAddressHeaders } from "@repo/service-common/client-address";
+import { addressHeaders, clientAddress, signedAddressHeaders } from "@repo/service-common/client-address";
 
 export interface GatewayTargets {
   core: string;
@@ -18,7 +18,7 @@ function proxy(target: string, secret?: string): RequestHandler {
     const headers: OutgoingHttpHeaders = { ...req.headers, "x-request-id": String(res.locals.requestId) };
     for (const name of hopHeaders) delete headers[name];
     for (const name of [...addressHeaders, "forwarded", "x-forwarded-for", "x-real-ip"]) delete headers[name];
-    if (secret) Object.assign(headers, signedAddressHeaders(req, String(res.locals.requestId), secret));
+    if (secret) Object.assign(headers, signedAddressHeaders(req, String(res.locals.requestId), secret, "rate-forward-v1", clientAddress(req, secret, process.env.RATE_LIMIT_TRUST_FRONTEND === "true", "rate-frontend-v1")));
     const upstream = httpRequest({
       hostname: origin.hostname,
       port: origin.port || 80,
@@ -49,7 +49,7 @@ function proxy(target: string, secret?: string): RequestHandler {
 }
 
 export function setupGatewayRoutes(app: Express, targets: GatewayTargets, secret?: string): void {
-  app.use(["/register", "/login", "/organizations"], proxy(targets.core, secret));
+  app.use(["/register", "/login", "/me", "/organizations"], proxy(targets.core, secret));
   app.use("/conversation", proxy(targets.conversations, secret));
   app.use("/documents", proxy(targets.documents, secret));
   app.use("/rag", proxy(targets.rag, secret));

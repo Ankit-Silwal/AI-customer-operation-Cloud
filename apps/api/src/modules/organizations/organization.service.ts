@@ -1,3 +1,4 @@
+import type { PageQuery } from "@repo/service-common/pagination";
 import { HttpError } from "../../common/http.js";
 import type { OrganizationRepository } from "./organization.repository.js";
 import type {
@@ -7,6 +8,8 @@ import type {
 
 export class OrganizationService {
   constructor(private readonly repository: OrganizationRepository) {}
+
+  list(ownerId: string, query: PageQuery) { return this.repository.list(ownerId, query); }
 
   create(
     input: CreateOrganizationInput,

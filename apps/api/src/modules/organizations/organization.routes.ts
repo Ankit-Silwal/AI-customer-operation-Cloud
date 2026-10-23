@@ -9,6 +9,7 @@ export function organizationRoutes(
 ): Router {
   const router = Router();
   const controller = new OrganizationController(service);
+  router.get("/", authenticate, controller.list);
   router.post("/", authenticate, controller.create);
   router.get("/:id", authenticate, controller.getById);
   return router;
