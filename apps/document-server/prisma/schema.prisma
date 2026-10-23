@@ -31,4 +31,3 @@ model DocumentUpload {
 
   @@map("document_uploads")
 }
-

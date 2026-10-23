@@ -61,3 +61,15 @@ The server grouping was updated on 23 October 2026: auth and organizations now s
 - Both Python RAG contract tests passed.
 - Counts immediately before and after replacing the servers matched: 6 users, 5 organizations, 3 conversations and 6 documents. No data migration or deletion was performed. Subsequent smoke checks created their usual new test records.
 - The final stack has core, conversations, documents, gateway and RAG running as separate healthy processes. PostgreSQL and Qdrant remain the durable stores. Real Gemini generation remains pending credentials.
+
+## Follow-up: independent application folders
+
+The processing applications were physically extracted into `apps/conversation-server` and `apps/document-server`; RAG remains in `apps/rag`, and auth/organizations remain in `apps/api`. Each Node app now owns its app/routes/server files, controllers, services, repositories, Prisma models/client, SQL setup, package scripts and Dockerfile. Shared infrastructure is in `packages/service-common`.
+
+- Monorepo build, type checks, lint and all 26 Node test entries passed after moving the source. The test fixture composes exported routers only for regression coverage; production core does not import the processing applications.
+- Separate core, conversation and document images built successfully. A transient npm download reset interrupted the first parallel Docker build; sequential retries passed. The production dependency installs in all three images reported zero vulnerabilities. A full repository audit separately reports four high findings in the existing frontend ESLint plugin/glob dependency chain; that unrelated toolchain was not changed.
+- Runtime filesystem assertions passed: the conversation image contains `apps/conversation-server/dist/server.js` and no `apps/api` or document application, while the document image contains `apps/document-server/dist/server.js` and no `apps/api` or conversation application.
+- Docker inspection confirmed each container launches its own application's server. Both processors use distinct images: `customer-ops-conversation:local` and `customer-ops-document:local`.
+- Database counts immediately before/after deployment matched: 8 users, 7 organizations, 4 conversations and 8 documents. No data migration was needed.
+- The real gateway/BGE/Qdrant smoke check passed all 29 checks, including upload/download bytes, owner isolation, index idempotency and document/vector recovery after restarting documents and RAG. Smoke accounts and records were created only after the retention check.
+- The gateway, core, conversation, document and RAG servers are running and healthy. Gemini's real endpoint remains unverified until credentials are supplied.

@@ -20,4 +20,3 @@ model Conversation {
   @@index([organizationId], map: "conversations_organization_idx")
   @@map("conversations")
 }
-
