@@ -32,11 +32,16 @@ interface Replica<C> {
   pool: Pool;
   client: C;
   healthy: boolean;
+  failures?: number;
+  retryAt?: number | undefined;
 }
+
+const maxBackoffMs = 30_000;
 
 export class ReadReplicas<C extends { $disconnect(): Promise<void> }> implements ReadSource<C> {
   private next = 0;
   private previousPrimary?: bigint;
+  private inFlight?: Promise<void> | undefined;
   private readonly timer?: NodeJS.Timeout;
 
   constructor(
@@ -44,7 +49,7 @@ export class ReadReplicas<C extends { $disconnect(): Promise<void> }> implements
     private readonly primary: C,
     private readonly replicas: Replica<C>[],
     private readonly logger: Logger = jsonLogger,
-    intervalMs = 1000,
+    private readonly intervalMs = 1000,
   ) {
     if (!replicas.length) return;
     this.timer = setInterval(() => void this.check(), intervalMs);
@@ -55,7 +60,14 @@ export class ReadReplicas<C extends { $disconnect(): Promise<void> }> implements
   // A replica is used only after it has replayed everything the primary had written one
   // interval earlier, so staleness stays bounded to roughly two intervals. Replicas start
   // unhealthy and every read falls back to the primary until the first check passes.
-  async check(): Promise<void> {
+  check(): Promise<void> {
+    // Never overlap checks: a dead replica's connect attempts would otherwise pile up.
+    return (this.inFlight ??= this.checkOnce().finally(() => {
+      this.inFlight = undefined;
+    }));
+  }
+
+  private async checkOnce(): Promise<void> {
     let current: bigint;
     try {
       const { rows } = await this.primaryPool.query<{ lsn: string }>("SELECT pg_current_wal_lsn()::text AS lsn");
@@ -66,15 +78,24 @@ export class ReadReplicas<C extends { $disconnect(): Promise<void> }> implements
     }
     const required = this.previousPrimary ?? current;
     this.previousPrimary = current;
+    const now = Date.now();
     await Promise.all(this.replicas.map(async (replica) => {
+      // Unreachable replicas are probed with exponential backoff. A stopped container's name
+      // stops resolving and lookups fall through to slower DNS, so constant probing would tie up
+      // the libuv threadpool that every other DNS lookup in this process shares.
+      if (replica.retryAt && now < replica.retryAt) return;
       let healthy = false;
+      let reachable = false;
       try {
         const { rows } = await replica.pool.query<{ recovery: boolean; lsn: string | null }>(
           "SELECT pg_is_in_recovery() AS recovery, pg_last_wal_replay_lsn()::text AS lsn",
         );
+        reachable = true;
         const row = rows[0];
         healthy = Boolean(row?.recovery && row.lsn && walPosition(row.lsn) >= required);
       } catch { /* unreachable replicas stay out of rotation */ }
+      replica.failures = reachable ? 0 : (replica.failures ?? 0) + 1;
+      replica.retryAt = reachable ? undefined : now + Math.min(maxBackoffMs, this.intervalMs * 2 ** replica.failures);
       this.mark(replica, healthy);
     }));
   }
@@ -121,8 +142,10 @@ export function createReadReplicas<C extends { $disconnect(): Promise<void> }>(
   settings?: Pick<Environment, "poolMax" | "poolIdleTimeoutMs" | "poolConnectionTimeoutMs" | "poolQueryTimeoutMs">,
   logger: Logger = jsonLogger,
 ): ReadReplicas<C> {
+  // A dead replica must cost a read at most ~1 s before it falls back to the primary.
+  const replicaSettings = settings && { ...settings, poolConnectionTimeoutMs: Math.min(settings.poolConnectionTimeoutMs, 1000) };
   const replicas = urls.map((url, index) => {
-    const pool = createDatabase(url, settings, logger);
+    const pool = createDatabase(url, replicaSettings ?? { poolMax: 10, poolIdleTimeoutMs: 30000, poolConnectionTimeoutMs: 1000, poolQueryTimeoutMs: 5000 }, logger);
     return { index, pool, client: createClient(pool), healthy: false };
   });
   return new ReadReplicas(primaryPool, primary, replicas, logger);

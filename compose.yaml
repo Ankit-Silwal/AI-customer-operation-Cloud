@@ -14,6 +14,9 @@ x-replicated: &replicated
 
 x-rate-env: &rate-env
   JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env file}
+  # DNS lookups (pg, fetch) share libuv's threadpool; slow lookups for a stopped container must
+  # not starve lookups for healthy dependencies.
+  UV_THREADPOOL_SIZE: "16"
   # Lets services trust the client address nginx forwards (x-edge-client-ip).
   EDGE_PROXY_SECRET: ${EDGE_PROXY_SECRET:-local-edge-proxy-secret-change-me-0000}
   RATE_LIMIT_REDIS_URL: redis://:${REDIS_PASSWORD:-rate_limits_local}@redis:6379

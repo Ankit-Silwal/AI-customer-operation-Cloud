@@ -8,27 +8,26 @@ resolver_timeout 2s;
 upstream gateway {
     zone gateway 64k;
     server api:3001 resolve max_fails=2 fail_timeout=5s;
-    keepalive 32;
 }
 upstream core {
     zone core 64k;
     server core:3001 resolve max_fails=2 fail_timeout=5s;
-    keepalive 32;
 }
 upstream conversations {
     zone conversations 64k;
     server conversations:3001 resolve max_fails=2 fail_timeout=5s;
-    keepalive 32;
 }
 upstream documents {
     zone documents 64k;
     server documents:3001 resolve max_fails=2 fail_timeout=5s;
-    keepalive 32;
 }
 
 # Shared proxy behaviour for every listener.
+# No upstream keepalive pool: a killed replica's IP vanishes without a reset, so a cached idle
+# connection to it would swallow requests until the read timeout. Fresh connects on the Docker
+# network cost microseconds and always reach a live replica (or fail fast and retry).
 proxy_http_version 1.1;
-proxy_set_header Connection "";
+proxy_set_header Connection "close";
 proxy_set_header Host $host;
 # Overwrite (never append) client-supplied values so callers cannot forge their address.
 proxy_set_header X-Edge-Client-Ip $remote_addr;
@@ -87,6 +86,7 @@ server {
 # Private listeners for service-to-service calls (Docker network only, not published).
 server {
     listen 8001;
+    proxy_read_timeout 35s;
     set $group core;
     location / { proxy_pass http://$group; }
     error_page 502 504 = @replay;
@@ -104,6 +104,7 @@ server {
 }
 server {
     listen 8002;
+    proxy_read_timeout 35s;
     set $group conversations;
     location / { proxy_pass http://$group; }
     error_page 502 504 = @replay;
@@ -121,6 +122,7 @@ server {
 }
 server {
     listen 8003;
+    proxy_read_timeout 35s;
     set $group documents;
     location / { proxy_pass http://$group; }
     error_page 502 504 = @replay;

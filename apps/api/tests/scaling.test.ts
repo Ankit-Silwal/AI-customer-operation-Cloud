@@ -133,3 +133,16 @@ test("unique violations only claim a duplicate email for the email key", async (
   assert.equal((await request(app).get("/email").expect(409)).body.error, "Email is already registered");
   assert.equal((await request(app).get("/other").expect(409)).body.error, "Resource already exists");
 });
+
+test("unreachable replicas are probed with backoff and checks never overlap", async (t) => {
+  let probes = 0;
+  const primary = client("primary");
+  const dead = { index: 0, pool: fakePool(() => { probes++; throw new Error("ENOTFOUND"); }), client: client("replica-0"), healthy: false };
+  const router = new ReadReplicas(fakePool(() => ({ rows: [{ lsn: "0/1" }] })), primary, [dead], silent, 60_000);
+  t.after(() => router.close());
+  await Promise.all([router.check(), router.check(), router.check()]);
+  assert.equal(probes, 1);
+  await router.check(); // still inside the backoff window
+  assert.equal(probes, 1);
+  assert.equal(await router.read(async (db) => db.name), "primary");
+});
