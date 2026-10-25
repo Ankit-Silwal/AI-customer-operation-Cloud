@@ -388,7 +388,8 @@ services:
       - ./infra/replication:/replication:ro
       - ./infra/replication/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -q && psql -tAc 'SELECT pg_is_in_recovery()' | grep -q t"]
+      # The cloned cluster keeps the primary's superuser (POSTGRES_USER), not "postgres".
+      test: ["CMD-SHELL", "psql -U ${POSTGRES_USER:-customer_ops} -d ${POSTGRES_DB:-customer_ops} -tAc 'SELECT pg_is_in_recovery()' | grep -q t"]
       interval: 5s
       timeout: 5s
       retries: 10

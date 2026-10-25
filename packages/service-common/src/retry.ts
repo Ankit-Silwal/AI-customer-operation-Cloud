@@ -7,17 +7,20 @@ export interface RetryOptions {
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Full-jitter exponential backoff; callers must only retry idempotent work.
+// "Equal jitter" exponential backoff: the guaranteed half outlasts brief failover windows
+// (a load balancer re-resolving replicas) while the random half spreads retries. Callers must
+// only retry idempotent work.
 export async function retry<T>(
   operation: (attempt: number) => Promise<T>,
-  { attempts = 3, baseDelayMs = 50, maxDelayMs = 1000, shouldRetry = () => true }: RetryOptions = {},
+  { attempts = 3, baseDelayMs = 200, maxDelayMs = 1000, shouldRetry = () => true }: RetryOptions = {},
 ): Promise<T> {
   for (let attempt = 1; ; attempt++) {
     try {
       return await operation(attempt);
     } catch (error) {
       if (attempt >= attempts || !shouldRetry(error)) throw error;
-      await wait(Math.random() * Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1)));
+      const delay = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1));
+      await wait(delay / 2 + Math.random() * (delay / 2));
     }
   }
 }

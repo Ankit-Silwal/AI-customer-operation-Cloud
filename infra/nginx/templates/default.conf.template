@@ -1,8 +1,9 @@
 # Rendered by the nginx image entrypoint (envsubst); only ${EDGE_PROXY_SECRET} is substituted.
 # Upstream names are re-resolved through Docker DNS, so `--scale` and restarted replicas are picked
 # up without reloading nginx.
-resolver 127.0.0.11 valid=5s ipv6=off;
+resolver 127.0.0.11 valid=2s ipv6=off;
 resolver_timeout 2s;
+# The $group upstream names below are resolved from these blocks, never via DNS.
 
 upstream gateway {
     zone gateway 64k;
@@ -34,7 +35,10 @@ proxy_set_header X-Edge-Client-Ip $remote_addr;
 proxy_set_header X-Edge-Secret "${EDGE_PROXY_SECRET}";
 proxy_set_header X-Forwarded-For "";
 proxy_set_header Forwarded "";
-proxy_connect_timeout 2s;
+# Connects on the Docker network take well under 1 ms. A killed replica's IP stops answering, so
+# fail fast and retry: nginx refuses to retry a request whose upstream group was re-resolved
+# while it waited, and that otherwise surfaces as "no live upstreams".
+proxy_connect_timeout 300ms;
 proxy_send_timeout 65s;
 proxy_read_timeout 65s;
 # Retry another replica on connection failures, timeouts and drain/overload responses.
@@ -52,23 +56,83 @@ log_format edge escape=json '{"event":"edge_request","upstream":"$upstream_addr"
     '"upstreamStatus":"$upstream_status","durationMs":$request_time,"requestId":"$http_x_request_id"}';
 access_log /dev/stdout edge;
 
+# A crashed replica stays in the resolved set for up to `valid`; a request whose retry spans the
+# re-resolution fails with "no live upstreams" (last $upstream_addr is the group name, not an IP).
+# No replica ran that request, so @replay sends it once more against the refreshed group. Any other
+# nginx-generated 502/504 may have reached a replica, so it is never replayed (no duplicate POSTs)
+# and becomes the services' own retryable 503 instead.
+recursive_error_pages on;
+
 # Public entrypoint (published as ${PORT:-3001} on the host).
 server {
     listen 80;
-    location = /lb/health { access_log off; return 200 "ok\n"; }
-    location / { proxy_pass http://gateway; }
+    set $group gateway;
+    location = /lb/health { access_log off; return 200 "ok
+"; }
+    location / { proxy_pass http://$group; }
+    error_page 502 504 = @replay;
+    location @replay {
+        error_page 418 502 504 = @unavailable;
+        if ($upstream_addr !~ "(^|, )[a-z]+$") { return 418; }
+        proxy_pass http://$group;
+    }
+    location @unavailable {
+        default_type application/json;
+        add_header Retry-After 1 always;
+        add_header Cache-Control no-store always;
+        return 503 '{"error":"Service temporarily unavailable"}';
+    }
 }
 
 # Private listeners for service-to-service calls (Docker network only, not published).
 server {
     listen 8001;
-    location / { proxy_pass http://core; }
+    set $group core;
+    location / { proxy_pass http://$group; }
+    error_page 502 504 = @replay;
+    location @replay {
+        error_page 418 502 504 = @unavailable;
+        if ($upstream_addr !~ "(^|, )[a-z]+$") { return 418; }
+        proxy_pass http://$group;
+    }
+    location @unavailable {
+        default_type application/json;
+        add_header Retry-After 1 always;
+        add_header Cache-Control no-store always;
+        return 503 '{"error":"Service temporarily unavailable"}';
+    }
 }
 server {
     listen 8002;
-    location / { proxy_pass http://conversations; }
+    set $group conversations;
+    location / { proxy_pass http://$group; }
+    error_page 502 504 = @replay;
+    location @replay {
+        error_page 418 502 504 = @unavailable;
+        if ($upstream_addr !~ "(^|, )[a-z]+$") { return 418; }
+        proxy_pass http://$group;
+    }
+    location @unavailable {
+        default_type application/json;
+        add_header Retry-After 1 always;
+        add_header Cache-Control no-store always;
+        return 503 '{"error":"Service temporarily unavailable"}';
+    }
 }
 server {
     listen 8003;
-    location / { proxy_pass http://documents; }
+    set $group documents;
+    location / { proxy_pass http://$group; }
+    error_page 502 504 = @replay;
+    location @replay {
+        error_page 418 502 504 = @unavailable;
+        if ($upstream_addr !~ "(^|, )[a-z]+$") { return 418; }
+        proxy_pass http://$group;
+    }
+    location @unavailable {
+        default_type application/json;
+        add_header Retry-After 1 always;
+        add_header Cache-Control no-store always;
+        return 503 '{"error":"Service temporarily unavailable"}';
+    }
 }
