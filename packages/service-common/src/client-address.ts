@@ -11,9 +11,9 @@ const sha256 = (value: string) => createHash("sha256").update(value).digest();
 // its own $remote_addr and proves itself with EDGE_PROXY_SECRET; anything else uses the socket.
 export function peerAddress(req: Request): string {
   const secret = process.env.EDGE_PROXY_SECRET;
-  const supplied = req.get("x-edge-secret");
-  const ip = req.get("x-edge-client-ip");
-  if (secret && secret.length >= 32 && supplied && ip && ip.length <= 64
+  const supplied = req.headers?.["x-edge-secret"];
+  const ip = req.headers?.["x-edge-client-ip"];
+  if (secret && secret.length >= 32 && typeof supplied === "string" && typeof ip === "string" && ip && ip.length <= 64
     && timingSafeEqual(sha256(secret), sha256(supplied))) return ip;
   return req.socket.remoteAddress ?? "unknown";
 }
