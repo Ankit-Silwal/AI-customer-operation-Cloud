@@ -60,7 +60,7 @@ The first build installs CPU PyTorch and downloads public Hugging Face weights. 
 docker compose run --rm --no-deps rag python -m app.download_model
 ```
 
-Only the gateway publishes the application port (`3001` by default). PostgreSQL's host port follows `POSTGRES_PORT`. Qdrant publishes `127.0.0.1:6335` by default to avoid colliding with another local Qdrant; inside Docker its URL is `http://qdrant:6333`.
+Only the nginx load balancer publishes the application port (`3001` by default); it forwards to the gateway replicas. PostgreSQL's host port follows `POSTGRES_PORT`. Qdrant publishes `127.0.0.1:6335` by default to avoid colliding with another local Qdrant; inside Docker its URL is `http://qdrant:6333`.
 
 Add `api_key=...` (as in the supplied Python snippet) or `GEMINI_API_KEY=...` to `.env` when ready. The default model is exactly `gemini-3.1-flash-lite` and the default `OPENAI_BASE_URL` is `https://generativelanguage.googleapis.com/v1beta/openai/`. Then recreate RAG to load the new environment:
 
@@ -110,10 +110,39 @@ The Node regression suite retains isolated PostgreSQL schemas. The Docker smoke 
 
 `--restart` additionally restarts documents and RAG, waits for readiness, and reads the same document and indexed vectors using the original session token. This confirms that those records and the session do not depend on a process surviving.
 
-```sh
-docker compose up -d --scale conversations=2 --scale documents=2
+### Load balancing, replicas and retries
+
+```mermaid
+flowchart LR
+  Client --> LB[nginx lb :3001]
+  LB --> G1[api x3]
+  G1 --> LB2[lb :8001-8003]
+  LB2 --> Core[core x3]
+  LB2 --> Conv[conversations x3]
+  LB2 --> Docs[documents x3]
+  Core & Conv & Docs -->|writes, point reads| Primary[(postgres primary)]
+  Core & Conv & Docs -->|list reads| R1[(replica 1)]
+  Core & Conv & Docs -->|list reads| R2[(replica 2)]
+  Primary -- WAL stream --> R1 & R2
 ```
 
-Service DNS supplies replica addresses; no instance has a fixed container name or published domain port. The gateway makes fresh upstream connections. Each database pool defaults to 10 connections; a core replica owns two pools and conversation/document replicas own one each. Plan the total before scaling beyond PostgreSQL's limit. The model needs memory per RAG replica, even when cached weights are shared. PostgreSQL and Qdrant remain stateful and require backups; stateless API scaling does not make the data stores highly available.
+- `lb` (nginx, `infra/nginx/templates/default.conf.template`) is the only published API port. It balances the gateway and, on private ports 8001-8003, core, conversations and documents. Upstreams are re-resolved through Docker DNS every 5 s, so restarts and `--scale` changes apply without reloading nginx. A failing replica is skipped for 5 s after two failures (`max_fails`), and connection errors, timeouts, 502, 503 (including draining replicas) and 504 are retried on another replica, up to 3 tries within 10 s. nginx never re-sends a POST that reached an upstream.
+- `BACKEND_REPLICAS` (default 3) sets the copies of `api`, `core`, `conversations` and `documents`. RAG stays single (about 3 GB per replica for the model); its callers reach it directly.
+- Client addresses: nginx overwrites `X-Edge-Client-Ip` with the TCP peer and adds `X-Edge-Secret` (`EDGE_PROXY_SECRET`). Services trust that header only when the secret matches, so per-IP rate limits still see real clients rather than nginx. The gateway strips both headers before forwarding.
+- Service-to-service calls (`fetchWithRetry`) retry idempotent requests on network errors and 502/503/504 with jittered backoff and a per-attempt timeout. These calls are organization access checks, session validation and index removal. Interactive transactions (API-key issuance, uploads) are rerun on deadlocks or serialization failures (`40P01`, `40001`, `P2034`). RAG's HTTP client retries failed connections.
+
+### Primary and read replicas
+
+`postgres` is the primary. `postgres-replica-1` and `postgres-replica-2` are hot standbys cloned with `pg_basebackup` and fed by streaming replication over physical slots. `postgres-replication-setup` idempotently creates the `replicator` role and the slots on every `up`, so existing volumes are upgraded too. `max_slot_wal_keep_size=1GB` stops a dead replica's slot from filling the primary's disk. A replica that falls behind that window must be re-cloned: remove its volume and start it again.
+
+Read routing (`packages/service-common/src/read-replicas.ts`):
+
+- Only list/search/count queries use `ReadSource.read` (organizations, conversations and documents lists). Everything else stays on the primary: writes, point lookups, ownership checks, sessions/login, API keys and every read that follows a write.
+- Each second the service samples the primary's WAL position. A replica stays in rotation only while it has replayed the position from the previous sample and is still in recovery. Staleness is therefore bounded to about 2 s, and a promoted or misconfigured replica is excluded. Replicas start out of rotation.
+- A replica read that fails (lost connection, recovery conflict `40001`, …) is retried on the primary, and the replica leaves rotation until the next healthy check. Replicas never block startup or readiness.
+
+Connection budget: each pool defaults to `DB_POOL_MAX=10`. With 3 replicas the primary sees about 3 x (2 core + 1 conversations + 1 documents) x 10 = 120 connections, and each replica up to 90. `POSTGRES_MAX_CONNECTIONS` (default 200) applies to all three servers; standbys require at least the primary's value.
+
+Limits: this is one Docker host. PostgreSQL failover is manual (no automatic promotion), and nginx, Redis and Qdrant are single instances. Replicas spread read load and keep a warm copy of the data, but they do not replace backups.
 
 Provider references: [Google OpenAI compatibility](https://ai.google.dev/gemini-api/docs/openai), [BGE model card](https://huggingface.co/BAAI/bge-small-en-v1.5), [Qdrant LangChain integration](https://qdrant.tech/documentation/frameworks/langchain/).

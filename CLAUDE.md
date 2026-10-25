@@ -13,6 +13,8 @@ npm workspaces + Turborepo monorepo (Node 24, npm 11, ESM TypeScript; Python Fas
 - `rag` = `apps/rag`: BGE embeddings + Qdrant + Gemini; Qdrant is a derived index (re-index to rebuild).
 - Shared Node infrastructure (env, pools, server lifecycle, rate limits, error handler) lives in `packages/service-common`. Domain apps must not import each other in production code.
 
+Compose runs `BACKEND_REPLICAS` (default 3) of api/core/conversations/documents behind nginx `lb` (public :3001; service-to-service via `lb:8001-8003`), plus a Postgres primary and two streaming read replicas. Only list/search/count queries may use `ReadSource.read` (replica, bounded lag); writes, point lookups, ownership checks and read-after-write paths must use the primary client. Retry only idempotent calls (`fetchWithRetry`, `retryTransaction` in `service-common/retry.ts`). Details: `docs/microservices.md`.
+
 There are no cross-database joins or foreign keys. Services must stay stateless (no sticky sessions, in-memory state or local files); rate limits and concurrency live in Redis.
 
 ## Database rules

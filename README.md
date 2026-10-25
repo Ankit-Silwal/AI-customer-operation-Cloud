@@ -12,7 +12,7 @@ For a new checkout, copy `.env.example` to `.env` and set a random `JWT_SECRET` 
 docker compose up --build -d --wait --wait-timeout 600
 ```
 
-The gateway is at `http://localhost:3001`. The first build installs CPU PyTorch and downloads `BAAI/bge-small-en-v1.5` into a persistent model cache. Auth and organizations share the `core` server; conversations and documents run in their own servers, with RAG separate. The four domain databases and roles are retained, so changing the server grouping does not move or discard records.
+The gateway is at `http://localhost:3001`, served by the nginx load balancer in front of three replicas of each Node backend, with a PostgreSQL primary and two streaming read replicas ([scaling details](docs/microservices.md#load-balancing-replicas-and-retries)). The first build installs CPU PyTorch and downloads `BAAI/bge-small-en-v1.5` into a persistent model cache. Auth and organizations share the `core` server; conversations and documents run in their own servers, with RAG separate. The four domain databases and roles are retained, so changing the server grouping does not move or discard records.
 
 Add `api_key=...` or `GEMINI_API_KEY=...` to `.env` when ready, then run `docker compose up -d --force-recreate rag`. Indexing and search already work without that key; answer generation returns `503` until it is configured. The generation defaults are `gemini-3.1-flash-lite` and `https://generativelanguage.googleapis.com/v1beta/openai/`.
 
