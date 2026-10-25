@@ -17,6 +17,8 @@ export async function startDatabaseServer(options: {
   clients: ManagedClient[];
   createApp: (isDraining: () => boolean) => Express;
   initialize?: () => Promise<void>;
+  // Optional resources (read replicas) are closed on shutdown but never block startup.
+  onClose?: () => Promise<void>;
 }): Promise<void> {
   const { pools, clients } = options;
   let closePromise: Promise<void> | undefined;
@@ -27,7 +29,10 @@ export async function startDatabaseServer(options: {
       try {
         await Promise.all(clients.map((client) => client.$disconnect()));
       } finally {
-        await Promise.all(pools.map((pool) => pool.end()));
+        await Promise.all([
+          ...pools.map((pool) => pool.end()),
+          options.onClose?.(),
+        ]);
       }
     })();
     return closePromise;

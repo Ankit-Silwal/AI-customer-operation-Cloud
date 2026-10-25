@@ -3,6 +3,7 @@ import { authenticate } from "@repo/service-common/authenticate";
 import { TokenService } from "@repo/service-common/token";
 import { rememberRoutePrefix } from "@repo/service-common/request-context";
 import type { OrganizationAccess } from "@repo/service-common/organizations";
+import type { ReadSource } from "@repo/service-common/read-replicas";
 import type { PrismaClient } from "./database/prisma.js";
 import { PrismaDocumentRepository } from "./modules/documents/document.repository.js";
 import { DocumentService } from "./modules/documents/document.service.js";
@@ -20,6 +21,7 @@ export function setupRoutes(
   removeIndex: RemoveDocumentIndex = createIndexRemoval(
     process.env.RAG_URL ?? "http://localhost:4102",
   ),
+  reads?: ReadSource<PrismaClient>,
 ): void {
   const auth = authenticate(new TokenService(jwtSecret));
   app.use(
@@ -27,7 +29,7 @@ export function setupRoutes(
     rememberRoutePrefix,
     documentRoutes(
       new DocumentService(
-        new PrismaDocumentRepository(db, organizationAccess),
+        new PrismaDocumentRepository(db, organizationAccess, reads),
         removeIndex,
       ),
       auth,

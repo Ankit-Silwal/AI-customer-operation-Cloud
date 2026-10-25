@@ -3,6 +3,7 @@ import type { Express, RequestHandler } from "express";
 import {
   addressHeaders,
   clientAddress,
+  edgeHeaders,
   signedAddressHeaders,
 } from "@repo/service-common/client-address";
 
@@ -38,6 +39,7 @@ function proxy(target: string, secret?: string): RequestHandler {
     for (const name of hopHeaders) delete headers[name];
     for (const name of [
       ...addressHeaders,
+      ...edgeHeaders,
       "forwarded",
       "x-forwarded-for",
       "x-real-ip",

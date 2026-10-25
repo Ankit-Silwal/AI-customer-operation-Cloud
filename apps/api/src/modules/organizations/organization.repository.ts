@@ -1,4 +1,5 @@
 import type { Page, PageQuery } from "@repo/service-common/pagination";
+import { primaryOnly, type ReadSource } from "@repo/service-common/read-replicas";
 import type { PrismaClient } from "../../database/prisma.js";
 import type { Organization } from "./organization.types.js";
 
@@ -9,14 +10,15 @@ export interface OrganizationRepository {
 }
 
 export class PrismaOrganizationRepository implements OrganizationRepository {
-  constructor(private readonly db: PrismaClient) {}
+  constructor(private readonly db: PrismaClient, private readonly reads: ReadSource<PrismaClient> = primaryOnly(db)) {}
 
   async list(ownerId: string, query: PageQuery): Promise<Page<Organization>> {
     const where = { ownerId, ...(query.search ? { name: { contains: query.search, mode: "insensitive" as const } } : {}) };
-    const [items, total] = await Promise.all([
-      this.db.organization.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
-      this.db.organization.count({ where }),
-    ]);
+    // Lists tolerate bounded replica lag; ownership lookups below stay on the primary.
+    const [items, total] = await this.reads.read(db => Promise.all([
+      db.organization.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
+      db.organization.count({ where }),
+    ]));
     return { items, total, page: query.page, pageSize: query.pageSize };
   }
 

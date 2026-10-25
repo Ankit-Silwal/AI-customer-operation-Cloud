@@ -1,5 +1,6 @@
 import type { Page, PageQuery } from "@repo/service-common/pagination";
 import { HttpError } from "@repo/service-common/http";
+import { primaryOnly, type ReadSource } from "@repo/service-common/read-replicas";
 import type { PrismaClient } from "../../database/prisma.js";
 import type { OrganizationAccess } from "@repo/service-common/organizations";
 import type { Conversation, CreateConversationInput, Message } from "./conversation.types.js";
@@ -12,7 +13,7 @@ export interface ConversationRepository {
 }
 
 export class PrismaConversationRepository implements ConversationRepository {
-  constructor(private readonly db: PrismaClient, private readonly organizationAccess: OrganizationAccess) {}
+  constructor(private readonly db: PrismaClient, private readonly organizationAccess: OrganizationAccess, private readonly reads: ReadSource<PrismaClient> = primaryOnly(db)) {}
   async append(id: string, ownerId: string, expectedCount: number, messages: Message[]): Promise<Conversation> {
     const existing = await this.findOwnedById(id, ownerId);
     if (!existing) throw new HttpError(404, "Conversation not found");
@@ -24,10 +25,10 @@ export class PrismaConversationRepository implements ConversationRepository {
   async list(organizationId: string, ownerId: string, query: PageQuery): Promise<Page<Omit<Conversation, "content">>> {
     if (!await this.organizationAccess(organizationId, ownerId)) throw new HttpError(404, "Organization not found");
     const where = { organizationId, ...(query.search ? { subject: { contains: query.search, mode: "insensitive" as const } } : {}) };
-    const [saved, total] = await Promise.all([
-      this.db.conversation.findMany({ where,  orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
-      this.db.conversation.count({ where }),
-    ]);
+    const [saved, total] = await this.reads.read(db => Promise.all([
+      db.conversation.findMany({ where,  orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
+      db.conversation.count({ where }),
+    ]));
     const items = saved as unknown as Omit<Conversation, "content">[];
     return { items, total, page: query.page, pageSize: query.pageSize };
   }

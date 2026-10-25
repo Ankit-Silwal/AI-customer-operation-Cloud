@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { HttpError } from "./http.js";
+import { fetchWithRetry } from "./retry.js";
 
 export type OrganizationAccess = (
   organizationId: string,
@@ -20,12 +21,11 @@ export function createOrganizationAccess(
       issuer: "customer-operation-api",
     });
     try {
-      const response = await fetch(
+      // An idempotent GET: retry another core replica on network errors and 502/503/504.
+      const response = await fetchWithRetry(
         new URL(`/organizations/${encodeURIComponent(organizationId)}`, origin),
-        {
-          headers: { authorization: `Bearer ${token}` },
-          signal: AbortSignal.timeout(3000),
-        },
+        { headers: { authorization: `Bearer ${token}` }, timeoutMs: 1500 },
+        { attempts: 3 },
       );
       if (response.status === 404) return false;
       if (!response.ok) throw new Error("Organization service unavailable");

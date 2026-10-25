@@ -1,8 +1,9 @@
 import { readEnvironment } from "@repo/service-common/env";
 import { startDatabaseServer } from "@repo/service-common/server";
+import { createReadReplicas, parseReadUrls, type ReadReplicas } from "@repo/service-common/read-replicas";
 import { createApp } from "../app.js";
 import { createDatabase, initializeDatabase } from "../database/database.js";
-import { createPrisma } from "../database/prisma.js";
+import { createPrisma, type PrismaClient } from "../database/prisma.js";
 import type { ServiceRole } from "../services.js";
 
 export async function startDomainServer(serviceRole: ServiceRole): Promise<void> {
@@ -14,14 +15,17 @@ export async function startDomainServer(serviceRole: ServiceRole): Promise<void>
   const prisma = createPrisma(pool);
   const pools = [pool];
   const clients = [prisma];
-  const coreOptions = serviceRole === "core" ? (() => {
+  const coreOptions: { organizationDb?: PrismaClient; organizationReads?: ReadReplicas<PrismaClient> } = serviceRole === "core" ? (() => {
     const organizationPool = createDatabase(process.env.ORGANIZATIONS_DATABASE_URL!, env);
     const organizationDb = createPrisma(organizationPool);
     pools.push(organizationPool); clients.push(organizationDb);
-    return { organizationDb };
+    const organizationReads = createReadReplicas(organizationPool, organizationDb,
+      parseReadUrls(process.env.ORGANIZATIONS_DATABASE_READ_URLS, "ORGANIZATIONS_DATABASE_READ_URLS"), createPrisma, env);
+    return { organizationDb, organizationReads };
   })() : {};
   await startDatabaseServer({
     name: "core", port: env.port, pools, clients,
+    onClose: async () => { await coreOptions.organizationReads?.close(); },
     ...(serviceRole === "all" ? { initialize: () => initializeDatabase(pool) } : {}),
     createApp: isDraining => createApp(prisma, env.jwtSecret, { ...coreOptions, serviceRole, isDraining }),
   });

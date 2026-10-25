@@ -10,6 +10,8 @@ export interface LogRecord {
   poolTotal?: number;
   poolIdle?: number;
   poolWaiting?: number;
+  replica?: number;
+  healthy?: boolean;
 }
 
 export type Logger = (record: LogRecord) => void;

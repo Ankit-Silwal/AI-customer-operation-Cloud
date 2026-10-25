@@ -16,10 +16,12 @@ import { DeveloperService } from "./modules/developer/developer.service.js";
 import { developerRoutes } from "./modules/developer/developer.routes.js";
 import { environmentOtp, type OtpService } from "@repo/service-common/otp";
 import { passwordRoutes } from "./modules/auth/password.routes.js";
+import type { ReadSource } from "@repo/service-common/read-replicas";
 
 export interface RouteOptions extends HttpOptions {
   serviceRole?: ServiceRole;
   organizationDb?: PrismaClient;
+  organizationReads?: ReadSource<PrismaClient>;
   otp?: OtpService;
 }
 
@@ -70,7 +72,7 @@ export function setupRoutes(
       rememberRoutePrefix,
       organizationRoutes(
         new OrganizationService(
-          new PrismaOrganizationRepository(organizationDb),
+          new PrismaOrganizationRepository(organizationDb, options.organizationReads),
         ),
         auth,
       ),

@@ -3,6 +3,15 @@ import { HttpError } from "./http.js";
 import { errorCode, jsonLogger, type Logger } from "./logger.js";
 import { MulterError } from "multer";
 
+// pg exposes the constraint/detail; Prisma adapters nest the target fields under meta.
+function mentionsEmail(error: object): boolean {
+  try {
+    return /email/i.test(JSON.stringify({ ...error, message: undefined, stack: undefined }));
+  } catch {
+    return false;
+  }
+}
+
 export const createErrorHandler =
   (logger: Logger = jsonLogger): ErrorRequestHandler =>
   (error: unknown, _req, res, next) => {
@@ -37,7 +46,13 @@ export const createErrorHandler =
         "code" in error &&
         (error.code === "23505" || error.code === "P2002")
       ) {
-        respond(409, "Email is already registered");
+        // Concurrent registrations race to the unique email index; other unique keys are generic conflicts.
+        respond(
+          409,
+          mentionsEmail(error)
+            ? "Email is already registered"
+            : "Resource already exists",
+        );
         return;
       }
       if (

@@ -1,8 +1,22 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { Request } from "express";
 import ipaddr from "ipaddr.js";
 
 export const addressHeaders = ["x-rate-client-ip", "x-rate-timestamp", "x-rate-signature"] as const;
+export const edgeHeaders = ["x-edge-client-ip", "x-edge-secret"] as const;
+
+const sha256 = (value: string) => createHash("sha256").update(value).digest();
+
+// Behind the nginx load balancer every TCP peer is nginx. It overwrites x-edge-client-ip with
+// its own $remote_addr and proves itself with EDGE_PROXY_SECRET; anything else uses the socket.
+export function peerAddress(req: Request): string {
+  const secret = process.env.EDGE_PROXY_SECRET;
+  const supplied = req.get("x-edge-secret");
+  const ip = req.get("x-edge-client-ip");
+  if (secret && secret.length >= 32 && supplied && ip && ip.length <= 64
+    && timingSafeEqual(sha256(secret), sha256(supplied))) return ip;
+  return req.socket.remoteAddress ?? "unknown";
+}
 
 // Group IPv6 clients by /64, including canonicalization of IPv4-mapped IPv6.
 export function normalizeAddress(address: string): string {
@@ -19,7 +33,7 @@ function signature(secret: string, ip: string, time: string, requestId: string, 
 }
 
 export function signedAddressHeaders(req: Request, requestId: string, secret: string, purpose = "rate-forward-v1", address?: string): Record<string, string> {
-  const ip = normalizeAddress(address ?? req.socket.remoteAddress ?? "unknown");
+  const ip = normalizeAddress(address ?? peerAddress(req));
   const time = String(Math.floor(Date.now() / 1000));
   return { "x-rate-client-ip": ip, "x-rate-timestamp": time, "x-rate-signature": signature(secret, ip, time, requestId, purpose) };
 }
@@ -35,5 +49,5 @@ export function clientAddress(req: Request, secret: string, allowGateway = true,
     if (timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))) return normalizeAddress(ip);
   }
   // Forwarded / X-Forwarded-For are deliberately never used for admission.
-  return normalizeAddress(req.socket.remoteAddress ?? "unknown");
+  return normalizeAddress(peerAddress(req));
 }

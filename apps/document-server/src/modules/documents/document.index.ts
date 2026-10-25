@@ -1,4 +1,5 @@
 import { HttpError } from "@repo/service-common/http";
+import { fetchWithRetry } from "@repo/service-common/retry";
 
 export type RemoveDocumentIndex = (
   documentId: string,
@@ -20,7 +21,8 @@ export function createIndexRemoval(baseUrl: string): RemoveDocumentIndex {
   return async (documentId, token) => {
     let response: Response;
     try {
-      response = await fetch(
+      // Vector removal is an idempotent filtered delete, so transient failures are retried.
+      response = await fetchWithRetry(
         new URL(
           `rag/documents/${encodeURIComponent(documentId)}/index`,
           origin,
@@ -28,9 +30,10 @@ export function createIndexRemoval(baseUrl: string): RemoveDocumentIndex {
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
-          signal: AbortSignal.timeout(15000),
+          timeoutMs: 10000,
           redirect: "error",
         },
+        { attempts: 2, baseDelayMs: 200 },
       );
       await response.arrayBuffer();
     } catch {

@@ -5,6 +5,7 @@ import {
   type ApiScope,
 } from "@repo/service-common/developer-identity";
 import { HttpError } from "@repo/service-common/http";
+import { retryTransaction } from "@repo/service-common/retry";
 import { TokenService } from "@repo/service-common/token";
 import type { PrismaClient } from "../../database/prisma.js";
 
@@ -120,7 +121,8 @@ export async function issueKey(
     );
   const allowed = scopes(requested);
   const raw = `hrt_live_${randomBytes(32).toString("base64url")}`;
-  const key = await db.$transaction(async (tx) => {
+  // Deadlocks/serialization failures roll back the whole transaction, so it is rerun as a unit.
+  const key = await retryTransaction(() => db.$transaction(async (tx) => {
     const rows = await tx.$queryRaw<
       { id: string }[]
     >`SELECT id FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
@@ -149,6 +151,6 @@ export async function issueKey(
       },
       select: publicKey,
     });
-  });
+  }));
   return { ...key, key: raw };
 }

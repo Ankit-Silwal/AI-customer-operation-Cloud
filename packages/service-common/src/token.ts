@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { HttpError } from "./http.js";
+import { fetchWithRetry } from "./retry.js";
 export class InvalidSessionError extends Error {}
 
 export class TokenService {
@@ -53,11 +54,11 @@ export class TokenService {
               process.env.CORE_URL ??
               "http://localhost:3001",
           ).href;
-        response = await fetch(sessionUrl, {
-          headers: { authorization: `Bearer ${token}` },
-          signal: AbortSignal.timeout(2000),
-          redirect: "error",
-        });
+        response = await fetchWithRetry(
+          sessionUrl,
+          { headers: { authorization: `Bearer ${token}` }, timeoutMs: 1000, redirect: "error" },
+          { attempts: 3 },
+        );
       } catch {
         throw new HttpError(503, "Session validation temporarily unavailable");
       }
