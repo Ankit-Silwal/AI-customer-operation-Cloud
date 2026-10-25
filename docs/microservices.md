@@ -141,6 +141,11 @@ Read routing (`packages/service-common/src/read-replicas.ts`):
 - Each second the service samples the primary's WAL position. A replica stays in rotation only while it has replayed the position from the previous sample and is still in recovery. Staleness is therefore bounded to about 2 s, and a promoted or misconfigured replica is excluded. Replicas start out of rotation.
 - A replica read that fails (lost connection, recovery conflict `40001`, …) is retried on the primary, and the replica leaves rotation until the next healthy check. Replicas never block startup or readiness.
 
+Failure handling that was verified by killing a core replica, a documents replica and replica-1 together (`docker kill`) while the smoke suite runs; all 17 checks pass, and graceful `docker stop` passes as well:
+
+- nginx has no upstream keepalive pool. A killed container's IP vanishes without a TCP reset, so a cached idle socket to it would hold requests until the read timeout. Connects use a 300 ms timeout. A request that nginx never delivered to a replica (`no live upstreams` while it re-resolves DNS) is replayed once. Any other nginx-generated 502/504 becomes a retryable `503` with `Retry-After: 1` and is never replayed.
+- A stopped container's DNS name falls through to slower resolvers. Replica health checks therefore never overlap and back off exponentially (up to 30 s), replica pools connect with a 1 s timeout, and `UV_THREADPOOL_SIZE=16` keeps those lookups from starving DNS for healthy dependencies.
+
 Connection budget: each pool defaults to `DB_POOL_MAX=10`. With 3 replicas the primary sees about 3 x (2 core + 1 conversations + 1 documents) x 10 = 120 connections, and each replica up to 90. `POSTGRES_MAX_CONNECTIONS` (default 200) applies to all three servers; standbys require at least the primary's value.
 
 Limits: this is one Docker host. PostgreSQL failover is manual (no automatic promotion), and nginx, Redis and Qdrant are single instances. Replicas spread read load and keep a warm copy of the data, but they do not replace backups.
