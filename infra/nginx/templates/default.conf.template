@@ -1,0 +1,74 @@
+# Rendered by the nginx image entrypoint (envsubst); only ${EDGE_PROXY_SECRET} is substituted.
+# Upstream names are re-resolved through Docker DNS, so `--scale` and restarted replicas are picked
+# up without reloading nginx.
+resolver 127.0.0.11 valid=5s ipv6=off;
+resolver_timeout 2s;
+
+upstream gateway {
+    zone gateway 64k;
+    server api:3001 resolve max_fails=2 fail_timeout=5s;
+    keepalive 32;
+}
+upstream core {
+    zone core 64k;
+    server core:3001 resolve max_fails=2 fail_timeout=5s;
+    keepalive 32;
+}
+upstream conversations {
+    zone conversations 64k;
+    server conversations:3001 resolve max_fails=2 fail_timeout=5s;
+    keepalive 32;
+}
+upstream documents {
+    zone documents 64k;
+    server documents:3001 resolve max_fails=2 fail_timeout=5s;
+    keepalive 32;
+}
+
+# Shared proxy behaviour for every listener.
+proxy_http_version 1.1;
+proxy_set_header Connection "";
+proxy_set_header Host $host;
+# Overwrite (never append) client-supplied values so callers cannot forge their address.
+proxy_set_header X-Edge-Client-Ip $remote_addr;
+proxy_set_header X-Edge-Secret "${EDGE_PROXY_SECRET}";
+proxy_set_header X-Forwarded-For "";
+proxy_set_header Forwarded "";
+proxy_connect_timeout 2s;
+proxy_send_timeout 65s;
+proxy_read_timeout 65s;
+# Retry another replica on connection failures, timeouts and drain/overload responses.
+# nginx never re-sends a non-idempotent request (POST) once it reached an upstream.
+proxy_next_upstream error timeout http_502 http_503 http_504;
+proxy_next_upstream_tries 3;
+proxy_next_upstream_timeout 10s;
+# Uploads are ~1 MB multipart bodies; buffering the request body makes retries possible.
+client_max_body_size 2m;
+proxy_request_buffering on;
+# Stream responses (downloads, RAG answers) instead of spooling them to disk.
+proxy_buffering off;
+
+log_format edge escape=json '{"event":"edge_request","upstream":"$upstream_addr","status":$status,'
+    '"upstreamStatus":"$upstream_status","durationMs":$request_time,"requestId":"$http_x_request_id"}';
+access_log /dev/stdout edge;
+
+# Public entrypoint (published as ${PORT:-3001} on the host).
+server {
+    listen 80;
+    location = /lb/health { access_log off; return 200 "ok\n"; }
+    location / { proxy_pass http://gateway; }
+}
+
+# Private listeners for service-to-service calls (Docker network only, not published).
+server {
+    listen 8001;
+    location / { proxy_pass http://core; }
+}
+server {
+    listen 8002;
+    location / { proxy_pass http://conversations; }
+}
+server {
+    listen 8003;
+    location / { proxy_pass http://documents; }
+}

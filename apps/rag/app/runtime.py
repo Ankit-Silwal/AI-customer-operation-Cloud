@@ -25,7 +25,8 @@ def tenant_filter(owner_id: str, organization_id: str):
 class Runtime:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.http = httpx.Client(timeout=httpx.Timeout(10, connect=3), follow_redirects=False)
+        # Transport retries cover connection failures only (e.g. a replica restarting behind lb).
+        self.http = httpx.Client(transport=httpx.HTTPTransport(retries=2), timeout=httpx.Timeout(10, connect=3), follow_redirects=False)
         self.embedding_model = HuggingFaceEmbeddings(
             model_name=settings.embedding_model,
             model_kwargs={"device": "cpu"},

@@ -7,8 +7,15 @@ x-node: &node
   mem_limit: 512m
   restart: unless-stopped
 
+# Stateless backends run BACKEND_REPLICAS copies behind the nginx load balancer (lb).
+x-replicated: &replicated
+  deploy:
+    replicas: ${BACKEND_REPLICAS:-3}
+
 x-rate-env: &rate-env
   JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env file}
+  # Lets services trust the client address nginx forwards (x-edge-client-ip).
+  EDGE_PROXY_SECRET: ${EDGE_PROXY_SECRET:-local-edge-proxy-secret-change-me-0000}
   RATE_LIMIT_REDIS_URL: redis://:${REDIS_PASSWORD:-rate_limits_local}@redis:6379
   RATE_LIMIT_NAMESPACE: ${RATE_LIMIT_NAMESPACE:-customer-ops}
   RATE_LIMIT_POLICY_OVERRIDES: ${RATE_LIMIT_POLICY_OVERRIDES:-}
@@ -26,8 +33,9 @@ x-domain-env: &domain-env
   <<: *rate-env
   PORT: 3001
   DB_POOL_MAX: ${DB_POOL_MAX:-10}
-  AUTH_SESSION_URL: http://core:3001/auth/session
-  ORGANIZATIONS_URL: http://core:3001
+  # Service-to-service calls go through lb so nginx balances and retries across core replicas.
+  AUTH_SESSION_URL: http://lb:8001/auth/session
+  ORGANIZATIONS_URL: http://lb:8001
 
 services:
   web:
@@ -42,8 +50,9 @@ services:
       WEB_PORT: 3000
       WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3030}
       WEB_COOKIE_SECURE: ${WEB_COOKIE_SECURE:-false}
-      API_URL: http://api:3001
+      API_URL: http://lb
     depends_on:
+      lb: { condition: service_healthy }
       api: { condition: service_healthy }
     restart: unless-stopped
 
@@ -59,11 +68,12 @@ services:
       DOCS_PORT: 3006
       DOCS_ORIGIN: ${DOCS_ORIGIN:-http://localhost:3040}
       WEB_COOKIE_SECURE: ${WEB_COOKIE_SECURE:-false}
-      API_URL: http://api:3001
-      CORE_URL: http://core:3001
+      API_URL: http://lb
+      CORE_URL: http://lb:8001
       DOCS_DEMO_EMAIL: ${DOCS_DEMO_EMAIL:-sandbox@hearth.example}
       DOCS_DEMO_PASSWORD: ${DOCS_DEMO_PASSWORD:-}
     depends_on:
+      lb: { condition: service_healthy }
       api: { condition: service_healthy }
       rag: { condition: service_healthy }
     restart: unless-stopped
@@ -83,29 +93,46 @@ services:
       DEMO_PORT: 3005
       DEMO_ORIGIN: ${DEMO_ORIGIN:-http://localhost:3035}
       WEB_COOKIE_SECURE: ${WEB_COOKIE_SECURE:-false}
-      API_URL: http://api:3001
-      HEARTH_API_BASE_URL: http://api:3001/v1
+      API_URL: http://lb
+      HEARTH_API_BASE_URL: http://lb/v1
     depends_on:
+      lb: { condition: service_healthy }
       developer-portal: { condition: service_healthy }
       api: { condition: service_healthy }
       rag: { condition: service_healthy }
     restart: unless-stopped
 
-  api:
-    <<: *node
-    command: ["node", "apps/api/dist/gateway/server.js"]
+  lb:
+    image: nginx:1.28-alpine
+    cpus: "0.5"
+    mem_limit: 128m
     ports:
-      - "${PORT:-3001}:3001"
+      - "${PORT:-3001}:80"
+    environment:
+      EDGE_PROXY_SECRET: ${EDGE_PROXY_SECRET:-local-edge-proxy-secret-change-me-0000}
+    volumes:
+      - ./infra/nginx/templates:/etc/nginx/templates:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/lb/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    <<: [*node, *replicated]
+    command: ["node", "apps/api/dist/gateway/server.js"]
     environment:
       <<: *rate-env
       PORT: 3001
       DEVELOPER_URL: http://developer-portal:3006
-      CORE_URL: http://core:3001
-      CONVERSATIONS_URL: http://conversations:3001
-      DOCUMENTS_URL: http://documents:3001
+      CORE_URL: http://lb:8001
+      CONVERSATIONS_URL: http://lb:8002
+      DOCUMENTS_URL: http://lb:8003
       RAG_URL: http://rag:8000
       RATE_LIMIT_TRUST_FRONTEND: "true"
     depends_on:
+      lb: { condition: service_started }
       redis: { condition: service_healthy }
       core: { condition: service_healthy }
       conversations: { condition: service_healthy }
@@ -113,20 +140,22 @@ services:
       rag: { condition: service_started }
 
   core:
-    <<: *node
+    <<: [*node, *replicated]
     command: ["node", "apps/api/dist/server.js"]
     environment:
       <<: [*domain-env, *smtp-env]
       SERVICE_ROLE: core
       DATABASE_URL: postgresql://identity_app:${IDENTITY_DB_PASSWORD:-identity_local}@postgres:5432/identity
       ORGANIZATIONS_DATABASE_URL: postgresql://organizations_app:${ORGANIZATIONS_DB_PASSWORD:-organizations_local}@postgres:5432/organizations
+      # Organization lists read from replicas; identity (login/sessions) always uses the primary.
+      ORGANIZATIONS_DATABASE_READ_URLS: postgresql://organizations_app:${ORGANIZATIONS_DB_PASSWORD:-organizations_local}@postgres-replica-1:5432/organizations,postgresql://organizations_app:${ORGANIZATIONS_DB_PASSWORD:-organizations_local}@postgres-replica-2:5432/organizations
     depends_on:
       redis: { condition: service_healthy }
       migrate-identity: { condition: service_completed_successfully }
       migrate-organizations: { condition: service_completed_successfully }
 
   conversations:
-    <<: *node
+    <<: [*node, *replicated]
     image: customer-ops-conversation:local
     build:
       context: .
@@ -136,13 +165,15 @@ services:
       <<: *domain-env
       SERVICE_ROLE: conversations
       DATABASE_URL: postgresql://conversations_app:${CONVERSATIONS_DB_PASSWORD:-conversations_local}@postgres:5432/conversations
+      DATABASE_READ_URLS: postgresql://conversations_app:${CONVERSATIONS_DB_PASSWORD:-conversations_local}@postgres-replica-1:5432/conversations,postgresql://conversations_app:${CONVERSATIONS_DB_PASSWORD:-conversations_local}@postgres-replica-2:5432/conversations
     depends_on:
+      lb: { condition: service_started }
       redis: { condition: service_healthy }
       core: { condition: service_healthy }
       migrate-conversations: { condition: service_completed_successfully }
 
   documents:
-    <<: *node
+    <<: [*node, *replicated]
     image: customer-ops-document:local
     build:
       context: .
@@ -153,7 +184,9 @@ services:
       SERVICE_ROLE: documents
       RAG_URL: http://rag:8000
       DATABASE_URL: postgresql://documents_app:${DOCUMENTS_DB_PASSWORD:-documents_local}@postgres:5432/documents
+      DATABASE_READ_URLS: postgresql://documents_app:${DOCUMENTS_DB_PASSWORD:-documents_local}@postgres-replica-1:5432/documents,postgresql://documents_app:${DOCUMENTS_DB_PASSWORD:-documents_local}@postgres-replica-2:5432/documents
     depends_on:
+      lb: { condition: service_started }
       redis: { condition: service_healthy }
       core: { condition: service_healthy }
       migrate-documents: { condition: service_completed_successfully }
@@ -225,11 +258,12 @@ services:
       QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
       QDRANT_COLLECTION: ${QDRANT_COLLECTION:-learning_rag}
       QDRANT_CREATE_COLLECTION: ${QDRANT_CREATE_COLLECTION:-true}
-      ORGANIZATIONS_URL: http://core:3001
-      DOCUMENTS_URL: http://documents:3001
+      ORGANIZATIONS_URL: http://lb:8001
+      DOCUMENTS_URL: http://lb:8003
     volumes:
       - embedding_models:/models
     depends_on:
+      lb: { condition: service_started }
       redis: { condition: service_healthy }
       qdrant: { condition: service_started }
       core: { condition: service_healthy }
@@ -291,11 +325,28 @@ services:
       ORGANIZATIONS_DB_PASSWORD: ${ORGANIZATIONS_DB_PASSWORD:-organizations_local}
       CONVERSATIONS_DB_PASSWORD: ${CONVERSATIONS_DB_PASSWORD:-conversations_local}
       DOCUMENTS_DB_PASSWORD: ${DOCUMENTS_DB_PASSWORD:-documents_local}
+    # Primary: all writes and read-after-write paths. Streams WAL to the read replicas.
+    command:
+      - postgres
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-200}
+      - -c
+      - wal_level=replica
+      - -c
+      - max_wal_senders=10
+      - -c
+      - max_replication_slots=10
+      # A dead replica's slot must not retain WAL without bound and fill the disk.
+      - -c
+      - max_slot_wal_keep_size=1GB
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - microservices_postgres_data:/var/lib/postgresql/data
       - ./infra/postgres:/docker-entrypoint-initdb.d:ro
+      - ./infra/replication/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -303,8 +354,65 @@ services:
       retries: 10
     restart: unless-stopped
 
+  postgres-replication-setup:
+    image: postgres:17-alpine
+    restart: "no"
+    entrypoint: ["/bin/sh", "/replication/replication-setup.sh"]
+    environment:
+      PRIMARY_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-customer_ops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-customer_ops_local}
+      POSTGRES_DB: ${POSTGRES_DB:-customer_ops}
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-replication_local}
+      REPLICATION_SLOTS: replica_1 replica_2
+    volumes:
+      - ./infra/replication:/replication:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  # Hot-standby read replicas (streaming replication, physical slots). Apps read lists from
+  # them only while their replay position is current; otherwise reads fall back to the primary.
+  postgres-replica-1: &postgres-replica
+    image: postgres:17-alpine
+    user: postgres
+    cpus: "0.5"
+    mem_limit: 512m
+    entrypoint: ["/bin/sh", "/replication/replica-entrypoint.sh"]
+    environment:
+      PRIMARY_HOST: postgres
+      REPLICATION_SLOT: replica_1
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-replication_local}
+      POSTGRES_MAX_CONNECTIONS: ${POSTGRES_MAX_CONNECTIONS:-200}
+    volumes:
+      - postgres_replica_1_data:/var/lib/postgresql/data
+      - ./infra/replication:/replication:ro
+      - ./infra/replication/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q && psql -tAc 'SELECT pg_is_in_recovery()' | grep -q t"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    depends_on:
+      postgres-replication-setup: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  postgres-replica-2:
+    <<: *postgres-replica
+    environment:
+      PRIMARY_HOST: postgres
+      REPLICATION_SLOT: replica_2
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-replication_local}
+      POSTGRES_MAX_CONNECTIONS: ${POSTGRES_MAX_CONNECTIONS:-200}
+    volumes:
+      - postgres_replica_2_data:/var/lib/postgresql/data
+      - ./infra/replication:/replication:ro
+      - ./infra/replication/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+
 volumes:
   microservices_postgres_data:
+  postgres_replica_1_data:
+  postgres_replica_2_data:
   rag_qdrant_data:
   embedding_models:
   rate_limit_data:
